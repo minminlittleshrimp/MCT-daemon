@@ -50,13 +50,10 @@ $sudo ldconfig
 ```
 
 ### MCT demo
-In case you haven't had a look at the brief [overview](#overview), now would be
-the perfect occasion to learn about the most important terms and to get an idea
-where data is buffered. Then go on with our guide on [how to set up a DLT demo
-setup](doc/dlt_demo_setup.md).
+You could find a demo in [how to set up a MCT demo
+setup](doc/mct_demo_setup.md).
 
 ### Configure, Control and Interface
-```
 
 | Document | Description |
 |----|----|
