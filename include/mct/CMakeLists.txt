@@ -1,39 +1,17 @@
-#######
-# SPDX license identifier: MPL-2.0
-#
-# Copyright (C) 2011-2015, BMW AG
-#
-# This file is part of GENIVI Project DLT - Diagnostic Log and Trace.
-#
-# This Source Code Form is subject to the terms of the
-# Mozilla Public License (MPL), v. 2.0.
-# If a copy of the MPL was not distributed with this file,
-# You can obtain one at http://mozilla.org/MPL/2.0/.
-#
-# For further information see http://www.genivi.org/.
-#######
 
-if(WITH_DLT_DISABLE_MACRO)
-    set(DLT_DISABLE_MACRO 1)
-endif()
+configure_file(mct_user.h.in mct_user.h)
 
-configure_file(dlt_user.h.in dlt_user.h)
+set(HEADER_LIST mct.h mct_user_macros.h mct_client.h mct_protocol.h
+                mct_common.h mct_types.h mct_shm.h mct_offline_trace.h
+                mct_filetransfer.h mct_common_api.h
+                ${CMAKE_CURRENT_BINARY_DIR}/mct_version.h
+                ${CMAKE_CURRENT_BINARY_DIR}/mct_user.h)
 
-set(HEADER_LIST dlt.h dlt_user_macros.h dlt_client.h dlt_protocol.h
-                dlt_common.h dlt_types.h dlt_shm.h dlt_offline_trace.h
-                dlt_filetransfer.h dlt_common_api.h
-                ${CMAKE_CURRENT_BINARY_DIR}/dlt_version.h
-                ${CMAKE_CURRENT_BINARY_DIR}/dlt_user.h)
-
-if(WITH_DLT_DISABLE_MACRO)
-    list(REMOVE_ITEM HEADER_LIST dlt_user_macros.h)
-endif()
-
-if(WITH_DLT_CXX11_EXT)
-    list(APPEND HEADER_LIST dlt_cpp_extension.hpp)
+if(WITH_MCT_DISABLE_MACRO)
+    list(REMOVE_ITEM HEADER_LIST mct_user_macros.h)
 endif()
 
 install(FILES ${HEADER_LIST}
-        DESTINATION include/dlt
+        DESTINATION include/mct
         COMPONENT devel)
 
