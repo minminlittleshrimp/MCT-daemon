@@ -67,58 +67,39 @@
  */
 
 #ifndef DLT_DAEMON_COMMON_H
-#   define DLT_DAEMON_COMMON_H
+#define DLT_DAEMON_COMMON_H
 
 /**
  * \defgroup daemonapi DLT Daemon API
  * \addtogroup daemonapi
- \{
+ * \{
  */
 
-#   include <limits.h>
-#   include <semaphore.h>
-#   include <stdbool.h>
-#   include "dlt_common.h"
-#   include "dlt_user.h"
-#   include "dlt_offline_logstorage.h"
-#   include "dlt_gateway_types.h"
+#include <limits.h>
+#include <semaphore.h>
+#include <stdbool.h>
+#include "dlt_common.h"
+#include "dlt_user.h"
+#include "dlt_offline_logstorage.h"
 
-#   ifdef __cplusplus
+#ifdef __cplusplus
 extern "C" {
-#   endif
+#endif
 
-#   define DLT_DAEMON_RINGBUFFER_MIN_SIZE    500000/**< Ring buffer size for storing log messages while no client is connected */
-#   define DLT_DAEMON_RINGBUFFER_MAX_SIZE  10000000/**< Ring buffer size for storing log messages while no client is connected */
-#   define DLT_DAEMON_RINGBUFFER_STEP_SIZE   500000/**< Ring buffer size for storing log messages while no client is connected */
+#define DLT_DAEMON_RINGBUFFER_MIN_SIZE    500000   /**< Ring buffer size for storing log messages while no client is connected */
+#define DLT_DAEMON_RINGBUFFER_MAX_SIZE  10000000   /**< Ring buffer size for storing log messages while no client is connected */
+#define DLT_DAEMON_RINGBUFFER_STEP_SIZE   500000   /**< Ring buffer size for storing log messages while no client is connected */
 
-#   define DLT_DAEMON_SEND_TO_ALL     -3/**< Constant value to identify the command "send to all" */
-#   define DLT_DAEMON_SEND_FORCE      -4/**< Constant value to identify the command "send force to all" */
+#define DLT_DAEMON_SEND_TO_ALL     -3   /**< Constant value to identify the command "send to all" */
+#define DLT_DAEMON_SEND_FORCE      -4   /**< Constant value to identify the command "send force to all" */
 
-/* Use a semaphore or mutex from your OS to prevent concurrent access to the DLT buffer. */
-
-#define DLT_DAEMON_SEM_LOCK() do{\
-    while ((sem_wait(&dlt_daemon_mutex) == -1) && (errno == EINTR)) \
-        continue;       /* Restart if interrupted */ \
-    } while(0)
-
-#define DLT_DAEMON_SEM_FREE() { sem_post(&dlt_daemon_mutex); }
-extern sem_t dlt_daemon_mutex;
-
-/* UDPMulticart Default IP and Port */
-#   ifdef UDP_CONNECTION_SUPPORT
-    #      define MULTICASTIPADDRESS "225.0.0.37"
-    #      define MULTICASTIPPORT 3491
-    #      define MULTICASTIP_MAX_SIZE 256
-    #      define MULTICAST_CONNECTION_DISABLED 0
-    #      define MULTICAST_CONNECTION_ENABLED 1
-#   endif
 
 /**
  * Definitions of DLT daemon logging states
  */
 typedef enum
 {
-    DLT_DAEMON_STATE_INIT = 0,                    /**< Initial state */
+    DLT_DAEMON_STATE_INIT = 0,               /**< Initial state */
     DLT_DAEMON_STATE_BUFFER = 1,             /**< logging is buffered until external logger is connected or internal logging is activated */
     DLT_DAEMON_STATE_BUFFER_FULL = 2,        /**< then internal buffer is full, wait for connect from client */
     DLT_DAEMON_STATE_SEND_BUFFER = 3,        /**< external logger is connected, but buffer is still not empty or external logger queue is full */
@@ -130,12 +111,13 @@ typedef enum
  */
 typedef struct
 {
-    char apid[DLT_ID_SIZE];                   /**< application id */
-    pid_t pid;                   /**< process id of user application */
-    int user_handle;    /**< connection handle for connection to user application */
-    bool owns_user_handle; /**< user_handle should be closed when reset */
+    char apid[DLT_ID_SIZE];        /**< application id */
+    pid_t pid;                     /**< process id of user application */
+    int user_handle;               /**< connection handle for connection to user application */
+    bool owns_user_handle;         /**< user_handle should be closed when reset */
     char *application_description; /**< context description */
-    int num_contexts; /**< number of contexts for this application */
+    int num_contexts;              /**< number of contexts for this application */
+    int blockmode_status;          /**< blockmode status information */
 } DltDaemonApplication;
 
 /**
@@ -143,15 +125,15 @@ typedef struct
  */
 typedef struct
 {
-    char apid[DLT_ID_SIZE];               /**< application id */
-    char ctid[DLT_ID_SIZE];               /**< context id */
-    int8_t log_level;        /**< the current log level of the context */
-    int8_t trace_status;    /**< the current trace status of the context */
-    int log_level_pos;  /**< offset of context in context field on user application */
-    int user_handle;    /**< connection handle for connection to user application */
+    char apid[DLT_ID_SIZE];    /**< application id */
+    char ctid[DLT_ID_SIZE];    /**< context id */
+    int8_t log_level;          /**< the current log level of the context */
+    int8_t trace_status;       /**< the current trace status of the context */
+    int log_level_pos;         /**< offset of context in context field on user application */
+    int user_handle;           /**< connection handle for connection to user application */
     char *context_description; /**< context description */
-    int8_t storage_log_level; /**< log level set for offline logstorage */
-    bool predefined; /**< set to true if this context is predefined by runtime configuration file */
+    int8_t storage_log_level;  /**< log level set for offline logstorage */
+    bool predefined;           /**< set to true if this context is predefined by runtime configuration file */
 } DltDaemonContext;
 
 /*
@@ -160,10 +142,10 @@ typedef struct
 typedef struct
 {
     DltDaemonApplication *applications; /**< Pointer to applications */
-    int num_applications; /**< Number of available application */
-    DltDaemonContext *contexts; /**< Pointer to contexts */
-    int num_contexts; /**< Total number of all contexts in all applications in this list */
-    char ecu[DLT_ID_SIZE];  /**< ECU ID of where contexts are registered */
+    int num_applications;               /**< Number of available application */
+    DltDaemonContext *contexts;         /**< Pointer to contexts */
+    int num_contexts;                   /**< Total number of all contexts in all applications in this list */
+    char ecu[DLT_ID_SIZE];              /**< ECU ID of where contexts are registered */
 } DltDaemonRegisteredUsers;
 
 /**
@@ -171,26 +153,27 @@ typedef struct
  */
 typedef struct
 {
-    DltDaemonRegisteredUsers *user_list; /**< registered users per ECU */
-    int num_user_lists;  /** < number of context lists */
-    int8_t default_log_level;          /**< Default log level (of daemon) */
-    int8_t default_trace_status;       /**< Default trace status (of daemon) */
-    int8_t force_ll_ts;                /**< Enforce ll and ts to not exceed default_log_level, default_trace_status */
-    unsigned int overflow_counter;   /**< counts the number of lost messages. */
-    int runtime_context_cfg_loaded;         /**< Set to one, if runtime context configuration has been loaded, zero otherwise */
-    char ecuid[DLT_ID_SIZE];       /**< ECU ID of daemon */
-    int sendserialheader;          /**< 1: send serial header; 0 don't send serial header */
-    int timingpackets;              /**< 1: send continous timing packets; 0 don't send continous timing packets */
-    DltBuffer client_ringbuffer; /**< Ring-buffer for storing received logs while no client connection is available */
+    DltDaemonRegisteredUsers *user_list;        /**< registered users per ECU */
+    int num_user_lists;                         /** < number of context lists */
+    int8_t default_log_level;                   /**< Default log level (of daemon) */
+    int8_t default_trace_status;                /**< Default trace status (of daemon) */
+    int8_t force_ll_ts;                         /**< Enforce ll and ts to not exceed default_log_level, default_trace_status */
+    unsigned int overflow_counter;              /**< counts the number of lost messages. */
+    int runtime_context_cfg_loaded;             /**< Set to one, if runtime context configuration has been loaded, zero otherwise */
+    char ecuid[DLT_ID_SIZE];                    /**< ECU ID of daemon */
+    int sendserialheader;                       /**< 1: send serial header; 0 don't send serial header */
+    int timingpackets;                          /**< 1: send continous timing packets; 0 don't send continous timing packets */
+    DltBuffer client_ringbuffer;                /**< Ring-buffer for storing received logs while no client connection is available */
     char runtime_application_cfg[PATH_MAX + 1]; /**< Path and filename of persistent application configuration. Set to path max, as it specifies a full path*/
-    char runtime_context_cfg[PATH_MAX + 1]; /**< Path and filename of persistent context configuration */
-    char runtime_configuration[PATH_MAX + 1]; /**< Path and filename of persistent configuration */
-    DltUserLogMode mode;    /**< Mode used for tracing: off, external, internal, both */
-    char connectionState;                /**< state for tracing: 0 = no client connected, 1 = client connected */
-    char *ECUVersionString; /**< Version string to send to client. Loaded from a file at startup. May be null. */
-    DltDaemonState state;   /**< the current logging state of dlt daemon. */
+    char runtime_context_cfg[PATH_MAX + 1];     /**< Path and filename of persistent context configuration */
+    char runtime_configuration[PATH_MAX + 1];   /**< Path and filename of persistent configuration */
+    DltUserLogMode mode;                        /**< Mode used for tracing: off, external, internal, both */
+    char connectionState;                       /**< state for tracing: 0 = no client connected, 1 = client connected */
+    char *ECUVersionString;                     /**< Version string to send to client. Loaded from a file at startup. May be null. */
+    DltDaemonState state;                       /**< the current logging state of dlt daemon. */
     DltLogStorage *storage_handle;
-    int maintain_logstorage_loglevel;     /* Permission to maintain the logstorage loglevel*/
+    int blockMode;                    /**< current active BlockMode setting. */
+    int maintain_logstorage_loglevel; /* Permission to maintain the logstorage loglevel*/
 } DltDaemon;
 
 /**
@@ -223,19 +206,7 @@ int dlt_daemon_init(DltDaemon *daemon,
  * @return negative value if there was an error
  */
 int dlt_daemon_free(DltDaemon *daemon, int verbose);
-/**
- * Initialize data structures to store information about applications running on same
- * or passive node.
- * @param daemon pointer to dlt daemon structure
- * @param gateway pointer to dlt gateway structure
- * @param gateway_mode mode of dlt daemon, specified in dlt.conf
- * @param verbose if set to true verbose information is printed out
- * @return DLT_RETURN_OK on success, DLT_RETURN_ERROR otherwise
- */
-int dlt_daemon_init_user_information(DltDaemon *daemon,
-                                     DltGateway *gateway,
-                                     int gateway_mode,
-                                     int verbose);
+
 /**
  * Find information about application/contexts for a specific ECU
  * @param daemon pointer to dlt daemon structure
@@ -483,7 +454,9 @@ void dlt_daemon_user_send_all_log_level_update(DltDaemon *daemon, int8_t log_lev
  * @param trace_status new trace status to be set
  * @param verbose if set to true verbose information is printed out.
  */
-void dlt_daemon_user_send_all_trace_status_update(DltDaemon *daemon, int8_t trace_status, int verbose);
+void dlt_daemon_user_send_all_trace_status_update(DltDaemon *daemon,
+                                                  int8_t trace_status,
+                                                  int verbose);
 
 /**
  * Send user messages to all user applications the log status
@@ -518,12 +491,25 @@ void dlt_daemon_control_reset_to_factory_default(DltDaemon *daemon,
  */
 void dlt_daemon_change_state(DltDaemon *daemon, DltDaemonState newState);
 
-#   ifdef __cplusplus
+/**
+ * Send user message DLT_USER_MESSAGE_SET_BLOCK_MODE to user application with
+ * specified BlockMode
+ * @param daemon pointer to dlt daemon structure
+ * @param name pointer to application name to which block mode is sent
+ * @param block_mode new blockmode to be send to applications
+ * @param verbose if set to true verbose information is printed out.
+ * @return negative value if there was an error
+ */
+int dlt_daemon_user_update_blockmode(DltDaemon *daemon,
+                                     char *name,
+                                     int block_mode,
+                                     int verbose);
+#ifdef __cplusplus
 }
-#   endif
+#endif
 
 /**
- \}
+ * \}
  */
 
 #endif /* DLT_DAEMON_COMMON_H */

@@ -1,5 +1,12 @@
-
 add_subdirectory( lib )
 add_subdirectory( daemon )
-add_subdirectory( publisher )
+
+if( WITH_DLT_CONSOLE )
+    add_subdirectory( console )
+endif( WITH_DLT_CONSOLE )
+
+if( WITH_DLT_EXAMPLES )
+    add_subdirectory( examples )
+endif( WITH_DLT_EXAMPLES )
+
 

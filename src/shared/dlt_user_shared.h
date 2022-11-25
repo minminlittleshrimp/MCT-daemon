@@ -181,6 +181,14 @@ typedef struct
     char apid[4];                        /**< application which lost messages */
 } DLT_PACKED DltUserControlMsgBufferOverflow;
 
+/**
+ * This is the internal message content to get the sending the number of bytes of messages discarded when PIPE and BUFFER Full.
+ */
+typedef struct
+{
+        int8_t block_mode;
+} DLT_PACKED DltUserControlMsgBlockMode;
+
 /**************************************************************************************************
 * The folowing functions are used shared between the user lib and the daemon implementation
 **************************************************************************************************/

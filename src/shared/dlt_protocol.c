@@ -62,10 +62,10 @@ const char *const dlt_user_service_names[] = {
     "DLT_SERVICE_ID_SET_ALL_LOG_LEVEL",
     "DLT_SERVICE_ID_SET_ALL_TRACE_STATUS",
     "DLT_SERVICE_ID_UNDEFINED", /* 0xF0A is not defined */
-    "DLT_SERVICE_ID_RESERVED",
-    "DLT_SERVICE_ID_RESERVED",
-    "DLT_SERVICE_ID_RESERVED",
-    "DLT_SERVICE_ID_RESERVED"
+    "DLT_SERVICE_ID_SET_BLOCK_MODE",
+    "DLT_SERVICE_ID_GET_BLOCK_MODE",
+    "DLT_SERVICE_ID_SET_FILTER_LEVEL",
+    "DLT_SERVICE_ID_GET_FILTER_STATUS"
 };
 
 const char *dlt_get_service_name(unsigned int id)

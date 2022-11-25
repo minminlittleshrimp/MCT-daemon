@@ -28,7 +28,7 @@ set(dlt_daemon_SRCS
     dlt_daemon_serial.c
     dlt_daemon_socket.c
     dlt_daemon_unix_socket.c
-    ${PROJECT_SOURCE_DIR}/src/gateway/dlt_gateway.c
+    dlt_daemon_filter.c
     ${PROJECT_SOURCE_DIR}/src/lib/dlt_client.c
     ${PROJECT_SOURCE_DIR}/src/shared/dlt_common.c
     ${PROJECT_SOURCE_DIR}/src/shared/dlt_config_file_parser.c
@@ -39,31 +39,13 @@ set(dlt_daemon_SRCS
     ${PROJECT_SOURCE_DIR}/src/offlinelogstorage/dlt_offline_logstorage_behavior.c
     )
 
-if(WITH_DLT_SHM_ENABLE)
-    set(dlt_daemon_SRCS
-        ${dlt_daemon_SRCS}
-        ${PROJECT_SOURCE_DIR}/src/shared/dlt_shm.c)
-endif()
-
-if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux|CYGWIN")
-    set(RT_LIBRARY rt)
-    set(SOCKET_LIBRARY "")
-else()
-    set(RT_LIBRARY "")
-    set(SOCKET_LIBRARY socket)
-endif()
-
-if(WITH_UDP_CONNECTION)
-    include_directories(${PROJECT_SOURCE_DIR}/src/daemon/udp_connection)
-    add_definitions(-DUDP_CONNECTION_SUPPORT)
-    set(dlt_daemon_SRCS ${dlt_daemon_SRCS} ${PROJECT_SOURCE_DIR}/src/daemon/udp_connection/dlt_daemon_udp_socket.c)
-endif(WITH_UDP_CONNECTION)
-
+set(FILTER_CONFIG dlt_message_filter.conf)
 add_executable(dlt-daemon ${dlt_daemon_SRCS} ${systemd_SRCS})
+
+set(RT_LIBRARY rt)
+set(SOCKET_LIBRARY "")
+
 target_link_libraries(dlt-daemon ${RT_LIBRARY} ${SOCKET_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
-if (WITH_SYSTEMD_SOCKET_ACTIVATION)
-    target_link_libraries(dlt-daemon systemd)
-endif()
 
 install(TARGETS dlt-daemon
         RUNTIME DESTINATION bin
@@ -73,24 +55,9 @@ install(TARGETS dlt-daemon
             WORLD_EXECUTE WORLD_READ
         COMPONENT base)
 
-if (WITH_DLT_UNIT_TESTS)
-    set(library_SRCS ${dlt_daemon_SRCS})
+configure_file(${CMAKE_SOURCE_DIR}/src/daemon/dlt.conf.in ${PROJECT_BINARY_DIR}/src/daemon/dlt.conf)
 
-    if (WITH_SYSTEMD_WATCHDOG OR WITH_SYSTEMD)
-        set(library_SRCS ${library_SRCS} ${systemd_SRCS})
-    endif(WITH_SYSTEMD_WATCHDOG OR WITH_SYSTEMD)
-
-    add_library(dlt_daemon ${library_SRCS})
-    target_link_libraries(dlt_daemon ${RT_LIBRARY} ${SOCKET_LIBRARY} ${CMAKE_THREAD_LIBS_INIT})
-
-    install(TARGETS dlt_daemon
-            RUNTIME DESTINATION bin
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/static
-            COMPONENT base)
-endif(WITH_DLT_UNIT_TESTS)
-
-INSTALL(FILES dlt.conf
+INSTALL(FILES ${PROJECT_BINARY_DIR}/src/daemon/dlt.conf ${FILTER_CONFIG}
 	DESTINATION ${CONFIGURATION_FILES_DIR}
 	COMPONENT base)
 

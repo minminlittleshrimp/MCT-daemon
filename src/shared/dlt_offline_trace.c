@@ -197,7 +197,7 @@ DltReturnValue dlt_offline_trace_create_new_file(DltOfflineTrace *trace)
                        DLT_OFFLINETRACE_FILENAME_TIMESTAMP_DELI, timestamp,
                        DLT_OFFLINETRACE_FILENAME_EXT);
 
-        if ((ret < 0) || ((size_t)ret >= (int)sizeof(trace->filename))) {
+        if ((ret < 0) || ((size_t)ret >= sizeof(trace->filename))) {
             printf("dlt_offlinetrace filename cannot be concatenated\n");
             return DLT_RETURN_ERROR;
         }
@@ -205,7 +205,7 @@ DltReturnValue dlt_offline_trace_create_new_file(DltOfflineTrace *trace)
         ret = snprintf(file_path, sizeof(file_path), "%s/%s",
                        trace->directory, trace->filename);
 
-        if ((ret < 0) || ((size_t)ret >= (int)sizeof(file_path))) {
+        if ((ret < 0) || ((size_t)ret >= sizeof(file_path))) {
             printf("dlt_offlinetrace file path cannot be concatenated\n");
             return DLT_RETURN_ERROR;
         }
@@ -295,9 +295,6 @@ int dlt_offline_trace_delete_oldest_file(DltOfflineTrace *trace)
 
     /* go through all dlt files in directory */
     DIR *dir = opendir(trace->directory);
-
-    if(!dir)
-        return -1;
 
     while ((dp = readdir(dir)) != NULL)
         if (strstr(dp->d_name, DLT_OFFLINETRACE_FILENAME_BASE)) {
@@ -399,7 +396,7 @@ DltReturnValue dlt_offline_trace_write(DltOfflineTrace *trace,
                                        int size3)
 {
 
-    if (trace->ohandle < 0)
+    if (trace->ohandle <= 0)
         return DLT_RETURN_ERROR;
 
     /* check file size here */
@@ -443,7 +440,7 @@ DltReturnValue dlt_offline_trace_write(DltOfflineTrace *trace,
 DltReturnValue dlt_offline_trace_free(DltOfflineTrace *trace)
 {
 
-    if (trace->ohandle < 0)
+    if (trace->ohandle <= 0)
         return DLT_RETURN_ERROR;
 
     /* close last used log file */

@@ -430,7 +430,7 @@ DltConfigFile *dlt_config_file_init(char *file_name)
     DltConfigFile *file;
     FILE *hdl = NULL;
 
-    if ((file_name == NULL) || (strlen(file_name) >= DLT_CONFIG_FILE_PATH_MAX_LEN)) {
+    if ((file_name == NULL) || (strlen(file_name) >= DLT_PATH_MAX)) {
         dlt_log(LOG_ERR, "Given configuration file invalid\n");
         return NULL;
     }
@@ -496,7 +496,6 @@ int dlt_config_file_get_section_name(const DltConfigFile *file,
         return -1;
 
     strncpy(name, (file->sections + num)->name, DLT_CONFIG_FILE_ENTRY_MAX_LEN);
-    name[DLT_CONFIG_FILE_ENTRY_MAX_LEN - 1] = '\0';
 
     return 0;
 }

@@ -96,8 +96,8 @@ int dlt_daemon_client_send(int sock,
  * @return 0 if success, less than 0 if there is an error or buffer is full
  */
 int dlt_daemon_client_send_message_to_all_client(DltDaemon *daemon,
-                                       DltDaemonLocal *daemon_local,
-                                       int verbose);
+                                                 DltDaemonLocal *daemon_local,
+                                                 int verbose);
 /**
  * Send out response message to dlt client
  * @param sock connection handle used for sending response
@@ -136,7 +136,10 @@ void dlt_daemon_control_get_log_info(int sock,
  * @param daemon_local pointer to dlt daemon local structure
  * @param verbose if set to true verbose information is printed out.
  */
-void dlt_daemon_control_get_software_version(int sock, DltDaemon *daemon, DltDaemonLocal *daemon_local, int verbose);
+void dlt_daemon_control_get_software_version(int sock,
+                                             DltDaemon *daemon,
+                                             DltDaemonLocal *daemon_local,
+                                             int verbose);
 /**
  * Process and generate response to received get default log level control message
  * @param sock connection handle used for sending response
@@ -144,7 +147,10 @@ void dlt_daemon_control_get_software_version(int sock, DltDaemon *daemon, DltDae
  * @param daemon_local pointer to dlt daemon local structure
  * @param verbose if set to true verbose information is printed out.
  */
-void dlt_daemon_control_get_default_log_level(int sock, DltDaemon *daemon, DltDaemonLocal *daemon_local, int verbose);
+void dlt_daemon_control_get_default_log_level(int sock,
+                                              DltDaemon *daemon,
+                                              DltDaemonLocal *daemon_local,
+                                              int verbose);
 /**
  * Process and generate response to message buffer overflow control message
  * @param sock connection handle used for sending response
@@ -215,7 +221,10 @@ int dlt_daemon_control_message_connection_info(int sock,
  * @param daemon_local pointer to dlt daemon local structure
  * @param verbose if set to true verbose information is printed out.
  */
-int dlt_daemon_control_message_timezone(int sock, DltDaemon *daemon, DltDaemonLocal *daemon_local, int verbose);
+int dlt_daemon_control_message_timezone(int sock,
+                                        DltDaemon *daemon,
+                                        DltDaemonLocal *daemon_local,
+                                        int verbose);
 /**
  * Send control message marker (add on to AUTOSAR standard)
  * @param sock connection handle used for sending response
@@ -223,7 +232,10 @@ int dlt_daemon_control_message_timezone(int sock, DltDaemon *daemon, DltDaemonLo
  * @param daemon_local pointer to dlt daemon local structure
  * @param verbose if set to true verbose information is printed out.
  */
-int dlt_daemon_control_message_marker(int sock, DltDaemon *daemon, DltDaemonLocal *daemon_local, int verbose);
+int dlt_daemon_control_message_marker(int sock,
+                                      DltDaemon *daemon,
+                                      DltDaemonLocal *daemon_local,
+                                      int verbose);
 /**
  * Process received control message from dlt client
  * @param sock connection handle used for sending response
@@ -349,7 +361,10 @@ void dlt_daemon_control_set_timing_packets(int sock,
  * @param daemon_local pointer to dlt daemon local structure
  * @param verbose if set to true verbose information is printed out.
  */
-void dlt_daemon_control_message_time(int sock, DltDaemon *daemon, DltDaemonLocal *daemon_local, int verbose);
+void dlt_daemon_control_message_time(int sock,
+                                     DltDaemon *daemon,
+                                     DltDaemonLocal *daemon_local,
+                                     int verbose);
 /**
  * Service offline logstorage command request
  * @param sock connection handle used for sending response
@@ -390,4 +405,54 @@ void dlt_daemon_control_passive_node_connect_status(int sock,
                                                     DltDaemon *daemon,
                                                     DltDaemonLocal *daemon_local,
                                                     int verbose);
+/**
+ * Process and generate response to received set filter level control message
+ * @param sock connection handle used for sending response
+ * @param daemon pointer to dlt daemon structure
+ * @param daemon_local pointer to dlt daemon local structure
+ * @param msg pointer to received control message
+ * @param verbose if set to true verbose information is printed out.
+ */
+void dlt_daemon_control_set_filter_level(int sock,
+                                         DltDaemon *daemon,
+                                         DltDaemonLocal *daemon_local,
+                                         DltMessage *msg,
+                                         int verbose);
+/**
+ * Process and generate response to received get filter status control message
+ * @param sock connection handle used for sending response
+ * @param daemon pointer to dlt daemon structure
+ * @param daemon_local pointer to dlt daemon local structure
+ * @param verbose if set to true verbose information is printed out.
+ */
+void dlt_daemon_control_get_filter_status(int sock,
+                                          DltDaemon *daemon,
+                                          DltDaemonLocal *daemon_local,
+                                          int verbose);
+/**
+ * Process and generate response to received set BlockMode message
+ * @param sock connection handle used for sending response
+ * @param daemon pointer to dlt daemon structure
+ * @param daemon_local pointer to dlt daemon local structure
+ * @param msg pointer to received control message
+ * @param verbose if set to true verbose information is printed out.
+ */
+void dlt_daemon_control_set_block_mode(int sock,
+                                       DltDaemon *daemon,
+                                       DltDaemonLocal *daemon_local,
+                                       DltMessage *msg,
+                                       int verbose);
+/**
+ * Process and generate response to received get BlockMode message
+ * @param sock connection handle used for sending response
+ * @param daemon pointer to dlt daemon structure
+ * @param daemon_local pointer to dlt daemon local structure
+ * @param msg pointer to received control message
+ * @param verbose if set to true verbose information is printed out.
+ */
+void dlt_daemon_control_get_block_mode(int sock,
+                                       DltDaemon *daemon,
+                                       DltDaemonLocal *daemon_local,
+                                       DltMessage *msg,
+                                       int verbose);
 #endif /* DLT_DAEMON_CLIENT_H */
