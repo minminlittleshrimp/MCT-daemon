@@ -1,19 +1,4 @@
-#######
-# SPDX license identifier: MPL-2.0
-#
-# Copyright (C) 2011-2015, BMW AG
-#
-# This file is part of GENIVI Project DLT - Diagnostic Log and Trace.
-#
-# This Source Code Form is subject to the terms of the
-# Mozilla Public License (MPL), v. 2.0.
-# If a copy of the MPL was not distributed with this file,
-# You can obtain one at http://mozilla.org/MPL/2.0/.
-#
-# For further information see http://www.genivi.org/.
-#######
-
-# Run CheckIncludeFiles and CheckFunctionExists
+######## Run CheckIncludeFiles and CheckFunctionExists
 include(TestBigEndian)
 TEST_BIG_ENDIAN( DLT_BIGENDIAN )
 if( DLT_BIGENDIAN )
@@ -93,7 +78,7 @@ else( CMAKE_THREAD_LIBS_INIT )
 endif( CMAKE_THREAD_LIBS_INIT )
 
 if(WITH_CHECK_CONFIG_FILE)
-  configure_file(${PROJECT_SOURCE_DIR}/cmake/config.h.cmake ${PROJECT_BINARY_DIR}/include/dlt/config.h)
+  configure_file(${PROJECT_SOURCE_DIR}/cmake/config.h.cmake ${PROJECT_BINARY_DIR}/include/mct/config.h)
 endif(WITH_CHECK_CONFIG_FILE)
 
-configure_file(${PROJECT_SOURCE_DIR}/cmake/dlt_version.h.cmake ${PROJECT_BINARY_DIR}/include/dlt/dlt_version.h @ONLY)
+configure_file(${PROJECT_SOURCE_DIR}/cmake/mct_version.h.cmake ${PROJECT_BINARY_DIR}/include/mct/mct_version.h @ONLY)

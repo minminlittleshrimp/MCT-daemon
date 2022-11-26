@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.3)
-project(automotive-dlt VERSION 2.18.8)
+project(mct VERSION 1.0.0)
 
 mark_as_advanced(CMAKE_BACKWARDS_COMPATIBILITY)
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
@@ -7,18 +7,6 @@ set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 include(GNUInstallDirs)
 # Set version parameters
 set(DLT_VERSION_STATE STABLE)
-
-execute_process(COMMAND git describe --tags WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    OUTPUT_VARIABLE DLT_REVISION
-    ERROR_VARIABLE GIT_ERROR
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_STRIP_TRAILING_WHITESPACE)
-if(DLT_REVISION MATCHES "^$")
-    set(PRINT_REVISION "Git revision unavailable")
-else(DLT_REVISION MATCHES "")
-    string(REPLACE "-" "_" DLT_REVISION ${DLT_REVISION})
-    set(PRINT_REVISION ${DLT_REVISION})
-endif()
 
 # set default build type, if not defined by user
 if(NOT CMAKE_BUILD_TYPE)
@@ -31,7 +19,7 @@ endif()
 # Set of indiviual options
 option(BUILD_SHARED_LIBS      "Set to OFF to build static libraries"                                                         ON)
 option(WITH_DLT_CONSOLE       "Set to ON to build src/console binaries"                                                      ON)
-option(WITH_DLT_CONSOLE_SBTM  "Set to ON to build dlt-sortbytimestamp under src/console"                                     OFF)
+option(WITH_DLT_CONSOLE_SBTM  "Set to ON to build mct-sortbytimestamp under src/console"                                     OFF)
 option(WITH_DLT_EXAMPLES      "Set to ON to build src/examples binaries"                                                     ON)
 set(DLT_IPC "FIFO" CACHE STRING "UNIX_SOCKET,FIFO")
 set(DLT_USER "genivi" CACHE STRING "Set user for process not run as root")
@@ -48,8 +36,8 @@ find_package(Threads REQUIRED)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}
-    ${PROJECT_BINARY_DIR}/include/dlt
-    ${PROJECT_SOURCE_DIR}/include/dlt
+    ${PROJECT_BINARY_DIR}/include/mct
+    ${PROJECT_SOURCE_DIR}/include/mct
     ${PROJECT_SOURCE_DIR}/src/shared
     ${PROJECT_SOURCE_DIR}/src/offlinelogstorage
     ${PROJECT_SOURCE_DIR}/src/lib
@@ -91,7 +79,9 @@ add_subdirectory(cmake)
 if(WITH_DLT_LOGSTORAGE_CTRL_UDEV)
     add_definitions(-DDLT_LOGSTORAGE_CTRL_UDEV_ENABLE)
 endif()
-
+if(WITH_DLT_LOGSTORAGE_CTRL_PROP)
+    add_definitions(-DHAS_PROPRIETARY_LOGSTORAGE)
+endif()
 
 add_subdirectory(doc)
 add_subdirectory(src)
@@ -99,7 +89,8 @@ add_subdirectory(include)
 
 message(STATUS)
 message(STATUS "-------------------------------------------------------------------------------")
-message(STATUS "Build for Version ${PROJECT_VERSION} build ${DLT_REVISION} version state ${DLT_VERSION_STATE}")
+message(STATUS "Build for Version ${PROJECT_VERSION} build, version state ${DLT_VERSION_STATE}")
+message(STATUS "BUILD_SHARED_LIBS = ${BUILD_SHARED_LIBS}")
 message(STATUS "WITH_DLT_CONSOLE = ${WITH_DLT_CONSOLE}")
 message(STATUS "WITH_DLT_CONSOLE_SBTM = ${WITH_DLT_CONSOLE_SBTM}")
 message(STATUS "WITH_DLT_EXAMPLES = ${WITH_DLT_EXAMPLES}")

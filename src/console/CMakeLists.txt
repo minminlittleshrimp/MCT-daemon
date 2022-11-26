@@ -13,16 +13,16 @@
 # For further information see http://www.genivi.org/.
 #######
 
-set(TARGET_LIST dlt-receive)
+set(TARGET_LIST mct-log-reader mct-log-converter)
 
 if(WITH_DLT_CONSOLE_SBTM)
-    list(APPEND TARGET_LIST dlt-sortbytimestamp)
+    list(APPEND TARGET_LIST mct-sortbytimestamp)
 endif()
 
 foreach(target IN LISTS TARGET_LIST)
     set(target_SRCS ${target})
     add_executable(${target} ${target_SRCS})
-    target_link_libraries(${target} dlt)
+    target_link_libraries(${target} mct)
     set_target_properties(${target} PROPERTIES LINKER_LANGUAGE C)
     install(TARGETS ${target}
             RUNTIME DESTINATION bin

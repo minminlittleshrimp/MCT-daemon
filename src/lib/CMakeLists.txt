@@ -1,29 +1,14 @@
-#######
-# SPDX license identifier: MPL-2.0
-#
-# Copyright (C) 2011-2015, BMW AG
-#
-# This file is part of GENIVI Project DLT - Diagnostic Log and Trace.
-#
-# This Source Code Form is subject to the terms of the
-# Mozilla Public License (MPL), v. 2.0.
-# If a copy of the MPL was not distributed with this file,
-# You can obtain one at http://mozilla.org/MPL/2.0/.
-#
-# For further information see http://www.genivi.org/.
-#######
-
-set(dlt_LIB_SRCS
-    dlt_user.c
-    dlt_client.c
-    dlt_env_ll.c
-    ${PROJECT_SOURCE_DIR}/src/shared/dlt_common.c
-    ${PROJECT_SOURCE_DIR}/src/shared/dlt_protocol.c
-    ${PROJECT_SOURCE_DIR}/src/shared/dlt_user_shared.c
+set(mct_LIB_SRCS
+    mct_user.c
+    mct_client.c
+    mct_env_ll.c
+    ${PROJECT_SOURCE_DIR}/src/shared/mct_common.c
+    ${PROJECT_SOURCE_DIR}/src/shared/mct_protocol.c
+    ${PROJECT_SOURCE_DIR}/src/shared/mct_user_shared.c
     )
 
 
-add_library(dlt ${dlt_LIB_SRCS})
+add_library(mct ${mct_LIB_SRCS})
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(RT_LIBRARY rt)
@@ -40,20 +25,20 @@ else()
     message(STATUS "pthread_setname_np API not available on this platform")
 endif()
 
-target_link_libraries(dlt ${RT_LIBRARY} ${SOCKET_LIBRARY} Threads::Threads)
+target_link_libraries(mct ${RT_LIBRARY} ${SOCKET_LIBRARY} Threads::Threads)
 
-target_include_directories(dlt
+target_include_directories(mct
     PUBLIC
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/dlt>
-        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include/dlt>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/mct>
+        $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include/mct>
         $<INSTALL_INTERFACE:include>
 )
 
-set_target_properties(dlt PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
+set_target_properties(mct PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
-add_library(Genivi::dlt ALIAS dlt)
+add_library(MCT::mct ALIAS mct)
 
-install(TARGETS dlt
+install(TARGETS mct
     EXPORT
         ${PROJECT_NAME}-targets
     RUNTIME
@@ -70,7 +55,7 @@ install(TARGETS dlt
 install(
     EXPORT ${PROJECT_NAME}-targets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-    NAMESPACE Genivi::
+    NAMESPACE MCt::
 )
 
 # Create *-config.cmake file
