@@ -82,7 +82,6 @@ if(WITH_MCT_LOGSTORAGE_CTRL_PROP)
     add_definitions(-DHAS_PROPRIETARY_LOGSTORAGE)
 endif()
 
-add_subdirectory(doc)
 add_subdirectory(src)
 add_subdirectory(include)
 

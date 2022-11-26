@@ -344,7 +344,6 @@ int main(int argc, char *argv[])
             fprintf (stderr,
                      "Extended filtering is not supported. Please build with the corresponding cmake option to use it.\n");
             return -1;
-            #endif
         }
         case 'o':
         {
