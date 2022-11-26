@@ -2,14 +2,14 @@
 
 # NAME
 
-**dlt.conf** - DLT daemon configuration file
+**mct.conf** - DLT daemon configuration file
 
 # DESCRIPTION
 
 The DLT daemon is the central application which gathers logs and traces from different applications, stores them temporarily or permanently and transfers them to a DLT client application, which could run directly on the GENIVI system or more likely on some external tester device.
 
-The configuration file dlt.conf allows to configure the different
-runtime behaviour of the dlt-daemon. It is loaded during startup of dlt-daemon.
+The configuration file mct.conf allows to configure the different
+runtime behaviour of the mct-daemon. It is loaded during startup of mct-daemon.
 
 # GENERAL OPTIONS
 
@@ -63,7 +63,7 @@ This is the directory path, where the DLT daemon stores its runtime configuratio
 
 ## LoggingMode
 
-The logging console for internal logging of dlt-daemon. 0 = log to stdout, 1 = log to syslog, 2 = log to file (see LoggingFilename), 3 = log to stderr
+The logging console for internal logging of mct-daemon. 0 = log to stdout, 1 = log to syslog, 2 = log to file (see LoggingFilename), 3 = log to stderr
 
     Default: 0
 
@@ -77,7 +77,7 @@ The internal log level, up to which logs are written. LOG_EMERG = 0, LOG_ALERT =
 
 If LoggingMode is set to 2 logs are written to the file path given here.
 
-    Default: /tmp/dlt.log
+    Default: /tmp/mct.log
 
 ## TimeOutOnSend
 
@@ -127,10 +127,10 @@ Initial trace-status that is sent when an application registers. DLT_TRACE_STATU
 Force log level and trace status of contexts to not exceed "ContextLogLevel" and "ContextTraceStatus". If set to 1 (ON) whenever a context registers or changes the log-level it has to be lower or equal to ContextLogLevel.
 
     Default: 0
-    
+
 ## InjectionMode
 
-If set to 0, the injection mode (see [here](./dlt_for_developers.md#DLT-Injection-Messages)) is disabled.
+If set to 0, the injection mode (see [here](./mct_for_developers.md#DLT-Injection-Messages)) is disabled.
 
     Default: 1
 
@@ -146,51 +146,51 @@ Enable Gateway mode
 
 Read gateway configuration from another location
 
-    Default: /etc/dlt_gateway.conf
+    Default: /etc/mct_gateway.conf
 
 # Permission configuration
 
 DLT daemon runs with e.g.
- User: genivi_dlt
- Group: genivi_dlt
+ User: genivi_mct
+ Group: genivi_mct
 
-DLT user applications run with different user and group than dlt-daemon but with supplimentory group: dlt_user_apps_group
+DLT user applications run with different user and group than mct-daemon but with supplimentory group: mct_user_apps_group
 
-<basedir>/dlt FIFO will be created by dlt-daemon with
-    User: genivi_dlt
-    Group: dlt_user_apps_group
+<basedir>/mct FIFO will be created by mct-daemon with
+    User: genivi_mct
+    Group: mct_user_apps_group
     Permission: 620
 
-so that only dlt-daemon can read and only processes in dlt_user_apps_group can write.
+so that only mct-daemon can read and only processes in mct_user_apps_group can write.
 
-<basedir>/dltpipes will be created by dlt-daemon with
-    User: genivi_dlt
-    Group: genivi_dlt
+<basedir>/mctpipes will be created by mct-daemon with
+    User: genivi_mct
+    Group: genivi_mct
     Permission: 3733 (i.e Sticky bit and SGID turned on)
 
-<basedir>/dltpipes/dlt<PID> FIFO will be created by dlt application (user lib) with
+<basedir>/mctpipes/mct<PID> FIFO will be created by mct application (user lib) with
     User: <user of the application>
-    Group: genivi_dlt (inherited from <basedir>dltpipes/ due to SGID)
+    Group: genivi_mct (inherited from <basedir>mctpipes/ due to SGID)
     Permission: 620
 
-Thus DLT user applications (and also or attackers) can create the dlt<PID> FIFO
-(for communication from dlt-daemon to DLT user application) under <basedir>/dltpipes/. Since sticky bit is set the applications who creates the FIFO can only rename/delete it.
+Thus DLT user applications (and also or attackers) can create the mct<PID> FIFO
+(for communication from mct-daemon to DLT user application) under <basedir>/mctpipes/. Since sticky bit is set the applications who creates the FIFO can only rename/delete it.
 
-Since SGID of <basedir>/dltpipes is set the group of dlt<PID> FIFO will be genivi_dlt which enables dlt daemon to have write permission on all the dlt<PID> FIFO.
+Since SGID of <basedir>/mctpipes is set the group of mct<PID> FIFO will be genivi_mct which enables mct daemon to have write permission on all the mct<PID> FIFO.
 
-One dlt user application cannot access dlt<PID> FIFO created by other dlt user application(if they run with different user).
+One mct user application cannot access mct<PID> FIFO created by other mct user application(if they run with different user).
 
-Owner group of daemon FIFO directory(Default: /tmp/dlt) (If not set, primary group of dlt-daemon process is used).
-Application should have write permission to this group for tracing into dlt. For this opton to work, dlt-daemon should have this group in it's supplementary group.
+Owner group of daemon FIFO directory(Default: /tmp/mct) (If not set, primary group of mct-daemon process is used).
+Application should have write permission to this group for tracing into mct. For this opton to work, mct-daemon should have this group in it's supplementary group.
 
 ## DaemonFifoGroup
 
 Owner group of daemon FIFO directory
-(If not set, primary group of dlt-daemon process is used)
-Application should have write permission to this group for tracing into dlt
-For this opton to work, dlt-daemon should have this group in it's Supplementary group
+(If not set, primary group of mct-daemon process is used)
+Application should have write permission to this group for tracing into mct
+For this opton to work, mct-daemon should have this group in it's Supplementary group
 
-    Default: group of dlt-daemon process (/tmp/dlt)
+    Default: group of mct-daemon process (/tmp/mct)
 
 # CONTROL APPLICATION OPTIONS
 
@@ -198,7 +198,7 @@ For this opton to work, dlt-daemon should have this group in it's Supplementary 
 
 Path to control socket.
 
-    Default: /tmp/dlt-ctrl.sock
+    Default: /tmp/mct-ctrl.sock
 
 # OFFLINE TRACE OPTIONS
 
@@ -356,8 +356,8 @@ Copyright (C) 2015 BMW AG. License MPL-2.0: Mozilla Public License version 2.0 <
 
 # BUGS
 
-See Github issue: <https://github.com/GENIVI/dlt-daemon/issues>
+See Github issue: <https://github.com/GENIVI/mct-daemon/issues>
 
 # SEE ALSO
 
-**dlt-daemon(1)**, **dlt-system(1)**
+**mct-daemon(1)**, **mct-system(1)**
