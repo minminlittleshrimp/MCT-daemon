@@ -1,12 +1,12 @@
-% DLT.CONF(5)
+% MCT.CONF(5)
 
 # NAME
 
-**mct.conf** - DLT daemon configuration file
+**mct.conf** - MCT daemon configuration file
 
 # DESCRIPTION
 
-The DLT daemon is the central application which gathers logs and traces from different applications, stores them temporarily or permanently and transfers them to a DLT client application, which could run directly on the GENIVI system or more likely on some external tester device.
+The MCT daemon is the central application which gathers logs and traces from different applications, stores them temporarily or permanently and transfers them to a MCT client application, which could run directly on the GENIVI system or more likely on some external tester device.
 
 The configuration file mct.conf allows to configure the different
 runtime behaviour of the mct-daemon. It is loaded during startup of mct-daemon.
@@ -21,43 +21,43 @@ Start daemon in debug mode, so that all internal debug information is printed ou
 
 ## Daemonize
 
-If set to 1 DLT daemon is started in background as daemon. This option is only needed in System V init systems. In systemd based startup systems the daemon is started by spawning own process.
+If set to 1 MCT daemon is started in background as daemon. This option is only needed in System V init systems. In systemd based startup systems the daemon is started by spawning own process.
 
     Default: 0
 
 ## SendSerialHeader
 
-If set to 1 DLT daemon sends each DLT message to the client with prepanding the serial header "DLS0x01".
+If set to 1 MCT daemon sends each MCT message to the client with prepanding the serial header "DLS0x01".
 
     Default: 0
 
 ## SendContextRegistration
 
-If set to 1 each context which is registered from an application in the DLT daemon generates a message to inform the DLT client about the new context.
+If set to 1 each context which is registered from an application in the MCT daemon generates a message to inform the MCT client about the new context.
 
     Default: 1
 
 ## SendMessageTime
 
-If set to 1 DLt daemon sends each second a DLT control message to the client with the current timestamp from the system.
+If set to 1 DLt daemon sends each second a MCT control message to the client with the current timestamp from the system.
 
     Default: 0
 
 ## ECUId
 
-This value sets the ECU Id, which is sent with each DLT message.
+This value sets the ECU Id, which is sent with each MCT message.
 
     Default: ECU1
 
 ## SharedMemorySize
 
-This value sets the size of the shared memory, which is used to exchange DLT messages between applications and daemon. This value is defined in bytes. If this value is changed the system must be rebooted to take effect.
+This value sets the size of the shared memory, which is used to exchange MCT messages between applications and daemon. This value is defined in bytes. If this value is changed the system must be rebooted to take effect.
 
     Default: 100000
 
 ## PersistanceStoragePath
 
-This is the directory path, where the DLT daemon stores its runtime configuration. Runtime configuration includes stored log levels, trace status and changed logging mode.
+This is the directory path, where the MCT daemon stores its runtime configuration. Runtime configuration includes stored log levels, trace status and changed logging mode.
 
     Default: /tmp
 
@@ -87,19 +87,19 @@ Socket timeout in seconds for sending to clients.
 
 ## RingbufferMinSize
 
-The minimum size of the Ringbuffer, used for storing temporary DLT messages, until client is connected.
+The minimum size of the Ringbuffer, used for storing temporary MCT messages, until client is connected.
 
     Default: 500000
 
 ## RingbufferMaxSize
 
-The max size of the Ringbuffer, used for storing temporary DLT messages, until client is connected.
+The max size of the Ringbuffer, used for storing temporary MCT messages, until client is connected.
 
     Default: 10000000
 
 ## RingbufferStepSize
 
-The step size the Ringbuffer is increased, used for storing temporary DLT messages, until client is connected.
+The step size the Ringbuffer is increased, used for storing temporary MCT messages, until client is connected.
 
     Default: 500000
 
@@ -112,13 +112,13 @@ This is only supported for Linux.
 
 ## ContextLogLevel
 
-Initial log-level that is sent when an application registers. DLT_LOG_OFF = 0, DLT_LOG_FATAL = 1, DLT_LOG_ERROR = 2, DLT_LOG_WARN = 3, DLT_LOG_INFO = 4, DLT_LOG_DEBUG = 5, DLT_LOG_VERBOSE = 6
+Initial log-level that is sent when an application registers. MCT_LOG_OFF = 0, MCT_LOG_FATAL = 1, MCT_LOG_ERROR = 2, MCT_LOG_WARN = 3, MCT_LOG_INFO = 4, MCT_LOG_DEBUG = 5, MCT_LOG_VERBOSE = 6
 
     Default: 4
 
 ## ContextTraceStatus
 
-Initial trace-status that is sent when an application registers. DLT_TRACE_STATUS_OFF = 0, DLT_TRACE_STATUS_ON = 1
+Initial trace-status that is sent when an application registers. MCT_TRACE_STATUS_OFF = 0, MCT_TRACE_STATUS_ON = 1
 
     Default: 0
 
@@ -130,7 +130,7 @@ Force log level and trace status of contexts to not exceed "ContextLogLevel" and
 
 ## InjectionMode
 
-If set to 0, the injection mode (see [here](./mct_for_developers.md#DLT-Injection-Messages)) is disabled.
+If set to 0, the injection mode (see [here](./mct_for_developers.md#MCT-Injection-Messages)) is disabled.
 
     Default: 1
 
@@ -150,11 +150,11 @@ Read gateway configuration from another location
 
 # Permission configuration
 
-DLT daemon runs with e.g.
+MCT daemon runs with e.g.
  User: genivi_mct
  Group: genivi_mct
 
-DLT user applications run with different user and group than mct-daemon but with supplimentory group: mct_user_apps_group
+MCT user applications run with different user and group than mct-daemon but with supplimentory group: mct_user_apps_group
 
 <basedir>/mct FIFO will be created by mct-daemon with
     User: genivi_mct
@@ -173,8 +173,8 @@ so that only mct-daemon can read and only processes in mct_user_apps_group can w
     Group: genivi_mct (inherited from <basedir>mctpipes/ due to SGID)
     Permission: 620
 
-Thus DLT user applications (and also or attackers) can create the mct<PID> FIFO
-(for communication from mct-daemon to DLT user application) under <basedir>/mctpipes/. Since sticky bit is set the applications who creates the FIFO can only rename/delete it.
+Thus MCT user applications (and also or attackers) can create the mct<PID> FIFO
+(for communication from mct-daemon to MCT user application) under <basedir>/mctpipes/. Since sticky bit is set the applications who creates the FIFO can only rename/delete it.
 
 Since SGID of <basedir>/mctpipes is set the group of mct<PID> FIFO will be genivi_mct which enables mct daemon to have write permission on all the mct<PID> FIFO.
 
@@ -204,7 +204,7 @@ Path to control socket.
 
 ## OfflineTraceDirectory
 
-Store DLT messages to local directory, if not set offline Trace is off.
+Store MCT messages to local directory, if not set offline Trace is off.
 
     Default: /tmp
 
@@ -230,19 +230,19 @@ Filename timestamp based or index based. 1 = timestamp based, 0 = index based
 
 ## PrintASCII
 
-Prints each received DLT message from the application in ASCII to the local console. This option should only be anabled for debugging purpose.
+Prints each received MCT message from the application in ASCII to the local console. This option should only be anabled for debugging purpose.
 
     Default: Function is disabled
 
 ## PrintHex
 
-Prints each received DLT message from the application in ASCII to the local console. The payload is printed in Hex. This option should only be anabled for debugging purpose.
+Prints each received MCT message from the application in ASCII to the local console. The payload is printed in Hex. This option should only be anabled for debugging purpose.
 
     Default: Function is disabled
 
 ## PrintHeadersOnly
 
-Prints each received DLT message from the application in ASCII to the local console. Only the header is printed. This option should only be anabled for debugging purpose.
+Prints each received MCT message from the application in ASCII to the local console. Only the header is printed. This option should only be anabled for debugging purpose.
 
     Default: Function is disabled
 
@@ -262,7 +262,7 @@ The used serial baud rate, if serial loggin is enabled. The RS232DeviceName must
 
 ## RS232SyncSerialHeader
 
-If serial logging is enabled, each received DLT message is checked to contain a serial header. If the DLT message contains no serial header, the message is ignored.
+If serial logging is enabled, each received MCT message is checked to contain a serial header. If the MCT message contains no serial header, the message is ignored.
 
     Default: Function is disabled
 
@@ -270,7 +270,7 @@ If serial logging is enabled, each received DLT message is checked to contain a 
 
 ## TCPSyncSerialHeader
 
-Each received DLT message on a TCP connection is checked to contain a serial header. If the DLT message contains no serial header, the message is ignored.
+Each received MCT message on a TCP connection is checked to contain a serial header. If the MCT message contains no serial header, the message is ignored.
 
     Default: Function is disabled
 
@@ -284,7 +284,7 @@ Periodically send ECU version info. 0 = disabled, 1 = enabled
 
 # PathToECUSoftwareVersion
 
-Absolute path to file storing version information - if disabled the DLT version will be send.
+Absolute path to file storing version information - if disabled the MCT version will be send.
 
     Default: Function is disabled.
 
@@ -300,13 +300,13 @@ Periodically send timezone info. 0 = disabled, 1 = enabled
 
 ## OfflineLogstorageMaxDevices
 
-Maximum devices to be used as offline logstorage devices. 0 = disabled, 1 .. DLT_OFFLINE_LOGSTORAGE_MAX_DEVICES
+Maximum devices to be used as offline logstorage devices. 0 = disabled, 1 .. MCT_OFFLINE_LOGSTORAGE_MAX_DEVICES
 
     Default: 0 (Function is disabled)
 
 ## OfflineLogstorageDirPath
 
-Path to store DLT offline log storage messages.
+Path to store MCT offline log storage messages.
 
     Default: off
 

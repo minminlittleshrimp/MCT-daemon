@@ -1,5 +1,5 @@
-#ifndef DLT_TYPES_H
-#define DLT_TYPES_H
+#ifndef MCT_TYPES_H
+#define MCT_TYPES_H
 
 #ifdef _MSC_VER
 typedef __int64 int64_t;
@@ -23,130 +23,130 @@ typedef unsigned int speed_t;
 #endif
 
 /**
- * Definitions of DLT return values
+ * Definitions of MCT return values
  */
 typedef enum
 {
-    DLT_RETURN_FILESZERR = -8,
-    DLT_RETURN_LOGGING_DISABLED = -7,
-    DLT_RETURN_USER_BUFFER_FULL = -6,
-    DLT_RETURN_WRONG_PARAMETER = -5,
-    DLT_RETURN_BUFFER_FULL = -4,
-    DLT_RETURN_PIPE_FULL = -3,
-    DLT_RETURN_PIPE_ERROR = -2,
-    DLT_RETURN_ERROR = -1,
-    DLT_RETURN_OK = 0,
-    DLT_RETURN_TRUE = 1
-} DltReturnValue;
+    MCT_RETURN_FILESZERR = -8,
+    MCT_RETURN_LOGGING_DISABLED = -7,
+    MCT_RETURN_USER_BUFFER_FULL = -6,
+    MCT_RETURN_WRONG_PARAMETER = -5,
+    MCT_RETURN_BUFFER_FULL = -4,
+    MCT_RETURN_PIPE_FULL = -3,
+    MCT_RETURN_PIPE_ERROR = -2,
+    MCT_RETURN_ERROR = -1,
+    MCT_RETURN_OK = 0,
+    MCT_RETURN_TRUE = 1
+} MctReturnValue;
 
 /**
- * Definitions of DLT log level
+ * Definitions of MCT log level
  */
 typedef enum
 {
-    DLT_LOG_DEFAULT = -1,               /**< Default log level */
-    DLT_LOG_OFF = 0x00,                 /**< Log level off */
-    DLT_LOG_FATAL = 0x01,               /**< fatal system error */
-    DLT_LOG_ERROR = 0x02,               /**< error with impact to correct functionality */
-    DLT_LOG_WARN = 0x03,                /**< warning, correct behaviour could not be ensured */
-    DLT_LOG_INFO = 0x04,                /**< informational */
-    DLT_LOG_DEBUG = 0x05,               /**< debug  */
-    DLT_LOG_VERBOSE = 0x06,             /**< highest grade of information */
-    DLT_LOG_MAX                         /**< maximum value, used for range check */
-} DltLogLevelType;
+    MCT_LOG_DEFAULT = -1,               /**< Default log level */
+    MCT_LOG_OFF = 0x00,                 /**< Log level off */
+    MCT_LOG_FATAL = 0x01,               /**< fatal system error */
+    MCT_LOG_ERROR = 0x02,               /**< error with impact to correct functionality */
+    MCT_LOG_WARN = 0x03,                /**< warning, correct behaviour could not be ensured */
+    MCT_LOG_INFO = 0x04,                /**< informational */
+    MCT_LOG_DEBUG = 0x05,               /**< debug  */
+    MCT_LOG_VERBOSE = 0x06,             /**< highest grade of information */
+    MCT_LOG_MAX                         /**< maximum value, used for range check */
+} MctLogLevelType;
 
 /**
- * Definitions of DLT Format
+ * Definitions of MCT Format
  */
 typedef enum
 {
-    DLT_FORMAT_DEFAULT = 0x00,          /**< no sepecial format */
-    DLT_FORMAT_HEX8 = 0x01,             /**< Hex 8 */
-    DLT_FORMAT_HEX16 = 0x02,            /**< Hex 16 */
-    DLT_FORMAT_HEX32 = 0x03,            /**< Hex 32 */
-    DLT_FORMAT_HEX64 = 0x04,            /**< Hex 64 */
-    DLT_FORMAT_BIN8 = 0x05,             /**< Binary 8 */
-    DLT_FORMAT_BIN16 = 0x06,            /**< Binary 16  */
-    DLT_FORMAT_MAX                      /**< maximum value, used for range check */
-} DltFormatType;
+    MCT_FORMAT_DEFAULT = 0x00,          /**< no sepecial format */
+    MCT_FORMAT_HEX8 = 0x01,             /**< Hex 8 */
+    MCT_FORMAT_HEX16 = 0x02,            /**< Hex 16 */
+    MCT_FORMAT_HEX32 = 0x03,            /**< Hex 32 */
+    MCT_FORMAT_HEX64 = 0x04,            /**< Hex 64 */
+    MCT_FORMAT_BIN8 = 0x05,             /**< Binary 8 */
+    MCT_FORMAT_BIN16 = 0x06,            /**< Binary 16  */
+    MCT_FORMAT_MAX                      /**< maximum value, used for range check */
+} MctFormatType;
 
 /**
- * Definitions of DLT trace status
+ * Definitions of MCT trace status
  */
 typedef enum
 {
-    DLT_TRACE_STATUS_DEFAULT = -1,         /**< Default trace status */
-    DLT_TRACE_STATUS_OFF = 0x00,           /**< Trace status: Off */
-    DLT_TRACE_STATUS_ON = 0x01,            /**< Trace status: On */
-    DLT_TRACE_STATUS_MAX                   /**< maximum value, used for range check */
-} DltTraceStatusType;
+    MCT_TRACE_STATUS_DEFAULT = -1,         /**< Default trace status */
+    MCT_TRACE_STATUS_OFF = 0x00,           /**< Trace status: Off */
+    MCT_TRACE_STATUS_ON = 0x01,            /**< Trace status: On */
+    MCT_TRACE_STATUS_MAX                   /**< maximum value, used for range check */
+} MctTraceStatusType;
 
 /**
- * Definitions for  mct_user_trace_network/DLT_TRACE_NETWORK()
- * as defined in the DLT protocol
+ * Definitions for  mct_user_trace_network/MCT_TRACE_NETWORK()
+ * as defined in the MCT protocol
  */
 typedef enum
 {
-    DLT_NW_TRACE_IPC = 0x01,                /**< Interprocess communication */
-    DLT_NW_TRACE_CAN = 0x02,                /**< Controller Area Network Bus */
-    DLT_NW_TRACE_FLEXRAY = 0x03,            /**< Flexray Bus */
-    DLT_NW_TRACE_MOST = 0x04,               /**< Media Oriented System Transport Bus */
-    DLT_NW_TRACE_RESERVED0 = 0x05,
-    DLT_NW_TRACE_RESERVED1 = 0x06,
-    DLT_NW_TRACE_RESERVED2 = 0x07,
-    DLT_NW_TRACE_USER_DEFINED0 = 0x08,
-    DLT_NW_TRACE_USER_DEFINED1 = 0x09,
-    DLT_NW_TRACE_USER_DEFINED2 = 0x0A,
-    DLT_NW_TRACE_USER_DEFINED3 = 0x0B,
-    DLT_NW_TRACE_USER_DEFINED4 = 0x0C,
-    DLT_NW_TRACE_USER_DEFINED5 = 0x0D,
-    DLT_NW_TRACE_USER_DEFINED6 = 0x0E,
-    DLT_NW_TRACE_RESEND = 0x0F,             /**< Mark a resend */
-    DLT_NW_TRACE_MAX                        /**< maximum value, used for range check */
-} DltNetworkTraceType;
+    MCT_NW_TRACE_IPC = 0x01,                /**< Interprocess communication */
+    MCT_NW_TRACE_CAN = 0x02,                /**< Controller Area Network Bus */
+    MCT_NW_TRACE_FLEXRAY = 0x03,            /**< Flexray Bus */
+    MCT_NW_TRACE_MOST = 0x04,               /**< Media Oriented System Transport Bus */
+    MCT_NW_TRACE_RESERVED0 = 0x05,
+    MCT_NW_TRACE_RESERVED1 = 0x06,
+    MCT_NW_TRACE_RESERVED2 = 0x07,
+    MCT_NW_TRACE_USER_DEFINED0 = 0x08,
+    MCT_NW_TRACE_USER_DEFINED1 = 0x09,
+    MCT_NW_TRACE_USER_DEFINED2 = 0x0A,
+    MCT_NW_TRACE_USER_DEFINED3 = 0x0B,
+    MCT_NW_TRACE_USER_DEFINED4 = 0x0C,
+    MCT_NW_TRACE_USER_DEFINED5 = 0x0D,
+    MCT_NW_TRACE_USER_DEFINED6 = 0x0E,
+    MCT_NW_TRACE_RESEND = 0x0F,             /**< Mark a resend */
+    MCT_NW_TRACE_MAX                        /**< maximum value, used for range check */
+} MctNetworkTraceType;
 
 /**
  * This are the log modes.
  */
 typedef enum
 {
-    DLT_USER_MODE_UNDEFINED = -1,
-    DLT_USER_MODE_OFF = 0,
-    DLT_USER_MODE_EXTERNAL,
-    DLT_USER_MODE_INTERNAL,
-    DLT_USER_MODE_BOTH,
-    DLT_USER_MODE_MAX                       /**< maximum value, used for range check */
-} DltUserLogMode;
+    MCT_USER_MODE_UNDEFINED = -1,
+    MCT_USER_MODE_OFF = 0,
+    MCT_USER_MODE_EXTERNAL,
+    MCT_USER_MODE_INTERNAL,
+    MCT_USER_MODE_BOTH,
+    MCT_USER_MODE_MAX                       /**< maximum value, used for range check */
+} MctUserLogMode;
 
 /**
  * Definition of BlockMode modes
  */
-#define DLT_MODE_BLOCKING_UNDEF -1
-#define DLT_MODE_NON_BLOCKING    0
-#define DLT_MODE_BLOCKING        1
+#define MCT_MODE_BLOCKING_UNDEF -1
+#define MCT_MODE_NON_BLOCKING    0
+#define MCT_MODE_BLOCKING        1
 
 /**
  * Definition of Maintain Logstorage Loglevel modes
  */
-#define DLT_MAINTAIN_LOGSTORAGE_LOGLEVEL_UNDEF -1
-#define DLT_MAINTAIN_LOGSTORAGE_LOGLEVEL_OFF    0
-#define DLT_MAINTAIN_LOGSTORAGE_LOGLEVEL_ON     1
+#define MCT_MAINTAIN_LOGSTORAGE_LOGLEVEL_UNDEF -1
+#define MCT_MAINTAIN_LOGSTORAGE_LOGLEVEL_OFF    0
+#define MCT_MAINTAIN_LOGSTORAGE_LOGLEVEL_ON     1
 
-#define DLT_ALL_APPLICATIONS    "XXXX"
+#define MCT_ALL_APPLICATIONS    "XXXX"
 
 typedef float float32_t;
 typedef double float64_t;
 
-#if defined DLT_LIB_USE_UNIX_SOCKET_IPC || defined DLT_LIB_USE_VSOCK_IPC
+#if defined MCT_LIB_USE_UNIX_SOCKET_IPC || defined MCT_LIB_USE_VSOCK_IPC
 /**
  * Definition Library connection state
  */
 typedef enum
 {
-    DLT_USER_NOT_CONNECTED = 0,
-    DLT_USER_CONNECTED,
-    DLT_USER_RETRY_CONNECT
-} DltUserConnectionState;
+    MCT_USER_NOT_CONNECTED = 0,
+    MCT_USER_CONNECTED,
+    MCT_USER_RETRY_CONNECT
+} MctUserConnectionState;
 #endif
 
 /**
@@ -154,17 +154,17 @@ typedef enum
  */
 typedef enum
 {
-    DLT_USER_SOCKET_NON_BLOCKING = 0,
-    DLT_USER_SOCKET_BLOCKING
-} DltUserSocketMode;
+    MCT_USER_SOCKET_NON_BLOCKING = 0,
+    MCT_USER_SOCKET_BLOCKING
+} MctUserSocketMode;
 
 /**
  * Definition of timestamp types
  */
 typedef enum
 {
-	DLT_AUTO_TIMESTAMP = 0,
-	DLT_USER_TIMESTAMP
-} DltTimestampType;
+	MCT_AUTO_TIMESTAMP = 0,
+	MCT_USER_TIMESTAMP
+} MctTimestampType;
 
-#endif  /* DLT_TYPES_H */
+#endif  /* MCT_TYPES_H */

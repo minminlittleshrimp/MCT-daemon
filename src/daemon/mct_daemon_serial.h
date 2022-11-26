@@ -1,5 +1,5 @@
-#ifndef DLT_DAEMON_SERIAL_H
-#define DLT_DAEMON_SERIAL_H
+#ifndef MCT_DAEMON_SERIAL_H
+#define MCT_DAEMON_SERIAL_H
 
 #include <limits.h>
 #include <semaphore.h>
@@ -13,4 +13,4 @@ int mct_daemon_serial_send(int sock,
                            int size2,
                            char serialheader);
 
-#endif /* DLT_DAEMON_SERIAL_H */
+#endif /* MCT_DAEMON_SERIAL_H */

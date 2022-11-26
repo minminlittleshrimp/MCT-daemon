@@ -28,7 +28,7 @@ unsigned int g_logstorage_cache_size;
  *                      (enabled/disabled in mct.conf)
  *
  * @param[out] log_file_name     target buffer for the complete logfile name.
- *                               it needs to fit DLT_MOUNT_PATH_MAX chars
+ *                               it needs to fit MCT_MOUNT_PATH_MAX chars
  * @param[in]  file_config       User configurations for log file
  * @param[in]  name              file name given in configuration file
  * @param[in]  num_files         max files given in configuration file
@@ -36,7 +36,7 @@ unsigned int g_logstorage_cache_size;
  * @ return                 None
  */
 void mct_logstorage_log_file_name(char *log_file_name,
-                                  DltLogStorageUserConfig *file_config,
+                                  MctLogStorageUserConfig *file_config,
                                   const char *name,
                                   const int num_files,
                                   const int idx)
@@ -52,7 +52,7 @@ void mct_logstorage_log_file_name(char *log_file_name,
     }
 
     const char * suffix = ".mct";
-    const int smax = DLT_MOUNT_PATH_MAX - strlen(suffix) - 1;
+    const int smax = MCT_MOUNT_PATH_MAX - strlen(suffix) - 1;
     int spos = 0;
     log_file_name[spos] = '\0';
     int rt;
@@ -80,14 +80,14 @@ void mct_logstorage_log_file_name(char *log_file_name,
 
     /* Add time stamp if user has configured */
     if (file_config->logfile_timestamp) {
-        char stamp[DLT_OFFLINE_LOGSTORAGE_TIMESTAMP_LEN + 1] = { 0 };
+        char stamp[MCT_OFFLINE_LOGSTORAGE_TIMESTAMP_LEN + 1] = { 0 };
         time_t t = time(NULL);
         struct tm tm_info;
         ssize_t n = 0;
         tzset();
         localtime_r(&t, &tm_info);
         n = snprintf(stamp,
-                     DLT_OFFLINE_LOGSTORAGE_TIMESTAMP_LEN + 1,
+                     MCT_OFFLINE_LOGSTORAGE_TIMESTAMP_LEN + 1,
                      "%c%04d%02d%02d-%02d%02d%02d",
                      delim,
                      1900 + tm_info.tm_year,
@@ -96,7 +96,7 @@ void mct_logstorage_log_file_name(char *log_file_name,
                      tm_info.tm_hour,
                      tm_info.tm_min,
                      tm_info.tm_sec);
-        if (n < 0 || (size_t)n > (DLT_OFFLINE_LOGSTORAGE_TIMESTAMP_LEN + 1)) {
+        if (n < 0 || (size_t)n > (MCT_OFFLINE_LOGSTORAGE_TIMESTAMP_LEN + 1)) {
             mct_vlog(LOG_WARNING, "%s: snprintf truncation %s\n", __func__,
                      stamp);
         }
@@ -114,7 +114,7 @@ void mct_logstorage_log_file_name(char *log_file_name,
  * @param head              Log filename list
  * @ return                 The last (biggest) index
  */
-unsigned int mct_logstorage_sort_file_name(DltLogStorageFileList **head)
+unsigned int mct_logstorage_sort_file_name(MctLogStorageFileList **head)
 {
     int done = 0;
     unsigned int max_idx = 0;
@@ -124,9 +124,9 @@ unsigned int mct_logstorage_sort_file_name(DltLogStorageFileList **head)
 
     while (!done) {
         /* "source" of the pointer to the current node in the list struct */
-        DltLogStorageFileList **pv = head;
-        DltLogStorageFileList *nd = *head; /* local iterator pointer */
-        DltLogStorageFileList *nx = (*head)->next; /* local next pointer */
+        MctLogStorageFileList **pv = head;
+        MctLogStorageFileList *nd = *head; /* local iterator pointer */
+        MctLogStorageFileList *nx = (*head)->next; /* local next pointer */
 
         done = 1;
 
@@ -158,13 +158,13 @@ unsigned int mct_logstorage_sort_file_name(DltLogStorageFileList **head)
  * @param head              Log filename list
  * @ return                 None
  */
-void mct_logstorage_rearrange_file_name(DltLogStorageFileList **head)
+void mct_logstorage_rearrange_file_name(MctLogStorageFileList **head)
 {
-    DltLogStorageFileList *n_prev = NULL;
-    DltLogStorageFileList *tail = NULL;
-    DltLogStorageFileList *wrap_pre = NULL;
-    DltLogStorageFileList *wrap_post = NULL;
-    DltLogStorageFileList *n = NULL;
+    MctLogStorageFileList *n_prev = NULL;
+    MctLogStorageFileList *tail = NULL;
+    MctLogStorageFileList *wrap_pre = NULL;
+    MctLogStorageFileList *wrap_post = NULL;
+    MctLogStorageFileList *n = NULL;
 
     if ((head == NULL) || (*head == NULL) || ((*head)->next == NULL))
         return;
@@ -207,7 +207,7 @@ void mct_logstorage_rearrange_file_name(DltLogStorageFileList **head)
  * @param file_config   User configurations for log file
  * @return index on success, -1 if no index is found
  */
-unsigned int mct_logstorage_get_idx_of_log_file(DltLogStorageUserConfig *file_config,
+unsigned int mct_logstorage_get_idx_of_log_file(MctLogStorageUserConfig *file_config,
                                                 char *file)
 {
     unsigned int idx = -1;
@@ -232,24 +232,24 @@ unsigned int mct_logstorage_get_idx_of_log_file(DltLogStorageUserConfig *file_co
     /* index is retrived from file name */
     if (file_config->logfile_timestamp) {
         fileindex_len = strlen(file) -
-            (DLT_OFFLINE_LOGSTORAGE_FILE_EXTENSION_LEN +
-             DLT_OFFLINE_LOGSTORAGE_TIMESTAMP_LEN +
+            (MCT_OFFLINE_LOGSTORAGE_FILE_EXTENSION_LEN +
+             MCT_OFFLINE_LOGSTORAGE_TIMESTAMP_LEN +
              filename_len + 1);
 
         idx = (int)strtol(&file[strlen(file) -
-                                (DLT_OFFLINE_LOGSTORAGE_FILE_EXTENSION_LEN +
+                                (MCT_OFFLINE_LOGSTORAGE_FILE_EXTENSION_LEN +
                                  fileindex_len +
-                                 DLT_OFFLINE_LOGSTORAGE_TIMESTAMP_LEN)],
+                                 MCT_OFFLINE_LOGSTORAGE_TIMESTAMP_LEN)],
                           &endptr,
                           10);
     }
     else {
         fileindex_len = strlen(file) -
-            (DLT_OFFLINE_LOGSTORAGE_FILE_EXTENSION_LEN +
+            (MCT_OFFLINE_LOGSTORAGE_FILE_EXTENSION_LEN +
              filename_len + 1);
 
         idx = (int)strtol(&file[strlen(file) -
-                                (DLT_OFFLINE_LOGSTORAGE_FILE_EXTENSION_LEN
+                                (MCT_OFFLINE_LOGSTORAGE_FILE_EXTENSION_LEN
                                  + fileindex_len)], &endptr, 10);
     }
 
@@ -268,12 +268,12 @@ unsigned int mct_logstorage_get_idx_of_log_file(DltLogStorageUserConfig *file_co
  *
  * @param file_config   User configurations for log file
  * @param path          Path to storage directory
- * @param  config       DltLogStorageFilterConfig
+ * @param  config       MctLogStorageFilterConfig
  * @return              0 on success, -1 on error
  */
-int mct_logstorage_storage_dir_info(DltLogStorageUserConfig *file_config,
+int mct_logstorage_storage_dir_info(MctLogStorageUserConfig *file_config,
                                     char *path,
-                                    DltLogStorageFilterConfig *config)
+                                    MctLogStorageFilterConfig *config)
 {
     int check = 0;
     int i = 0;
@@ -282,10 +282,10 @@ int mct_logstorage_storage_dir_info(DltLogStorageUserConfig *file_config,
     unsigned int max_idx = 0;
     struct dirent **files = { 0 };
     unsigned int current_idx = 0;
-    DltLogStorageFileList *n = NULL;
-    DltLogStorageFileList *n1 = NULL;
-    char storage_path[DLT_OFFLINE_LOGSTORAGE_MAX_PATH_LEN + 1] = { '\0' };
-    char file_name[DLT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN + 1] = { '\0' };
+    MctLogStorageFileList *n = NULL;
+    MctLogStorageFileList *n1 = NULL;
+    char storage_path[MCT_OFFLINE_LOGSTORAGE_MAX_PATH_LEN + 1] = { '\0' };
+    char file_name[MCT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN + 1] = { '\0' };
     char* dir = NULL;
 
     if ((config == NULL) ||
@@ -294,26 +294,26 @@ int mct_logstorage_storage_dir_info(DltLogStorageUserConfig *file_config,
         (config->file_name == NULL))
         return -1;
 
-    strncpy(storage_path, path, DLT_OFFLINE_LOGSTORAGE_MAX_PATH_LEN);
+    strncpy(storage_path, path, MCT_OFFLINE_LOGSTORAGE_MAX_PATH_LEN);
 
     if (strstr(config->file_name, "/") != NULL) {
         /* Append directory path */
-        char tmpdir[DLT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN + 1] = { '\0' };
-        char tmpfile[DLT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN + 1] = { '\0' };
+        char tmpdir[MCT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN + 1] = { '\0' };
+        char tmpfile[MCT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN + 1] = { '\0' };
         char *file;
-        strncpy(tmpdir, config->file_name, DLT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN);
-        strncpy(tmpfile, config->file_name, DLT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN);
+        strncpy(tmpdir, config->file_name, MCT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN);
+        strncpy(tmpfile, config->file_name, MCT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN);
         dir = dirname(tmpdir);
         file = basename(tmpfile);
-        if ((strlen(path) + strlen(dir)) > DLT_OFFLINE_LOGSTORAGE_MAX_PATH_LEN) {
+        if ((strlen(path) + strlen(dir)) > MCT_OFFLINE_LOGSTORAGE_MAX_PATH_LEN) {
             mct_vlog(LOG_ERR, "%s: Directory name [%s] is too long to store (file name [%s])\n",
                      __func__, dir, file);
             return -1;
         }
-        strncat(storage_path, dir, DLT_OFFLINE_LOGSTORAGE_MAX_PATH_LEN - strlen(dir));
-        strncpy(file_name, file, DLT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN);
+        strncat(storage_path, dir, MCT_OFFLINE_LOGSTORAGE_MAX_PATH_LEN - strlen(dir));
+        strncpy(file_name, file, MCT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN);
     } else {
-        strncpy(file_name, config->file_name, DLT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN);
+        strncpy(file_name, config->file_name, MCT_OFFLINE_LOGSTORAGE_MAX_FILE_NAME_LEN);
     }
 
     cnt = scandir(storage_path, &files, 0, alphasort);
@@ -370,10 +370,10 @@ int mct_logstorage_storage_dir_info(DltLogStorageUserConfig *file_config,
                 }
             }
 
-            DltLogStorageFileList **tmp = NULL;
+            MctLogStorageFileList **tmp = NULL;
 
             if (config->records == NULL) {
-                config->records = malloc(sizeof(DltLogStorageFileList));
+                config->records = malloc(sizeof(MctLogStorageFileList));
 
                 if (config->records == NULL) {
                     ret = -1;
@@ -389,7 +389,7 @@ int mct_logstorage_storage_dir_info(DltLogStorageUserConfig *file_config,
                 while (*(tmp) != NULL)
                     tmp = &(*tmp)->next;
 
-                *tmp = malloc(sizeof(DltLogStorageFileList));
+                *tmp = malloc(sizeof(MctLogStorageFileList));
 
                 if (*tmp == NULL) {
                     ret = -1;
@@ -398,7 +398,7 @@ int mct_logstorage_storage_dir_info(DltLogStorageUserConfig *file_config,
                 }
             }
 
-            char tmpfile[DLT_OFFLINE_LOGSTORAGE_MAX_LOG_FILE_LEN + 1] = { '\0' };
+            char tmpfile[MCT_OFFLINE_LOGSTORAGE_MAX_LOG_FILE_LEN + 1] = { '\0' };
             if (dir != NULL) {
                 /* Append directory path */
                 strcat(tmpfile, dir);
@@ -446,39 +446,39 @@ int mct_logstorage_storage_dir_info(DltLogStorageUserConfig *file_config,
  * Otherwise create a new file, but take configured max number of files into
  * account and remove the oldest file if needed.
  *
- * @param  config    DltLogStorageFilterConfig
+ * @param  config    MctLogStorageFilterConfig
  * @param  file_config   User configurations for log file
  * @param  dev_path      Storage device path
  * @param  msg_size  Size of incoming message
  * @param  is_update_required   The file list needs to be updated
  * @return 0 on succes, -1 on error
  */
-int mct_logstorage_open_log_file(DltLogStorageFilterConfig *config,
-                                 DltLogStorageUserConfig *file_config,
+int mct_logstorage_open_log_file(MctLogStorageFilterConfig *config,
+                                 MctLogStorageUserConfig *file_config,
                                  char *dev_path,
                                  int msg_size,
                                  bool is_update_required,
                                  bool is_sync)
 {
     int ret = 0;
-    char absolute_file_path[DLT_OFFLINE_LOGSTORAGE_MAX_PATH_LEN + 1] = { '\0' };
-    char storage_path[DLT_MOUNT_PATH_MAX + 1] = { '\0' };
-    char file_name[DLT_OFFLINE_LOGSTORAGE_MAX_LOG_FILE_LEN + 1] = { '\0' };
+    char absolute_file_path[MCT_OFFLINE_LOGSTORAGE_MAX_PATH_LEN + 1] = { '\0' };
+    char storage_path[MCT_MOUNT_PATH_MAX + 1] = { '\0' };
+    char file_name[MCT_OFFLINE_LOGSTORAGE_MAX_LOG_FILE_LEN + 1] = { '\0' };
     unsigned int num_log_files = 0;
     struct stat s;
     memset(&s, 0, sizeof(struct stat));
-    DltLogStorageFileList **tmp = NULL;
-    DltLogStorageFileList **newest = NULL;
+    MctLogStorageFileList **tmp = NULL;
+    MctLogStorageFileList **newest = NULL;
 
     if (config == NULL)
         return -1;
 
-    if (strlen(dev_path) > DLT_MOUNT_PATH_MAX) {
+    if (strlen(dev_path) > MCT_MOUNT_PATH_MAX) {
         mct_vlog(LOG_ERR, "device path '%s' is too long to store\n", dev_path);
         return -1;
     }
 
-    snprintf(storage_path, DLT_MOUNT_PATH_MAX, "%s/", dev_path);
+    snprintf(storage_path, MCT_MOUNT_PATH_MAX, "%s/", dev_path);
 
     /* check if there are already files stored */
     if (config->records == NULL || is_update_required) {
@@ -513,7 +513,7 @@ int mct_logstorage_open_log_file(DltLogStorageFilterConfig *config,
         config->log = fopen(absolute_file_path, "a+");
 
         /* Add file to file list */
-        *tmp = malloc(sizeof(DltLogStorageFileList));
+        *tmp = malloc(sizeof(MctLogStorageFileList));
 
         if (*tmp == NULL) {
             mct_log(LOG_ERR, "Memory allocation for file name failed\n");
@@ -569,7 +569,7 @@ int mct_logstorage_open_log_file(DltLogStorageFilterConfig *config,
             }
 
             /* Check if file logging shall be stopped */
-            if (config->overwrite == DLT_LOGSTORAGE_OVERWRITE_DISCARD_NEW) {
+            if (config->overwrite == MCT_LOGSTORAGE_OVERWRITE_DISCARD_NEW) {
                 mct_vlog(LOG_DEBUG,
                          "%s: num_files=%d, current_idx=%d (filename=%s)\n",
                          __func__, config->num_files, idx,
@@ -629,7 +629,7 @@ int mct_logstorage_open_log_file(DltLogStorageFilterConfig *config,
                      __func__, file_name, idx);
 
             /* Add file to file list */
-            *tmp = malloc(sizeof(DltLogStorageFileList));
+            *tmp = malloc(sizeof(MctLogStorageFileList));
 
             if (*tmp == NULL) {
                 mct_log(LOG_ERR, "Memory allocation for file name failed\n");
@@ -646,8 +646,8 @@ int mct_logstorage_open_log_file(DltLogStorageFilterConfig *config,
             if (num_log_files > config->num_files) {
                 if (!(config->num_files == 1 && file_config->logfile_optional_counter)) {
                     /* delete oldest */
-                    DltLogStorageFileList **head = &config->records;
-                    DltLogStorageFileList *n = *head;
+                    MctLogStorageFileList **head = &config->records;
+                    MctLogStorageFileList *n = *head;
                     memset(absolute_file_path,
                            0,
                            sizeof(absolute_file_path) / sizeof(char));
@@ -702,7 +702,7 @@ int mct_logstorage_open_log_file(DltLogStorageFilterConfig *config,
  * @param cnt         count
  * @return index on success, -1 on error
  */
-DLT_STATIC int mct_logstorage_find_mct_header(void *ptr,
+static int mct_logstorage_find_mct_header(void *ptr,
                                               unsigned int offset,
                                               unsigned int cnt)
 {
@@ -728,7 +728,7 @@ DLT_STATIC int mct_logstorage_find_mct_header(void *ptr,
  * @param cnt         count
  * @return index on success, -1 on error
  */
-DLT_STATIC int mct_logstorage_find_last_mct_header(void *ptr,
+static int mct_logstorage_find_last_mct_header(void *ptr,
                                                    unsigned int offset,
                                                    unsigned int cnt)
 {
@@ -736,7 +736,7 @@ DLT_STATIC int mct_logstorage_find_last_mct_header(void *ptr,
     const char *cache = (char*)ptr + offset;
 
     int i;
-    for (i = cnt - (DLT_ID_SIZE - 1) ; i > 0; i--) {
+    for (i = cnt - (MCT_ID_SIZE - 1) ; i > 0; i--) {
         if ((cache[i] == 'D') && (strncmp(&cache[i], magic, 4) == 0))
             return i;
     }
@@ -749,10 +749,10 @@ DLT_STATIC int mct_logstorage_find_last_mct_header(void *ptr,
  *
  * check the return value of fwrite
  *
- * @param config      DltLogStorageFilterConfig
+ * @param config      MctLogStorageFilterConfig
  * @param ret         return value of fwrite call
  */
-DLT_STATIC void mct_logstorage_check_write_ret(DltLogStorageFilterConfig *config,
+static void mct_logstorage_check_write_ret(MctLogStorageFilterConfig *config,
                                                int ret)
 {
     if (config == NULL)
@@ -781,18 +781,18 @@ DLT_STATIC void mct_logstorage_check_write_ret(DltLogStorageFilterConfig *config
  *
  * Write the log message to log file
  *
- * @param config        DltLogStorageFilterConfig
- * @param file_config   DltLogStorageUserConfig
+ * @param config        MctLogStorageFilterConfig
+ * @param file_config   MctLogStorageUserConfig
  * @param dev_path      Storage device mount point path
- * @param footer        DltLogStorageCacheFooter
+ * @param footer        MctLogStorageCacheFooter
  * @param start_offset  Start offset of the cache
  * @param end_offset    End offset of the cache
  * @return 0 on success, -1 on error
  */
-DLT_STATIC int mct_logstorage_sync_to_file(DltLogStorageFilterConfig *config,
-                                           DltLogStorageUserConfig *file_config,
+static int mct_logstorage_sync_to_file(MctLogStorageFilterConfig *config,
+                                           MctLogStorageUserConfig *file_config,
                                            char *dev_path,
-                                           DltLogStorageCacheFooter *footer,
+                                           MctLogStorageCacheFooter *footer,
                                            unsigned int start_offset,
                                            unsigned int end_offset)
 {
@@ -905,18 +905,18 @@ DLT_STATIC int mct_logstorage_sync_to_file(DltLogStorageFilterConfig *config,
  * Prepare the log file for a certain filer. If log file not open or log
  * files max size reached, open a new file.
  *
- * @param config        DltLogStorageFilterConfig
+ * @param config        MctLogStorageFilterConfig
  * @param file_config   User configurations for log file
  * @param dev_path      Storage device path
  * @param log_msg_size  Size of log message
  * @param newest_file_info   Info of newest file for corresponding filename
  * @return 0 on success, -1 on error
  */
-int mct_logstorage_prepare_on_msg(DltLogStorageFilterConfig *config,
-                                  DltLogStorageUserConfig *file_config,
+int mct_logstorage_prepare_on_msg(MctLogStorageFilterConfig *config,
+                                  MctLogStorageUserConfig *file_config,
                                   char *dev_path,
                                   int log_msg_size,
-                                  DltNewestFileName *newest_file_info)
+                                  MctNewestFileName *newest_file_info)
 {
     int ret = 0;
     struct stat s;
@@ -958,8 +958,8 @@ int mct_logstorage_prepare_on_msg(DltLogStorageFilterConfig *config,
                 (config->wrap_id < newest_file_info->wrap_id)) {
 
                 /* Sync only if on_msg */
-                if ((config->sync == DLT_LOGSTORAGE_SYNC_ON_MSG) ||
-                    (config->sync == DLT_LOGSTORAGE_SYNC_UNSET)) {
+                if ((config->sync == MCT_LOGSTORAGE_SYNC_ON_MSG) ||
+                    (config->sync == MCT_LOGSTORAGE_SYNC_UNSET)) {
                     if (fsync(fileno(config->log)) != 0) {
                         if (errno != ENOSYS) {
                             mct_vlog(LOG_ERR, "%s: failed to sync log file\n", __func__);
@@ -1005,8 +1005,8 @@ int mct_logstorage_prepare_on_msg(DltLogStorageFilterConfig *config,
  *
  * Write the log message.
  *
- * @param config        DltLogStorageFilterConfig
- * @param file_config   DltLogStorageUserConfig
+ * @param config        MctLogStorageFilterConfig
+ * @param file_config   MctLogStorageUserConfig
  * @param dev_path      Path to device
  * @param data1         header
  * @param size1         header size
@@ -1016,8 +1016,8 @@ int mct_logstorage_prepare_on_msg(DltLogStorageFilterConfig *config,
  * @param size3         payload size
  * @return 0 on success, -1 on error
  */
-int mct_logstorage_write_on_msg(DltLogStorageFilterConfig *config,
-                                DltLogStorageUserConfig *file_config,
+int mct_logstorage_write_on_msg(MctLogStorageFilterConfig *config,
+                                MctLogStorageUserConfig *file_config,
                                 char *dev_path,
                                 unsigned char *data1,
                                 int size1,
@@ -1057,14 +1057,14 @@ int mct_logstorage_write_on_msg(DltLogStorageFilterConfig *config,
  *
  * sync data to disk.
  *
- * @param config        DltLogStorageFilterConfig
+ * @param config        MctLogStorageFilterConfig
  * @param file_config   User configurations for log file
  * @param dev_path      Storage device path
  * @param status        Strategy flag
  * @return 0 on success, -1 on error
  */
-int mct_logstorage_sync_on_msg(DltLogStorageFilterConfig *config,
-                               DltLogStorageUserConfig *file_config,
+int mct_logstorage_sync_on_msg(MctLogStorageFilterConfig *config,
+                               MctLogStorageUserConfig *file_config,
                                char *dev_path,
                                int status)
 {
@@ -1076,7 +1076,7 @@ int mct_logstorage_sync_on_msg(DltLogStorageFilterConfig *config,
     if (config == NULL)
         return -1;
 
-    if (status == DLT_LOGSTORAGE_SYNC_ON_MSG) { /* sync on every message */
+    if (status == MCT_LOGSTORAGE_SYNC_ON_MSG) { /* sync on every message */
         ret = fflush(config->log);
 
         if (ret != 0)
@@ -1094,18 +1094,18 @@ int mct_logstorage_sync_on_msg(DltLogStorageFilterConfig *config,
  * files max size reached, open a new file.
  * Create a memory area to cache data.
  *
- * @param config        DltLogStorageFilterConfig
+ * @param config        MctLogStorageFilterConfig
  * @param file_config   User configurations for log file
  * @param dev_path      Storage device path
  * @param log_msg_size  Size of log message
  * @param newest_file_info   Info of newest files for corresponding filename
  * @return 0 on success, -1 on error
  */
-int mct_logstorage_prepare_msg_cache(DltLogStorageFilterConfig *config,
-                                     DltLogStorageUserConfig *file_config,
+int mct_logstorage_prepare_msg_cache(MctLogStorageFilterConfig *config,
+                                     MctLogStorageUserConfig *file_config,
                                      char *dev_path,
                                      int log_msg_size,
-                                     DltNewestFileName *newest_file_info )
+                                     MctNewestFileName *newest_file_info )
 {
     if ((config == NULL) || (file_config == NULL) ||
             (dev_path == NULL) || (newest_file_info == NULL))
@@ -1135,8 +1135,8 @@ int mct_logstorage_prepare_msg_cache(DltLogStorageFilterConfig *config,
      * Combination not allowed : File_Size with Specific_Size
      */
     /* check for combinations of specific_size and file_size strategy */
-    if ((DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync, DLT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0) &&
-        ((DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync, DLT_LOGSTORAGE_SYNC_ON_FILE_SIZE)) > 0)) {
+    if ((MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync, MCT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0) &&
+        ((MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync, MCT_LOGSTORAGE_SYNC_ON_FILE_SIZE)) > 0)) {
         mct_log(LOG_WARNING, "wrong combination of sync strategies \n");
         return -1;
     }
@@ -1144,8 +1144,8 @@ int mct_logstorage_prepare_msg_cache(DltLogStorageFilterConfig *config,
     (void)log_msg_size; /* satisfy compiler */
 
     /* check specific size is smaller than file size */
-    if ((DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
-                     DLT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0) &&
+    if ((MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
+                     MCT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0) &&
                      (config->specific_size > config->file_size))
     {
         mct_log(LOG_ERR,
@@ -1159,8 +1159,8 @@ int mct_logstorage_prepare_msg_cache(DltLogStorageFilterConfig *config,
         unsigned int cache_size = 0;
 
         /* check for sync_specific_size strategy */
-        if (DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
-               DLT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0)
+        if (MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
+               MCT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0)
         {
             cache_size = config->specific_size;
         }
@@ -1171,7 +1171,7 @@ int mct_logstorage_prepare_msg_cache(DltLogStorageFilterConfig *config,
 
         /* check total logstorage cache size */
         if ((g_logstorage_cache_size + cache_size +
-             sizeof(DltLogStorageCacheFooter)) >
+             sizeof(MctLogStorageCacheFooter)) >
              g_logstorage_cache_max)
         {
             mct_vlog(LOG_ERR,
@@ -1186,7 +1186,7 @@ int mct_logstorage_prepare_msg_cache(DltLogStorageFilterConfig *config,
         }
 
         /* create cache */
-        config->cache = calloc(1, cache_size + sizeof(DltLogStorageCacheFooter));
+        config->cache = calloc(1, cache_size + sizeof(MctLogStorageCacheFooter));
 
         if (config->cache == NULL)
         {
@@ -1196,7 +1196,7 @@ int mct_logstorage_prepare_msg_cache(DltLogStorageFilterConfig *config,
         else
         {
             /* update current used cache size */
-            g_logstorage_cache_size += cache_size + sizeof(DltLogStorageCacheFooter);
+            g_logstorage_cache_size += cache_size + sizeof(MctLogStorageCacheFooter);
         }
     }
 
@@ -1208,7 +1208,7 @@ int mct_logstorage_prepare_msg_cache(DltLogStorageFilterConfig *config,
  *
  * Write the log message.
  *
- * @param config        DltLogStorageFilterConfig
+ * @param config        MctLogStorageFilterConfig
  * @param file_config   User configurations for log file
  * @param dev_path      Storage device path
  * @param data1         header
@@ -1219,8 +1219,8 @@ int mct_logstorage_prepare_msg_cache(DltLogStorageFilterConfig *config,
  * @param size3         payload size
  * @return 0 on success, -1 on error
  */
-int mct_logstorage_write_msg_cache(DltLogStorageFilterConfig *config,
-                                   DltLogStorageUserConfig *file_config,
+int mct_logstorage_write_msg_cache(MctLogStorageFilterConfig *config,
+                                   MctLogStorageUserConfig *file_config,
                                    char *dev_path,
                                    unsigned char *data1,
                                    int size1,
@@ -1229,7 +1229,7 @@ int mct_logstorage_write_msg_cache(DltLogStorageFilterConfig *config,
                                    unsigned char *data3,
                                    int size3)
 {
-    DltLogStorageCacheFooter *footer = NULL;
+    MctLogStorageCacheFooter *footer = NULL;
     int msg_size;
     int remain_cache_size;
     uint8_t *curr_write_addr = NULL;
@@ -1243,8 +1243,8 @@ int mct_logstorage_write_msg_cache(DltLogStorageFilterConfig *config,
         return -1;
     }
 
-    if (DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
-                                     DLT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0)
+    if (MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
+                                     MCT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0)
     {
         cache_size = config->specific_size;
     }
@@ -1253,7 +1253,7 @@ int mct_logstorage_write_msg_cache(DltLogStorageFilterConfig *config,
         cache_size = config->file_size;
     }
 
-    footer = (DltLogStorageCacheFooter *)((uint8_t*)config->cache + cache_size);
+    footer = (MctLogStorageCacheFooter *)((uint8_t*)config->cache + cache_size);
     if (footer == NULL)
     {
         mct_log(LOG_ERR, "Cannot retrieve cache footer. Address is NULL\n");
@@ -1293,37 +1293,37 @@ int mct_logstorage_write_msg_cache(DltLogStorageFilterConfig *config,
         }
 
          /*sync to file for specific_size or file_size  */
-         if (DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
-                                                    DLT_LOGSTORAGE_SYNC_ON_FILE_SIZE) > 0)
+         if (MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
+                                                    MCT_LOGSTORAGE_SYNC_ON_FILE_SIZE) > 0)
          {
              ret = config->mct_logstorage_sync(config,
                                                file_config,
                                                dev_path,
-                                               DLT_LOGSTORAGE_SYNC_ON_FILE_SIZE);
+                                               MCT_LOGSTORAGE_SYNC_ON_FILE_SIZE);
              if (ret != 0)
              {
                  mct_log(LOG_ERR,"mct_logstorage_sync: Unable to sync.\n");
                  return -1;
              }
          }
-         else if (DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
-                                                         DLT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0)
+         else if (MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
+                                                         MCT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0)
          {
 
              ret = config->mct_logstorage_sync(config,
                                                file_config,
                                                dev_path,
-                                               DLT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE);
+                                               MCT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE);
              if (ret != 0)
              {
                  mct_log(LOG_ERR,"mct_logstorage_sync: Unable to sync.\n");
                  return -1;
              }
          }
-         else if ((DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
-                                                         DLT_LOGSTORAGE_SYNC_ON_DEMAND) > 0) ||
-                  (DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
-                                                         DLT_LOGSTORAGE_SYNC_ON_DAEMON_EXIT) > 0))
+         else if ((MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
+                                                         MCT_LOGSTORAGE_SYNC_ON_DEMAND) > 0) ||
+                  (MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
+                                                         MCT_LOGSTORAGE_SYNC_ON_DAEMON_EXIT) > 0))
          {
              footer->wrap_around_cnt += 1;
          }
@@ -1353,20 +1353,20 @@ int mct_logstorage_write_msg_cache(DltLogStorageFilterConfig *config,
  *
  * sync data to disk.
  *
- * @param config        DltLogStorageFilterConfig
+ * @param config        MctLogStorageFilterConfig
  * @param file_config   User configurations for log file
  * @param dev_path      Storage device path
  * @param status        Strategy flag
  * @return 0 on success, -1 on error
  */
-int mct_logstorage_sync_msg_cache(DltLogStorageFilterConfig *config,
-                                  DltLogStorageUserConfig *file_config,
+int mct_logstorage_sync_msg_cache(MctLogStorageFilterConfig *config,
+                                  MctLogStorageUserConfig *file_config,
                                   char *dev_path,
                                   int status)
 {
     unsigned int cache_size;
 
-    DltLogStorageCacheFooter *footer = NULL;
+    MctLogStorageCacheFooter *footer = NULL;
 
     if ((config == NULL) || (file_config == NULL) || (dev_path == NULL))
     {
@@ -1374,7 +1374,7 @@ int mct_logstorage_sync_msg_cache(DltLogStorageFilterConfig *config,
     }
 
     /* sync only, if given strategy is set */
-    if (DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync, status) > 0)
+    if (MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync, status) > 0)
     {
         if (config->cache == NULL)
         {
@@ -1383,8 +1383,8 @@ int mct_logstorage_sync_msg_cache(DltLogStorageFilterConfig *config,
             return -1;
         }
 
-        if (DLT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
-                                                   DLT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0)
+        if (MCT_OFFLINE_LOGSTORAGE_IS_STRATEGY_SET(config->sync,
+                                                   MCT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) > 0)
         {
             cache_size = config->specific_size;
         }
@@ -1393,7 +1393,7 @@ int mct_logstorage_sync_msg_cache(DltLogStorageFilterConfig *config,
             cache_size = config->file_size;
         }
 
-        footer = (DltLogStorageCacheFooter *)((uint8_t*)config->cache + cache_size);
+        footer = (MctLogStorageCacheFooter *)((uint8_t*)config->cache + cache_size);
         if (footer == NULL)
         {
             mct_log(LOG_ERR, "Cannot retrieve cache information\n");
@@ -1431,15 +1431,15 @@ int mct_logstorage_sync_msg_cache(DltLogStorageFilterConfig *config,
         }
 
         /* Initialize cache if needed */
-        if ((status == DLT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) ||
-            (status == DLT_LOGSTORAGE_SYNC_ON_FILE_SIZE))
+        if ((status == MCT_LOGSTORAGE_SYNC_ON_SPECIFIC_SIZE) ||
+            (status == MCT_LOGSTORAGE_SYNC_ON_FILE_SIZE))
         {
             /* clean ring buffer and reset footer information */
             memset(config->cache, 0,
-                   cache_size + sizeof(DltLogStorageCacheFooter));
+                   cache_size + sizeof(MctLogStorageCacheFooter));
         }
 
-        if (status == DLT_LOGSTORAGE_SYNC_ON_FILE_SIZE)
+        if (status == MCT_LOGSTORAGE_SYNC_ON_FILE_SIZE)
         {
             /* Close log file */
             if (config->log != NULL) {

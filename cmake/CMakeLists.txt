@@ -1,11 +1,11 @@
 ######## Run CheckIncludeFiles and CheckFunctionExists
 include(TestBigEndian)
-TEST_BIG_ENDIAN( DLT_BIGENDIAN )
-if( DLT_BIGENDIAN )
+TEST_BIG_ENDIAN( MCT_BIGENDIAN )
+if( MCT_BIGENDIAN )
 	add_definitions( -DBYTE_ORDER=BIG_ENDIAN )
-else ( DLT_BIGENDIAN )
+else ( MCT_BIGENDIAN )
 	add_definitions( -DBYTE_ORDER=LITTLE_ENDIAN )
-endif ( DLT_BIGENDIAN )
+endif ( MCT_BIGENDIAN )
 
 INCLUDE(CheckIncludeFiles)
 

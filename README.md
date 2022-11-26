@@ -34,7 +34,7 @@ cd /path_to_ws
 git clone https://github.com/minminlittleshrimp/MCT-daemon.git
 ```
 
-To build and install the DLT daemon, follow these steps:
+To build and install the MCT daemon, follow these steps:
 
 ```bash
 $cd /path_to_ws/mct-daemon
@@ -59,9 +59,9 @@ setup](doc/mct_demo_setup.md).
 |[mct-daemon](doc/mct-daemon.md) | MCT-Daemon and how to run |
 |[mct.conf](doc/mct.conf.md) | Reflect user case by config MCT framework|
 | *Control running instances of MCT*||
-|[mct-publisher](doc/dlt-receive.1.md)| Receive and store MCT logs |
-|[mct-subcriber](doc/dlt-control.1.md)| Send MCT logs to the Daemon |
-|[mct-logkeeper-ctrl](doc/dlt-logstorage-ctrl.1.md)| Send a control signal to mount/unmount a device |
+|[mct-publisher](doc/mct-receive.1.md)| Receive and store MCT logs |
+|[mct-subcriber](doc/mct-control.1.md)| Send MCT logs to the Daemon |
+|[mct-logkeeper-ctrl](doc/mct-logstorage-ctrl.1.md)| Send a control signal to mount/unmount a device |
 
 ## Known issues
 

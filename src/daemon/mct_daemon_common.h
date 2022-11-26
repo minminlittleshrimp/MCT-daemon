@@ -1,8 +1,8 @@
-#ifndef DLT_DAEMON_COMMON_H
-#define DLT_DAEMON_COMMON_H
+#ifndef MCT_DAEMON_COMMON_H
+#define MCT_DAEMON_COMMON_H
 
 /**
- * \defgroup daemonapi DLT Daemon API
+ * \defgroup daemonapi MCT Daemon API
  * \addtogroup daemonapi
  * \{
  */
@@ -18,47 +18,47 @@
 extern "C" {
 #endif
 
-#define DLT_DAEMON_RINGBUFFER_MIN_SIZE    500000   /**< Ring buffer size for storing log messages while no client is connected */
-#define DLT_DAEMON_RINGBUFFER_MAX_SIZE  10000000   /**< Ring buffer size for storing log messages while no client is connected */
-#define DLT_DAEMON_RINGBUFFER_STEP_SIZE   500000   /**< Ring buffer size for storing log messages while no client is connected */
+#define MCT_DAEMON_RINGBUFFER_MIN_SIZE    500000   /**< Ring buffer size for storing log messages while no client is connected */
+#define MCT_DAEMON_RINGBUFFER_MAX_SIZE  10000000   /**< Ring buffer size for storing log messages while no client is connected */
+#define MCT_DAEMON_RINGBUFFER_STEP_SIZE   500000   /**< Ring buffer size for storing log messages while no client is connected */
 
-#define DLT_DAEMON_SEND_TO_ALL     -3   /**< Constant value to identify the command "send to all" */
-#define DLT_DAEMON_SEND_FORCE      -4   /**< Constant value to identify the command "send force to all" */
+#define MCT_DAEMON_SEND_TO_ALL     -3   /**< Constant value to identify the command "send to all" */
+#define MCT_DAEMON_SEND_FORCE      -4   /**< Constant value to identify the command "send force to all" */
 
 
 /**
- * Definitions of DLT daemon logging states
+ * Definitions of MCT daemon logging states
  */
 typedef enum
 {
-    DLT_DAEMON_STATE_INIT = 0,               /**< Initial state */
-    DLT_DAEMON_STATE_BUFFER = 1,             /**< logging is buffered until external logger is connected or internal logging is activated */
-    DLT_DAEMON_STATE_BUFFER_FULL = 2,        /**< then internal buffer is full, wait for connect from client */
-    DLT_DAEMON_STATE_SEND_BUFFER = 3,        /**< external logger is connected, but buffer is still not empty or external logger queue is full */
-    DLT_DAEMON_STATE_SEND_DIRECT = 4         /**< External logger is connected or internal logging is active, and buffer is empty */
-} DltDaemonState;
+    MCT_DAEMON_STATE_INIT = 0,               /**< Initial state */
+    MCT_DAEMON_STATE_BUFFER = 1,             /**< logging is buffered until external logger is connected or internal logging is activated */
+    MCT_DAEMON_STATE_BUFFER_FULL = 2,        /**< then internal buffer is full, wait for connect from client */
+    MCT_DAEMON_STATE_SEND_BUFFER = 3,        /**< external logger is connected, but buffer is still not empty or external logger queue is full */
+    MCT_DAEMON_STATE_SEND_DIRECT = 4         /**< External logger is connected or internal logging is active, and buffer is empty */
+} MctDaemonState;
 
 /**
  * The parameters of a daemon application.
  */
 typedef struct
 {
-    char apid[DLT_ID_SIZE];        /**< application id */
+    char apid[MCT_ID_SIZE];        /**< application id */
     pid_t pid;                     /**< process id of user application */
     int user_handle;               /**< connection handle for connection to user application */
     bool owns_user_handle;         /**< user_handle should be closed when reset */
     char *application_description; /**< context description */
     int num_contexts;              /**< number of contexts for this application */
     int blockmode_status;          /**< blockmode status information */
-} DltDaemonApplication;
+} MctDaemonApplication;
 
 /**
  * The parameters of a daemon context.
  */
 typedef struct
 {
-    char apid[DLT_ID_SIZE];    /**< application id */
-    char ctid[DLT_ID_SIZE];    /**< context id */
+    char apid[MCT_ID_SIZE];    /**< application id */
+    char ctid[MCT_ID_SIZE];    /**< context id */
     int8_t log_level;          /**< the current log level of the context */
     int8_t trace_status;       /**< the current trace status of the context */
     int log_level_pos;         /**< offset of context in context field on user application */
@@ -66,47 +66,47 @@ typedef struct
     char *context_description; /**< context description */
     int8_t storage_log_level;  /**< log level set for offline logstorage */
     bool predefined;           /**< set to true if this context is predefined by runtime configuration file */
-} DltDaemonContext;
+} MctDaemonContext;
 
 /*
  * The parameter of registered users list
  */
 typedef struct
 {
-    DltDaemonApplication *applications; /**< Pointer to applications */
+    MctDaemonApplication *applications; /**< Pointer to applications */
     int num_applications;               /**< Number of available application */
-    DltDaemonContext *contexts;         /**< Pointer to contexts */
+    MctDaemonContext *contexts;         /**< Pointer to contexts */
     int num_contexts;                   /**< Total number of all contexts in all applications in this list */
-    char ecu[DLT_ID_SIZE];              /**< ECU ID of where contexts are registered */
-} DltDaemonRegisteredUsers;
+    char ecu[MCT_ID_SIZE];              /**< ECU ID of where contexts are registered */
+} MctDaemonRegisteredUsers;
 
 /**
  * The parameters of a daemon.
  */
 typedef struct
 {
-    DltDaemonRegisteredUsers *user_list;        /**< registered users per ECU */
+    MctDaemonRegisteredUsers *user_list;        /**< registered users per ECU */
     int num_user_lists;                         /** < number of context lists */
     int8_t default_log_level;                   /**< Default log level (of daemon) */
     int8_t default_trace_status;                /**< Default trace status (of daemon) */
     int8_t force_ll_ts;                         /**< Enforce ll and ts to not exceed default_log_level, default_trace_status */
     unsigned int overflow_counter;              /**< counts the number of lost messages. */
     int runtime_context_cfg_loaded;             /**< Set to one, if runtime context configuration has been loaded, zero otherwise */
-    char ecuid[DLT_ID_SIZE];                    /**< ECU ID of daemon */
+    char ecuid[MCT_ID_SIZE];                    /**< ECU ID of daemon */
     int sendserialheader;                       /**< 1: send serial header; 0 don't send serial header */
     int timingpackets;                          /**< 1: send continous timing packets; 0 don't send continous timing packets */
-    DltBuffer client_ringbuffer;                /**< Ring-buffer for storing received logs while no client connection is available */
+    MctBuffer client_ringbuffer;                /**< Ring-buffer for storing received logs while no client connection is available */
     char runtime_application_cfg[PATH_MAX + 1]; /**< Path and filename of persistent application configuration. Set to path max, as it specifies a full path*/
     char runtime_context_cfg[PATH_MAX + 1];     /**< Path and filename of persistent context configuration */
     char runtime_configuration[PATH_MAX + 1];   /**< Path and filename of persistent configuration */
-    DltUserLogMode mode;                        /**< Mode used for tracing: off, external, internal, both */
+    MctUserLogMode mode;                        /**< Mode used for tracing: off, external, internal, both */
     char connectionState;                       /**< state for tracing: 0 = no client connected, 1 = client connected */
     char *ECUVersionString;                     /**< Version string to send to client. Loaded from a file at startup. May be null. */
-    DltDaemonState state;                       /**< the current logging state of mct daemon. */
-    DltLogStorage *storage_handle;
+    MctDaemonState state;                       /**< the current logging state of mct daemon. */
+    MctLogStorage *storage_handle;
     int blockMode;                    /**< current active BlockMode setting. */
     int maintain_logstorage_loglevel; /* Permission to maintain the logstorage loglevel*/
-} DltDaemon;
+} MctDaemon;
 
 /**
  * Initialise the mct daemon structure
@@ -122,7 +122,7 @@ typedef struct
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_init(DltDaemon *daemon,
+int mct_daemon_init(MctDaemon *daemon,
                     unsigned long RingbufferMinSize,
                     unsigned long RingbufferMaxSize,
                     unsigned long RingbufferStepSize,
@@ -137,7 +137,7 @@ int mct_daemon_init(DltDaemon *daemon,
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_free(DltDaemon *daemon, int verbose);
+int mct_daemon_free(MctDaemon *daemon, int verbose);
 
 /**
  * Find information about application/contexts for a specific ECU
@@ -146,7 +146,7 @@ int mct_daemon_free(DltDaemon *daemon, int verbose);
  * @param verbose if set to true verbose information is printed out
  * @return pointer to user list, NULL otherwise
  */
-DltDaemonRegisteredUsers *mct_daemon_find_users_list(DltDaemon *daemon,
+MctDaemonRegisteredUsers *mct_daemon_find_users_list(MctDaemon *daemon,
                                                      char *ecu,
                                                      int verbose);
 /**
@@ -157,9 +157,9 @@ DltDaemonRegisteredUsers *mct_daemon_find_users_list(DltDaemon *daemon,
  * @param daemon pointer to mct daemon structure
  * @param runtime_directory directory path
  * @param verbose if set to true verbose information is printed out
- * @return DLT_RETURN_OK on success, DLT_RETURN_ERROR otherwise
+ * @return MCT_RETURN_OK on success, MCT_RETURN_ERROR otherwise
  */
-int mct_daemon_init_runtime_configuration(DltDaemon *daemon,
+int mct_daemon_init_runtime_configuration(MctDaemon *daemon,
                                           const char *runtime_directory,
                                           int verbose);
 
@@ -174,7 +174,7 @@ int mct_daemon_init_runtime_configuration(DltDaemon *daemon,
  * @param verbose if set to true verbose information is printed out.
  * @return Pointer to added context, null pointer on error
  */
-DltDaemonApplication *mct_daemon_application_add(DltDaemon *daemon,
+MctDaemonApplication *mct_daemon_application_add(MctDaemon *daemon,
                                                  char *apid,
                                                  pid_t pid,
                                                  char *description,
@@ -189,8 +189,8 @@ DltDaemonApplication *mct_daemon_application_add(DltDaemon *daemon,
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_application_del(DltDaemon *daemon,
-                               DltDaemonApplication *application,
+int mct_daemon_application_del(MctDaemon *daemon,
+                               MctDaemonApplication *application,
                                char *ecu,
                                int verbose);
 /**
@@ -201,7 +201,7 @@ int mct_daemon_application_del(DltDaemon *daemon,
  * @param verbose if set to true verbose information is printed out.
  * @return Pointer to application, null pointer on error or not found
  */
-DltDaemonApplication *mct_daemon_application_find(DltDaemon *daemon,
+MctDaemonApplication *mct_daemon_application_find(MctDaemon *daemon,
                                                   char *apid,
                                                   char *ecu,
                                                   int verbose);
@@ -212,7 +212,7 @@ DltDaemonApplication *mct_daemon_application_find(DltDaemon *daemon,
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_applications_load(DltDaemon *daemon, const char *filename, int verbose);
+int mct_daemon_applications_load(MctDaemon *daemon, const char *filename, int verbose);
 /**
  * Save applications from internal context management to file
  * @param daemon pointer to mct daemon structure
@@ -220,7 +220,7 @@ int mct_daemon_applications_load(DltDaemon *daemon, const char *filename, int ve
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_applications_save(DltDaemon *daemon, const char *filename, int verbose);
+int mct_daemon_applications_save(MctDaemon *daemon, const char *filename, int verbose);
 /**
  * Invalidate all applications fd, if fd is reused
  * @param daemon pointer to mct daemon structure
@@ -229,7 +229,7 @@ int mct_daemon_applications_save(DltDaemon *daemon, const char *filename, int ve
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_applications_invalidate_fd(DltDaemon *daemon,
+int mct_daemon_applications_invalidate_fd(MctDaemon *daemon,
                                           char *ecu,
                                           int fd,
                                           int verbose);
@@ -240,7 +240,7 @@ int mct_daemon_applications_invalidate_fd(DltDaemon *daemon,
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_applications_clear(DltDaemon *daemon, char *ecu, int verbose);
+int mct_daemon_applications_clear(MctDaemon *daemon, char *ecu, int verbose);
 
 /**
  * Add (new) context to internal context management
@@ -256,7 +256,7 @@ int mct_daemon_applications_clear(DltDaemon *daemon, char *ecu, int verbose);
  * @param verbose if set to true verbose information is printed out.
  * @return Pointer to added context, null pointer on error
  */
-DltDaemonContext *mct_daemon_context_add(DltDaemon *daemon,
+MctDaemonContext *mct_daemon_context_add(MctDaemon *daemon,
                                          char *apid,
                                          char *ctid,
                                          int8_t log_level,
@@ -274,8 +274,8 @@ DltDaemonContext *mct_daemon_context_add(DltDaemon *daemon,
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_context_del(DltDaemon *daemon,
-                           DltDaemonContext *context,
+int mct_daemon_context_del(MctDaemon *daemon,
+                           MctDaemonContext *context,
                            char *ecu,
                            int verbose);
 /**
@@ -287,7 +287,7 @@ int mct_daemon_context_del(DltDaemon *daemon,
  * @param verbose if set to true verbose information is printed out.
  * @return Pointer to context, null pointer on error or not found
  */
-DltDaemonContext *mct_daemon_context_find(DltDaemon *daemon,
+MctDaemonContext *mct_daemon_context_find(MctDaemon *daemon,
                                           char *apid,
                                           char *ctid,
                                           char *ecu,
@@ -300,7 +300,7 @@ DltDaemonContext *mct_daemon_context_find(DltDaemon *daemon,
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_contexts_invalidate_fd(DltDaemon *daemon,
+int mct_daemon_contexts_invalidate_fd(MctDaemon *daemon,
                                       char *ecu,
                                       int fd,
                                       int verbose);
@@ -311,7 +311,7 @@ int mct_daemon_contexts_invalidate_fd(DltDaemon *daemon,
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_contexts_clear(DltDaemon *daemon, char *ecu, int verbose);
+int mct_daemon_contexts_clear(MctDaemon *daemon, char *ecu, int verbose);
 /**
  * Load contexts from file to internal context management
  * @param daemon pointer to mct daemon structure
@@ -319,7 +319,7 @@ int mct_daemon_contexts_clear(DltDaemon *daemon, char *ecu, int verbose);
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_contexts_load(DltDaemon *daemon, const char *filename, int verbose);
+int mct_daemon_contexts_load(MctDaemon *daemon, const char *filename, int verbose);
 /**
  * Save contexts from internal context management to file
  * @param daemon pointer to mct daemon structure
@@ -327,7 +327,7 @@ int mct_daemon_contexts_load(DltDaemon *daemon, const char *filename, int verbos
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_contexts_save(DltDaemon *daemon, const char *filename, int verbose);
+int mct_daemon_contexts_save(MctDaemon *daemon, const char *filename, int verbose);
 /**
  * Load persistant configuration
  * @param daemon pointer to mct daemon structure
@@ -335,7 +335,7 @@ int mct_daemon_contexts_save(DltDaemon *daemon, const char *filename, int verbos
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_configuration_load(DltDaemon *daemon, const char *filename, int verbose);
+int mct_daemon_configuration_load(MctDaemon *daemon, const char *filename, int verbose);
 /**
  * Save configuration persistantly
  * @param daemon pointer to mct daemon structure
@@ -343,26 +343,26 @@ int mct_daemon_configuration_load(DltDaemon *daemon, const char *filename, int v
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_configuration_save(DltDaemon *daemon, const char *filename, int verbose);
+int mct_daemon_configuration_save(MctDaemon *daemon, const char *filename, int verbose);
 
 
 /**
- * Send user message DLT_USER_MESSAGE_LOG_LEVEL to user application
+ * Send user message MCT_USER_MESSAGE_LOG_LEVEL to user application
  * @param daemon pointer to mct daemon structure
  * @param context pointer to context for response
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_user_send_log_level(DltDaemon *daemon, DltDaemonContext *context, int verbose);
+int mct_daemon_user_send_log_level(MctDaemon *daemon, MctDaemonContext *context, int verbose);
 
 /**
- * Send user message DLT_USER_MESSAGE_LOG_STATE to user application
+ * Send user message MCT_USER_MESSAGE_LOG_STATE to user application
  * @param daemon pointer to mct daemon structure
  * @param app pointer to application for response
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_user_send_log_state(DltDaemon *daemon, DltDaemonApplication *app, int verbose);
+int mct_daemon_user_send_log_state(MctDaemon *daemon, MctDaemonApplication *app, int verbose);
 
 /**
  * Send user messages to all user applications using default context, or trace status
@@ -370,7 +370,7 @@ int mct_daemon_user_send_log_state(DltDaemon *daemon, DltDaemonApplication *app,
  * @param daemon pointer to mct daemon structure
  * @param verbose if set to true verbose information is printed out.
  */
-void mct_daemon_user_send_default_update(DltDaemon *daemon, int verbose);
+void mct_daemon_user_send_default_update(MctDaemon *daemon, int verbose);
 
 /**
  * Send user messages to all user applications context to update with the new log level
@@ -378,7 +378,7 @@ void mct_daemon_user_send_default_update(DltDaemon *daemon, int verbose);
  * @param log_level new log level to be set
  * @param verbose if set to true verbose information is printed out.
  */
-void mct_daemon_user_send_all_log_level_update(DltDaemon *daemon, int8_t log_level, int verbose);
+void mct_daemon_user_send_all_log_level_update(MctDaemon *daemon, int8_t log_level, int verbose);
 
 /**
  * Send user messages to all user applications context to update with the new trace status
@@ -386,7 +386,7 @@ void mct_daemon_user_send_all_log_level_update(DltDaemon *daemon, int8_t log_lev
  * @param trace_status new trace status to be set
  * @param verbose if set to true verbose information is printed out.
  */
-void mct_daemon_user_send_all_trace_status_update(DltDaemon *daemon,
+void mct_daemon_user_send_all_trace_status_update(MctDaemon *daemon,
                                                   int8_t trace_status,
                                                   int verbose);
 
@@ -396,7 +396,7 @@ void mct_daemon_user_send_all_trace_status_update(DltDaemon *daemon,
  * @param daemon pointer to mct daemon structure
  * @param verbose if set to true verbose information is printed out.
  */
-void mct_daemon_user_send_all_log_state(DltDaemon *daemon, int verbose);
+void mct_daemon_user_send_all_log_state(MctDaemon *daemon, int verbose);
 
 /**
  * Process reset to factory default control message
@@ -408,7 +408,7 @@ void mct_daemon_user_send_all_log_state(DltDaemon *daemon, int verbose);
  * @param InitialEnforceLlTsStatus force default log-level
  * @param verbose if set to true verbose information is printed out.
  */
-void mct_daemon_control_reset_to_factory_default(DltDaemon *daemon,
+void mct_daemon_control_reset_to_factory_default(MctDaemon *daemon,
                                                  const char *filename,
                                                  const char *filename1,
                                                  int InitialContextLogLevel,
@@ -421,10 +421,10 @@ void mct_daemon_control_reset_to_factory_default(DltDaemon *daemon,
  * @param daemon pointer to mct daemon structure
  * @param newState the requested new state
  */
-void mct_daemon_change_state(DltDaemon *daemon, DltDaemonState newState);
+void mct_daemon_change_state(MctDaemon *daemon, MctDaemonState newState);
 
 /**
- * Send user message DLT_USER_MESSAGE_SET_BLOCK_MODE to user application with
+ * Send user message MCT_USER_MESSAGE_SET_BLOCK_MODE to user application with
  * specified BlockMode
  * @param daemon pointer to mct daemon structure
  * @param name pointer to application name to which block mode is sent
@@ -432,7 +432,7 @@ void mct_daemon_change_state(DltDaemon *daemon, DltDaemonState newState);
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_daemon_user_update_blockmode(DltDaemon *daemon,
+int mct_daemon_user_update_blockmode(MctDaemon *daemon,
                                      char *name,
                                      int block_mode,
                                      int verbose);
@@ -444,4 +444,4 @@ int mct_daemon_user_update_blockmode(DltDaemon *daemon,
  * \}
  */
 
-#endif /* DLT_DAEMON_COMMON_H */
+#endif /* MCT_DAEMON_COMMON_H */

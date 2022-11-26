@@ -1,17 +1,17 @@
-#ifndef DLT_USER_MACROS_H
-#define DLT_USER_MACROS_H
+#ifndef MCT_USER_MACROS_H
+#define MCT_USER_MACROS_H
 
 #include "mct_version.h"
 #include "mct_types.h"
 
 /**
- * \defgroup userapi DLT User API
+ * \defgroup userapi MCT User API
  * \addtogroup userapi
  \{
  */
 
 /**************************************************************************************************
-* The folowing macros define a macro interface for DLT
+* The folowing macros define a macro interface for MCT
 **************************************************************************************************/
 
 /**
@@ -20,10 +20,10 @@
  * @param CONTEXT object containing information about one special logging context
  * @note To avoid the MISRA warning "Null statement is located close to other code or comments"
  *       remove the semicolon when using the macro.
- *       Example: DLT_DECLARE_CONTEXT(hContext)
+ *       Example: MCT_DECLARE_CONTEXT(hContext)
  */
-#define DLT_DECLARE_CONTEXT(CONTEXT) \
-    DltContext CONTEXT;
+#define MCT_DECLARE_CONTEXT(CONTEXT) \
+    MctContext CONTEXT;
 
 /**
  * Use an object of a new context created in another module.
@@ -31,38 +31,38 @@
  * @param CONTEXT object containing information about one special logging context
  * @note To avoid the MISRA warning "Null statement is located close to other code or comments"
  *       remove the semicolon when using the macro.
- *       Example: DLT_IMPORT_CONTEXT(hContext)
+ *       Example: MCT_IMPORT_CONTEXT(hContext)
  */
-#define DLT_IMPORT_CONTEXT(CONTEXT) \
-    extern DltContext CONTEXT;
+#define MCT_IMPORT_CONTEXT(CONTEXT) \
+    extern MctContext CONTEXT;
 
 /**
  * Register application.
  * @param APPID application id with maximal four characters
  * @param DESCRIPTION ASCII string containing description
  */
-#define DLT_REGISTER_APP(APPID, DESCRIPTION) do { \
-        (void)mct_check_library_version(_DLT_PACKAGE_MAJOR_VERSION, _DLT_PACKAGE_MINOR_VERSION); \
+#define MCT_REGISTER_APP(APPID, DESCRIPTION) do { \
+        (void)mct_check_library_version(_MCT_PACKAGE_MAJOR_VERSION, _MCT_PACKAGE_MINOR_VERSION); \
         (void)mct_register_app(APPID, DESCRIPTION); } while (0)
 
 
 /**
  * Unregister application.
  */
-#define DLT_UNREGISTER_APP() do { \
+#define MCT_UNREGISTER_APP() do { \
         (void)mct_unregister_app(); } while (0)
 
 /**
  * Unregister application and flush the logs buffered in startup buffer if any.
  */
-#define DLT_UNREGISTER_APP_FLUSH_BUFFERED_LOGS() do { \
+#define MCT_UNREGISTER_APP_FLUSH_BUFFERED_LOGS() do { \
         (void)mct_unregister_app_flush_buffered_logs(); } while (0)
 
 /**
  * To Get application ID.
  * @param APPID character pointer of minimum 4 bytes
  */
-#define DLT_GET_APPID(APPID) do{\
+#define MCT_GET_APPID(APPID) do{\
     mct_get_appid(APPID);} while(0)
 
 /**
@@ -71,7 +71,7 @@
  * @param CONTEXTID context id with maximal four characters
  * @param DESCRIPTION ASCII string containing description
  */
-#define DLT_REGISTER_CONTEXT(CONTEXT, CONTEXTID, DESCRIPTION) do { \
+#define MCT_REGISTER_CONTEXT(CONTEXT, CONTEXTID, DESCRIPTION) do { \
         (void)mct_register_context(&(CONTEXT), CONTEXTID, DESCRIPTION); } while (0)
 
 /**
@@ -80,11 +80,11 @@
  * @param CONTEXTID context id with maximal four characters
  * @param DESCRIPTION ASCII string containing description
  * @param LOGLEVEL log level to be pre-set for this context
- * (DLT_LOG_DEFAULT is not allowed here)
+ * (MCT_LOG_DEFAULT is not allowed here)
  * @param TRACESTATUS trace status to be pre-set for this context
- * (DLT_TRACE_STATUS_DEFAULT is not allowed here)
+ * (MCT_TRACE_STATUS_DEFAULT is not allowed here)
  */
-#define DLT_REGISTER_CONTEXT_LL_TS(CONTEXT, CONTEXTID, DESCRIPTION, LOGLEVEL, TRACESTATUS) do { \
+#define MCT_REGISTER_CONTEXT_LL_TS(CONTEXT, CONTEXTID, DESCRIPTION, LOGLEVEL, TRACESTATUS) do { \
         (void)mct_register_context_ll_ts(&(CONTEXT), CONTEXTID, DESCRIPTION, LOGLEVEL, TRACESTATUS); } while (0)
 
 /**
@@ -94,14 +94,14 @@
  * @param DESCRIPTION ASCII string containing description
  * @param CBK log level change callback to be registered
  */
-#define DLT_REGISTER_CONTEXT_LLCCB(CONTEXT, CONTEXTID, DESCRIPTION, CBK) do { \
+#define MCT_REGISTER_CONTEXT_LLCCB(CONTEXT, CONTEXTID, DESCRIPTION, CBK) do { \
         (void)mct_register_context_llccb(&(CONTEXT), CONTEXTID, DESCRIPTION, CBK); } while (0)
 
 /**
  * Unregister context.
  * @param CONTEXT object containing information about one special logging context
  */
-#define DLT_UNREGISTER_CONTEXT(CONTEXT) do { \
+#define MCT_UNREGISTER_CONTEXT(CONTEXT) do { \
         (void)mct_unregister_context(&(CONTEXT)); } while (0)
 
 /**
@@ -110,7 +110,7 @@
  * @param SERVICEID service id of the injection message
  * @param CALLBACK function pointer to callback function
  */
-#define DLT_REGISTER_INJECTION_CALLBACK(CONTEXT, SERVICEID, CALLBACK) do { \
+#define MCT_REGISTER_INJECTION_CALLBACK(CONTEXT, SERVICEID, CALLBACK) do { \
         (void)mct_register_injection_callback(&(CONTEXT), SERVICEID, CALLBACK); } while (0)
 
 /**
@@ -120,7 +120,7 @@
  * @param CALLBACK function pointer to callback function
  * @param PRIV_DATA data specific to context
  */
-#define DLT_REGISTER_INJECTION_CALLBACK_WITH_ID(CONTEXT, SERVICEID, CALLBACK, PRIV_DATA) do { \
+#define MCT_REGISTER_INJECTION_CALLBACK_WITH_ID(CONTEXT, SERVICEID, CALLBACK, PRIV_DATA) do { \
         (void)mct_register_injection_callback_with_id(&(CONTEXT), SERVICEID, CALLBACK, PRIV_DATA); } while (0)
 
 /**
@@ -128,7 +128,7 @@
  * @param CONTEXT object containing information about one special logging context
  * @param CALLBACK function pointer to callback function
  */
-#define DLT_REGISTER_LOG_LEVEL_CHANGED_CALLBACK(CONTEXT, CALLBACK) do { \
+#define MCT_REGISTER_LOG_LEVEL_CHANGED_CALLBACK(CONTEXT, CALLBACK) do { \
         (void)mct_register_log_level_changed_callback(&(CONTEXT), CALLBACK); } while (0)
 
 /**
@@ -138,18 +138,18 @@
  * @param ... variable list of arguments
  * @note To avoid the MISRA warning "The comma operator has been used outside a for statement"
  *       use a semicolon instead of a comma to separate the __VA_ARGS__.
- *       Example: DLT_LOG(hContext, DLT_LOG_INFO, DLT_STRING("Hello world"); DLT_INT(123));
+ *       Example: MCT_LOG(hContext, MCT_LOG_INFO, MCT_STRING("Hello world"); MCT_INT(123));
  */
 #ifdef _MSC_VER
-/* DLT_LOG is not supported by MS Visual C++ */
+/* MCT_LOG is not supported by MS Visual C++ */
 /* use function interface instead            */
 #else
-#   define DLT_LOG(CONTEXT, LOGLEVEL, ...) \
+#   define MCT_LOG(CONTEXT, LOGLEVEL, ...) \
     do { \
-        DltContextData log_local; \
+        MctContextData log_local; \
         int mct_local; \
         mct_local = mct_user_log_write_start(&CONTEXT, &log_local, LOGLEVEL); \
-        if (mct_local == DLT_RETURN_TRUE) \
+        if (mct_local == MCT_RETURN_TRUE) \
         { \
             __VA_ARGS__; \
             (void)mct_user_log_write_finish(&log_local); \
@@ -165,21 +165,21 @@
  * @param ... variable list of arguments
  * @note To avoid the MISRA warning "The comma operator has been used outside a for statement"
  *       use a semicolon instead of a comma to separate the __VA_ARGS__.
- *       Example: DLT_LOG_TS(hContext, DLT_LOG_INFO, timestamp, DLT_STRING("Hello world"); DLT_INT(123));
+ *       Example: MCT_LOG_TS(hContext, MCT_LOG_INFO, timestamp, MCT_STRING("Hello world"); MCT_INT(123));
  */
 #ifdef _MSC_VER
-/* DLT_LOG_TS is not supported by MS Visual C++ */
+/* MCT_LOG_TS is not supported by MS Visual C++ */
 /* use function interface instead            */
 #else
-#   define DLT_LOG_TS(CONTEXT, LOGLEVEL, TS, ...) \
+#   define MCT_LOG_TS(CONTEXT, LOGLEVEL, TS, ...) \
     do { \
-        DltContextData log_local; \
+        MctContextData log_local; \
         int mct_local; \
         mct_local = mct_user_log_write_start(&CONTEXT, &log_local, LOGLEVEL); \
-        if (mct_local == DLT_RETURN_TRUE) \
+        if (mct_local == MCT_RETURN_TRUE) \
         { \
             __VA_ARGS__; \
-            log_local.use_timestamp = DLT_USER_TIMESTAMP; \
+            log_local.use_timestamp = MCT_USER_TIMESTAMP; \
             log_local.user_timestamp = (uint32_t) TS; \
             (void)mct_user_log_write_finish(&log_local); \
         } \
@@ -192,22 +192,22 @@
  * @param LOGLEVEL the log level of the log message
  * @param MSGID the message id of log message
  * @param ... variable list of arguments
- * calls to DLT_STRING(), DLT_BOOL(), DLT_FLOAT32(), DLT_FLOAT64(),
- * DLT_INT(), DLT_UINT(), DLT_RAW()
+ * calls to MCT_STRING(), MCT_BOOL(), MCT_FLOAT32(), MCT_FLOAT64(),
+ * MCT_INT(), MCT_UINT(), MCT_RAW()
  * @note To avoid the MISRA warning "The comma operator has been used outside a for statement"
  *       use a semicolon instead of a comma to separate the __VA_ARGS__.
- *       Example: DLT_LOG_ID(hContext, DLT_LOG_INFO, 0x1234, DLT_STRING("Hello world"); DLT_INT(123));
+ *       Example: MCT_LOG_ID(hContext, MCT_LOG_INFO, 0x1234, MCT_STRING("Hello world"); MCT_INT(123));
  */
 #ifdef _MSC_VER
-/* DLT_LOG_ID is not supported by MS Visual C++ */
+/* MCT_LOG_ID is not supported by MS Visual C++ */
 /* use function interface instead               */
 #else
-#   define DLT_LOG_ID(CONTEXT, LOGLEVEL, MSGID, ...) \
+#   define MCT_LOG_ID(CONTEXT, LOGLEVEL, MSGID, ...) \
     do { \
-        DltContextData log_local; \
+        MctContextData log_local; \
         int mct_local; \
         mct_local = mct_user_log_write_start_id(&CONTEXT, &log_local, LOGLEVEL, MSGID); \
-        if (mct_local == DLT_RETURN_TRUE) \
+        if (mct_local == MCT_RETURN_TRUE) \
         { \
             __VA_ARGS__; \
             (void)mct_user_log_write_finish(&log_local); \
@@ -222,25 +222,25 @@
  * @param MSGID the message id of log message
  * @param TS timestamp to be used for log message
  * @param ... variable list of arguments
- * calls to DLT_STRING(), DLT_BOOL(), DLT_FLOAT32(), DLT_FLOAT64(),
- * DLT_INT(), DLT_UINT(), DLT_RAW()
+ * calls to MCT_STRING(), MCT_BOOL(), MCT_FLOAT32(), MCT_FLOAT64(),
+ * MCT_INT(), MCT_UINT(), MCT_RAW()
  * @note To avoid the MISRA warning "The comma operator has been used outside a for statement"
  *       use a semicolon instead of a comma to separate the __VA_ARGS__.
- *       Example: DLT_LOG_ID_TS(hContext, DLT_LOG_INFO, 0x1234, timestamp, DLT_STRING("Hello world"); DLT_INT(123));
+ *       Example: MCT_LOG_ID_TS(hContext, MCT_LOG_INFO, 0x1234, timestamp, MCT_STRING("Hello world"); MCT_INT(123));
  */
 #ifdef _MSC_VER
-/* DLT_LOG_ID_TS is not supported by MS Visual C++ */
+/* MCT_LOG_ID_TS is not supported by MS Visual C++ */
 /* use function interface instead               */
 #else
-#   define DLT_LOG_ID_TS(CONTEXT, LOGLEVEL, MSGID, TS, ...) \
+#   define MCT_LOG_ID_TS(CONTEXT, LOGLEVEL, MSGID, TS, ...) \
     do { \
-        DltContextData log_local; \
+        MctContextData log_local; \
         int mct_local; \
         mct_local = mct_user_log_write_start_id(&CONTEXT, &log_local, LOGLEVEL, MSGID); \
-        if (mct_local == DLT_RETURN_TRUE) \
+        if (mct_local == MCT_RETURN_TRUE) \
         { \
             __VA_ARGS__; \
-            log_local.use_timestamp = DLT_USER_TIMESTAMP; \
+            log_local.use_timestamp = MCT_USER_TIMESTAMP; \
             log_local.user_timestamp = (uint32_t) TS; \
             (void)mct_user_log_write_finish(&log_local); \
         } \
@@ -251,7 +251,7 @@
  * Add string parameter to the log messsage.
  * @param TEXT ASCII string
  */
-#define DLT_STRING(TEXT) \
+#define MCT_STRING(TEXT) \
     (void)mct_user_log_write_string(&log_local, TEXT)
 
 /**
@@ -262,14 +262,14 @@
  * @param TEXT ASCII string
  * @param LEN length in bytes to take from @a TEXT
  */
-#define DLT_SIZED_STRING(TEXT, LEN) \
+#define MCT_SIZED_STRING(TEXT, LEN) \
     (void)mct_user_log_write_sized_string(&log_local, TEXT, LEN)
 
 /**
  * Add constant string parameter to the log messsage.
  * @param TEXT Constant ASCII string
  */
-#define DLT_CSTRING(TEXT) \
+#define MCT_CSTRING(TEXT) \
     (void)mct_user_log_write_constant_string(&log_local, TEXT)
 
 /**
@@ -280,14 +280,14 @@
  * @param TEXT Constant ASCII string
  * @param LEN length in bytes to take from @a TEXT
  */
-#define DLT_SIZED_CSTRING(TEXT, LEN) \
+#define MCT_SIZED_CSTRING(TEXT, LEN) \
     (void)mct_user_log_write_sized_constant_string(&log_local, TEXT, LEN)
 
 /**
  * Add utf8-encoded string parameter to the log messsage.
  * @param TEXT UTF8-encoded string
  */
-#define DLT_UTF8(TEXT) \
+#define MCT_UTF8(TEXT) \
     (void)mct_user_log_write_utf8_string(&log_local, TEXT)
 
 /**
@@ -298,14 +298,14 @@
  * @param TEXT UTF8-encoded string
  * @param LEN length in bytes to take from @a TEXT
  */
-#define DLT_SIZED_UTF8(TEXT, LEN) \
+#define MCT_SIZED_UTF8(TEXT, LEN) \
     (void)mct_user_log_write_sized_utf8_string(&log_local, TEXT, LEN)
 
 /**
  * Add constant utf8-encoded string parameter to the log messsage.
  * @param TEXT Constant UTF8-encoded string
  */
-#define DLT_CUTF8(TEXT) \
+#define MCT_CUTF8(TEXT) \
     (void)mct_user_log_write_constant_utf8_string(&log_local, TEXT)
 
 /**
@@ -316,7 +316,7 @@
  * @param TEXT Constant UTF8-encoded string
  * @param LEN length in bytes to take from @a TEXT
  */
-#define DLT_SIZED_CUTF8(TEXT, LEN) \
+#define MCT_SIZED_CUTF8(TEXT, LEN) \
     (void)mct_user_log_write_sized_constant_utf8_string(&log_local, TEXT, LEN)
 
 /**
@@ -324,7 +324,7 @@
  * @param TEXT ASCII string
  * @param NAME "name" attribute
  */
-#define DLT_STRING_ATTR(TEXT, NAME) \
+#define MCT_STRING_ATTR(TEXT, NAME) \
     (void)mct_user_log_write_string_attr(&log_local, TEXT, NAME)
 
 /**
@@ -336,7 +336,7 @@
  * @param LEN length in bytes to take from @a TEXT
  * @param NAME "name" attribute
  */
-#define DLT_SIZED_STRING_ATTR(TEXT, LEN, NAME) \
+#define MCT_SIZED_STRING_ATTR(TEXT, LEN, NAME) \
     (void)mct_user_log_write_sized_string_attr(&log_local, TEXT, LEN, NAME)
 
 /**
@@ -344,7 +344,7 @@
  * @param TEXT Constant ASCII string
  * @param NAME "name" attribute
  */
-#define DLT_CSTRING_ATTR(TEXT, NAME) \
+#define MCT_CSTRING_ATTR(TEXT, NAME) \
     (void)mct_user_log_write_constant_string_attr(&log_local, TEXT, NAME)
 
 /**
@@ -356,7 +356,7 @@
  * @param LEN length in bytes to take from @a TEXT
  * @param NAME "name" attribute
  */
-#define DLT_SIZED_CSTRING_ATTR(TEXT, LEN, NAME) \
+#define MCT_SIZED_CSTRING_ATTR(TEXT, LEN, NAME) \
     (void)mct_user_log_write_sized_constant_string_attr(&log_local, TEXT, LEN, NAME)
 
 /**
@@ -364,7 +364,7 @@
  * @param TEXT UTF8-encoded string
  * @param NAME "name" attribute
  */
-#define DLT_UTF8_ATTR(TEXT, NAME) \
+#define MCT_UTF8_ATTR(TEXT, NAME) \
     (void)mct_user_log_write_utf8_string_attr(&log_local, TEXT, NAME)
 
 /**
@@ -376,7 +376,7 @@
  * @param LEN length in bytes to take from @a TEXT
  * @param NAME "name" attribute
  */
-#define DLT_SIZED_UTF8_ATTR(TEXT, LEN, NAME) \
+#define MCT_SIZED_UTF8_ATTR(TEXT, LEN, NAME) \
     (void)mct_user_log_write_sized_utf8_string_attr(&log_local, TEXT, LEN, ATTR)
 
 /**
@@ -384,7 +384,7 @@
  * @param TEXT Constant UTF8-encoded string
  * @param NAME "name" attribute
  */
-#define DLT_CUTF8_ATTR(TEXT, NAME) \
+#define MCT_CUTF8_ATTR(TEXT, NAME) \
     (void)mct_user_log_write_constant_utf8_string_attr(&log_local, TEXT, NAME)
 
 /**
@@ -396,14 +396,14 @@
  * @param LEN length in bytes to take from @a TEXT
  * @param NAME "name" attribute
  */
-#define DLT_SIZED_CUTF8_ATTR(TEXT, LEN, NAME) \
+#define MCT_SIZED_CUTF8_ATTR(TEXT, LEN, NAME) \
     (void)mct_user_log_write_sized_constant_utf8_string_attr(&log_local, TEXT, LEN, NAME)
 
 /**
  * Add boolean parameter to the log messsage.
  * @param BOOL_VAR Boolean value (mapped to uint8)
  */
-#define DLT_BOOL(BOOL_VAR) \
+#define MCT_BOOL(BOOL_VAR) \
     (void)mct_user_log_write_bool(&log_local, BOOL_VAR)
 
 /**
@@ -411,21 +411,21 @@
  * @param BOOL_VAR Boolean value (mapped to uint8)
  * @param NAME "name" attribute
  */
-#define DLT_BOOL_ATTR(BOOL_VAR, NAME) \
+#define MCT_BOOL_ATTR(BOOL_VAR, NAME) \
     (void)mct_user_log_write_bool_attr(&log_local, BOOL_VAR, NAME)
 
 /**
  * Add float32 parameter to the log messsage.
  * @param FLOAT32_VAR Float32 value (mapped to float)
  */
-#define DLT_FLOAT32(FLOAT32_VAR) \
+#define MCT_FLOAT32(FLOAT32_VAR) \
     (void)mct_user_log_write_float32(&log_local, FLOAT32_VAR)
 
 /**
  * Add float64 parameter to the log messsage.
  * @param FLOAT64_VAR Float64 value (mapped to double)
  */
-#define DLT_FLOAT64(FLOAT64_VAR) \
+#define MCT_FLOAT64(FLOAT64_VAR) \
     (void)mct_user_log_write_float64(&log_local, FLOAT64_VAR)
 
 /**
@@ -434,7 +434,7 @@
  * @param NAME "name" attribute
  * @param UNIT "unit" attribute
  */
-#define DLT_FLOAT32_ATTR(FLOAT32_VAR, NAME, UNIT) \
+#define MCT_FLOAT32_ATTR(FLOAT32_VAR, NAME, UNIT) \
     (void)mct_user_log_write_float32_attr(&log_local, FLOAT32_VAR, NAME, UNIT)
 
 /**
@@ -443,26 +443,26 @@
  * @param NAME "name" attribute
  * @param UNIT "unit" attribute
  */
-#define DLT_FLOAT64_ATTR(FLOAT64_VAR, NAME, UNIT) \
+#define MCT_FLOAT64_ATTR(FLOAT64_VAR, NAME, UNIT) \
     (void)mct_user_log_write_float64_attr(&log_local, FLOAT64_VAR, NAME, UNIT)
 
 /**
  * Add integer parameter to the log messsage.
  * @param INT_VAR integer value
  */
-#define DLT_INT(INT_VAR) \
+#define MCT_INT(INT_VAR) \
     (void)mct_user_log_write_int(&log_local, INT_VAR)
 
-#define DLT_INT8(INT_VAR) \
+#define MCT_INT8(INT_VAR) \
     (void)mct_user_log_write_int8(&log_local, INT_VAR)
 
-#define DLT_INT16(INT_VAR) \
+#define MCT_INT16(INT_VAR) \
     (void)mct_user_log_write_int16(&log_local, INT_VAR)
 
-#define DLT_INT32(INT_VAR) \
+#define MCT_INT32(INT_VAR) \
     (void)mct_user_log_write_int32(&log_local, INT_VAR)
 
-#define DLT_INT64(INT_VAR) \
+#define MCT_INT64(INT_VAR) \
     (void)mct_user_log_write_int64(&log_local, INT_VAR)
 
 /**
@@ -471,38 +471,38 @@
  * @param NAME "name" attribute
  * @param UNIT "unit" attribute
  */
-#define DLT_INT_ATTR(INT_VAR, NAME, UNIT) \
+#define MCT_INT_ATTR(INT_VAR, NAME, UNIT) \
     (void)mct_user_log_write_int_attr(&log_local, INT_VAR, NAME, UNIT)
 
-#define DLT_INT8_ATTR(INT_VAR, NAME, UNIT) \
+#define MCT_INT8_ATTR(INT_VAR, NAME, UNIT) \
     (void)mct_user_log_write_int8_attr(&log_local, INT_VAR, NAME, UNIT)
 
-#define DLT_INT16_ATTR(INT_VAR, NAME, UNIT) \
+#define MCT_INT16_ATTR(INT_VAR, NAME, UNIT) \
     (void)mct_user_log_write_int16_attr(&log_local, INT_VAR, NAME, UNIT)
 
-#define DLT_INT32_ATTR(INT_VAR, NAME, UNIT) \
+#define MCT_INT32_ATTR(INT_VAR, NAME, UNIT) \
     (void)mct_user_log_write_int32_attr(&log_local, INT_VAR, NAME, UNIT)
 
-#define DLT_INT64_ATTR(INT_VAR, NAME, UNIT) \
+#define MCT_INT64_ATTR(INT_VAR, NAME, UNIT) \
     (void)mct_user_log_write_int64_attr(&log_local, INT_VAR, NAME, UNIT)
 
 /**
  * Add unsigned integer parameter to the log messsage.
  * @param UINT_VAR unsigned integer value
  */
-#define DLT_UINT(UINT_VAR) \
+#define MCT_UINT(UINT_VAR) \
     (void)mct_user_log_write_uint(&log_local, UINT_VAR)
 
-#define DLT_UINT8(UINT_VAR) \
+#define MCT_UINT8(UINT_VAR) \
     (void)mct_user_log_write_uint8(&log_local, UINT_VAR)
 
-#define DLT_UINT16(UINT_VAR) \
+#define MCT_UINT16(UINT_VAR) \
     (void)mct_user_log_write_uint16(&log_local, UINT_VAR)
 
-#define DLT_UINT32(UINT_VAR) \
+#define MCT_UINT32(UINT_VAR) \
     (void)mct_user_log_write_uint32(&log_local, UINT_VAR)
 
-#define DLT_UINT64(UINT_VAR) \
+#define MCT_UINT64(UINT_VAR) \
     (void)mct_user_log_write_uint64(&log_local, UINT_VAR)
 
 /**
@@ -511,19 +511,19 @@
  * @param NAME "name" attribute
  * @param UNIT "unit" attribute
  */
-#define DLT_UINT_ATTR(UINT_VAR, NAME, UNIT) \
+#define MCT_UINT_ATTR(UINT_VAR, NAME, UNIT) \
     (void)mct_user_log_write_uint_attr(&log_local, UINT_VAR, NAME, UNIT)
 
-#define DLT_UINT8_ATTR(UINT_VAR, NAME, UNIT) \
+#define MCT_UINT8_ATTR(UINT_VAR, NAME, UNIT) \
     (void)mct_user_log_write_uint8_attr(&log_local, UINT_VAR, NAME, UNIT)
 
-#define DLT_UINT16_ATTR(UINT_VAR, NAME, UNIT) \
+#define MCT_UINT16_ATTR(UINT_VAR, NAME, UNIT) \
     (void)mct_user_log_write_uint16_attr(&log_local, UINT_VAR, NAME, UNIT)
 
-#define DLT_UINT32_ATTR(UINT_VAR, NAME, UNIT) \
+#define MCT_UINT32_ATTR(UINT_VAR, NAME, UNIT) \
     (void)mct_user_log_write_uint32_attr(&log_local, UINT_VAR, NAME, UNIT)
 
-#define DLT_UINT64_ATTR(UINT_VAR, NAME, UNIT) \
+#define MCT_UINT64_ATTR(UINT_VAR, NAME, UNIT) \
     (void)mct_user_log_write_uint64_attr(&log_local, UINT_VAR, NAME, UNIT)
 
 /**
@@ -531,20 +531,20 @@
  * @param BUF pointer to memory block
  * @param LEN length of memory block
  */
-#define DLT_RAW(BUF, LEN) \
+#define MCT_RAW(BUF, LEN) \
     (void)mct_user_log_write_raw(&log_local, BUF, LEN)
-#define DLT_HEX8(UINT_VAR) \
-    (void)mct_user_log_write_uint8_formatted(&log_local, UINT_VAR, DLT_FORMAT_HEX8)
-#define DLT_HEX16(UINT_VAR) \
-    (void)mct_user_log_write_uint16_formatted(&log_local, UINT_VAR, DLT_FORMAT_HEX16)
-#define DLT_HEX32(UINT_VAR) \
-    (void)mct_user_log_write_uint32_formatted(&log_local, UINT_VAR, DLT_FORMAT_HEX32)
-#define DLT_HEX64(UINT_VAR) \
-    (void)mct_user_log_write_uint64_formatted(&log_local, UINT_VAR, DLT_FORMAT_HEX64)
-#define DLT_BIN8(UINT_VAR) \
-    (void)mct_user_log_write_uint8_formatted(&log_local, UINT_VAR, DLT_FORMAT_BIN8)
-#define DLT_BIN16(UINT_VAR) \
-    (void)mct_user_log_write_uint16_formatted(&log_local, UINT_VAR, DLT_FORMAT_BIN16)
+#define MCT_HEX8(UINT_VAR) \
+    (void)mct_user_log_write_uint8_formatted(&log_local, UINT_VAR, MCT_FORMAT_HEX8)
+#define MCT_HEX16(UINT_VAR) \
+    (void)mct_user_log_write_uint16_formatted(&log_local, UINT_VAR, MCT_FORMAT_HEX16)
+#define MCT_HEX32(UINT_VAR) \
+    (void)mct_user_log_write_uint32_formatted(&log_local, UINT_VAR, MCT_FORMAT_HEX32)
+#define MCT_HEX64(UINT_VAR) \
+    (void)mct_user_log_write_uint64_formatted(&log_local, UINT_VAR, MCT_FORMAT_HEX64)
+#define MCT_BIN8(UINT_VAR) \
+    (void)mct_user_log_write_uint8_formatted(&log_local, UINT_VAR, MCT_FORMAT_BIN8)
+#define MCT_BIN16(UINT_VAR) \
+    (void)mct_user_log_write_uint16_formatted(&log_local, UINT_VAR, MCT_FORMAT_BIN16)
 
 /**
  * Add binary memory block with "name" attribute to the log messages.
@@ -552,13 +552,13 @@
  * @param LEN length of memory block
  * @param NAME "name" attribute
  */
-#define DLT_RAW_ATTR(BUF, LEN, NAME) \
+#define MCT_RAW_ATTR(BUF, LEN, NAME) \
     (void)mct_user_log_write_raw_attr(&log_local, BUF, LEN, NAME)
 
 /**
  * Architecture independent macro to print pointers
  */
-#define DLT_PTR(PTR_VAR) \
+#define MCT_PTR(PTR_VAR) \
     (void)mct_user_log_write_ptr(&log_local, PTR_VAR)
 
 /**
@@ -570,9 +570,9 @@
  * @param PAYLOADLEN length of network message payload
  * @param PAYLOAD pointer to network message payload
  */
-#define DLT_TRACE_NETWORK(CONTEXT, TYPE, HEADERLEN, HEADER, PAYLOADLEN, PAYLOAD) \
+#define MCT_TRACE_NETWORK(CONTEXT, TYPE, HEADERLEN, HEADER, PAYLOADLEN, PAYLOAD) \
     do { \
-        if ((CONTEXT).trace_status_ptr && *((CONTEXT).trace_status_ptr) == DLT_TRACE_STATUS_ON) \
+        if ((CONTEXT).trace_status_ptr && *((CONTEXT).trace_status_ptr) == MCT_TRACE_STATUS_ON) \
         { \
             (void)mct_user_trace_network(&(CONTEXT), TYPE, HEADERLEN, HEADER, PAYLOADLEN, PAYLOAD); \
         } \
@@ -587,9 +587,9 @@
  * @param PAYLOADLEN length of network message payload
  * @param PAYLOAD pointer to network message payload
  */
-#define DLT_TRACE_NETWORK_TRUNCATED(CONTEXT, TYPE, HEADERLEN, HEADER, PAYLOADLEN, PAYLOAD) \
+#define MCT_TRACE_NETWORK_TRUNCATED(CONTEXT, TYPE, HEADERLEN, HEADER, PAYLOADLEN, PAYLOAD) \
     do { \
-        if ((CONTEXT).trace_status_ptr && *((CONTEXT).trace_status_ptr) == DLT_TRACE_STATUS_ON) \
+        if ((CONTEXT).trace_status_ptr && *((CONTEXT).trace_status_ptr) == MCT_TRACE_STATUS_ON) \
         { \
             (void)mct_user_trace_network_truncated(&(CONTEXT), TYPE, HEADERLEN, HEADER, PAYLOADLEN, PAYLOAD, 1); \
         } \
@@ -604,9 +604,9 @@
  * @param PAYLOADLEN length of network message payload
  * @param PAYLOAD pointer to network message payload
  */
-#define DLT_TRACE_NETWORK_SEGMENTED(CONTEXT, TYPE, HEADERLEN, HEADER, PAYLOADLEN, PAYLOAD) \
+#define MCT_TRACE_NETWORK_SEGMENTED(CONTEXT, TYPE, HEADERLEN, HEADER, PAYLOADLEN, PAYLOAD) \
     do { \
-        if ((CONTEXT).trace_status_ptr && *((CONTEXT).trace_status_ptr) == DLT_TRACE_STATUS_ON) \
+        if ((CONTEXT).trace_status_ptr && *((CONTEXT).trace_status_ptr) == MCT_TRACE_STATUS_ON) \
         { \
             (void)mct_user_trace_network_segmented(&(CONTEXT), TYPE, HEADERLEN, HEADER, PAYLOADLEN, PAYLOAD); \
         } \
@@ -618,9 +618,9 @@
  * @param LOGLEVEL the log level of the log message
  * @param TEXT ASCII string
  */
-#define DLT_LOG_STRING(CONTEXT, LOGLEVEL, TEXT) \
+#define MCT_LOG_STRING(CONTEXT, LOGLEVEL, TEXT) \
     do { \
-        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == DLT_RETURN_TRUE) \
+        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == MCT_RETURN_TRUE) \
         { \
             (void)mct_log_string(&(CONTEXT), LOGLEVEL, TEXT); \
         } \
@@ -633,9 +633,9 @@
  * @param TEXT ASCII string
  * @param INT_VAR integer value
  */
-#define DLT_LOG_STRING_INT(CONTEXT, LOGLEVEL, TEXT, INT_VAR) \
+#define MCT_LOG_STRING_INT(CONTEXT, LOGLEVEL, TEXT, INT_VAR) \
     do { \
-        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == DLT_RETURN_TRUE) \
+        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == MCT_RETURN_TRUE) \
         { \
             (void)mct_log_string_int(&(CONTEXT), LOGLEVEL, TEXT, INT_VAR); \
         } \
@@ -648,9 +648,9 @@
  * @param TEXT ASCII string
  * @param UINT_VAR unsigned integer value
  */
-#define DLT_LOG_STRING_UINT(CONTEXT, LOGLEVEL, TEXT, UINT_VAR) \
+#define MCT_LOG_STRING_UINT(CONTEXT, LOGLEVEL, TEXT, UINT_VAR) \
     do { \
-        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == DLT_RETURN_TRUE) \
+        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == MCT_RETURN_TRUE) \
         { \
             (void)mct_log_string_uint(&(CONTEXT), LOGLEVEL, TEXT, UINT_VAR); \
         } \
@@ -662,9 +662,9 @@
  * @param LOGLEVEL the log level of the log message
  * @param UINT_VAR unsigned integer value
  */
-#define DLT_LOG_UINT(CONTEXT, LOGLEVEL, UINT_VAR) \
+#define MCT_LOG_UINT(CONTEXT, LOGLEVEL, UINT_VAR) \
     do { \
-        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == DLT_RETURN_TRUE) \
+        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == MCT_RETURN_TRUE) \
         { \
             (void)mct_log_uint(&(CONTEXT), LOGLEVEL, UINT_VAR); \
         } \
@@ -676,9 +676,9 @@
  * @param LOGLEVEL the log level of the log message
  * @param INT_VAR integer value
  */
-#define DLT_LOG_INT(CONTEXT, LOGLEVEL, INT_VAR) \
+#define MCT_LOG_INT(CONTEXT, LOGLEVEL, INT_VAR) \
     do { \
-        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == DLT_RETURN_TRUE) \
+        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == MCT_RETURN_TRUE) \
         { \
             (void)mct_log_int(&(CONTEXT), LOGLEVEL, INT_VAR); \
         } \
@@ -691,9 +691,9 @@
  * @param BUF pointer to memory block
  * @param LEN length of memory block
  */
-#define DLT_LOG_RAW(CONTEXT, LOGLEVEL, BUF, LEN) \
+#define MCT_LOG_RAW(CONTEXT, LOGLEVEL, BUF, LEN) \
     do { \
-        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == DLT_RETURN_TRUE) \
+        if (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == MCT_RETURN_TRUE) \
         { \
             (void)mct_log_raw(&(CONTEXT), LOGLEVEL, BUF, LEN); \
         } \
@@ -702,7 +702,7 @@
 /**
  * Send log message with marker.
  */
-#define DLT_LOG_MARKER() \
+#define MCT_LOG_MARKER() \
     do { \
         (void)mct_log_marker(); \
     } while (0)
@@ -711,14 +711,14 @@
  * Switch to verbose mode
  *
  */
-#define DLT_VERBOSE_MODE() do { \
+#define MCT_VERBOSE_MODE() do { \
         (void)mct_verbose_mode(); } while (0)
 
 /**
  * Switch to non-verbose mode
  *
  */
-#define DLT_NONVERBOSE_MODE() do { \
+#define MCT_NONVERBOSE_MODE() do { \
         (void)mct_nonverbose_mode(); } while (0)
 
 /**
@@ -727,21 +727,21 @@
  * @param LOGLEVEL This is the log level to be set for the whole application
  * @param TRACESTATUS This is the trace status to be set for the whole application
  */
-#define DLT_SET_APPLICATION_LL_TS_LIMIT(LOGLEVEL, TRACESTATUS) do { \
+#define MCT_SET_APPLICATION_LL_TS_LIMIT(LOGLEVEL, TRACESTATUS) do { \
         (void)mct_set_application_ll_ts_limit(LOGLEVEL, TRACESTATUS); } while (0)
 
 /**
  * Enable local printing of messages
  *
  */
-#define DLT_ENABLE_LOCAL_PRINT() do { \
+#define MCT_ENABLE_LOCAL_PRINT() do { \
         (void)mct_enable_local_print(); } while (0)
 
 /**
  * Disable local printing of messages
  *
  */
-#define DLT_DISABLE_LOCAL_PRINT() do { \
+#define MCT_DISABLE_LOCAL_PRINT() do { \
         (void)mct_disable_local_print(); } while (0)
 
 /**
@@ -751,7 +751,7 @@
  * @param DESCRIPTION ASCII string containing description
  * @param TYPE type of ring buffer
  */
-#define DLT_REGISTER_CONTEXT_HP(CONTEXT,CONTEXTID,DESCRIPTION,TYPE) do{\
+#define MCT_REGISTER_CONTEXT_HP(CONTEXT,CONTEXTID,DESCRIPTION,TYPE) do{\
     mct_register_context_hp(&(CONTEXT),CONTEXTID,DESCRIPTION,TYPE);} while(0)
 
 /**
@@ -763,7 +763,7 @@
  * @param PAYLOADLEN length of hp network message payload
  * @param PAYLOAD pointer to hp network message payload
  */
-#define DLT_TRACE_NETWORK_HP(CONTEXT,TYPE,HEADERLEN,HEADER,PAYLOADLEN,PAYLOAD) \
+#define MCT_TRACE_NETWORK_HP(CONTEXT,TYPE,HEADERLEN,HEADER,PAYLOADLEN,PAYLOAD) \
     do { \
         mct_user_trace_network_hp(&(CONTEXT),TYPE,HEADERLEN,HEADER,PAYLOADLEN,PAYLOAD); \
     }while(0)
@@ -774,11 +774,11 @@
  * @param CONTEXT object containing information about one special logging context
  * @param LOGLEVEL the log level of the log message
  */
-#define DLT_IS_LOG_LEVEL_ENABLED(CONTEXT, LOGLEVEL) \
-    (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == DLT_RETURN_TRUE)
+#define MCT_IS_LOG_LEVEL_ENABLED(CONTEXT, LOGLEVEL) \
+    (mct_user_is_logLevel_enabled(&CONTEXT, LOGLEVEL) == MCT_RETURN_TRUE)
 
 /**
  \}
  */
 
-#endif /* DLT_USER_MACROS_H */
+#endif /* MCT_USER_MACROS_H */

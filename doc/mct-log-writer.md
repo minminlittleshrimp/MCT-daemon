@@ -1,16 +1,16 @@
-% DLT-EXAMPLE-USER(1)
+% MCT-EXAMPLE-USER(1)
 
 # NAME
 
-**dlt-example-user** - Console based application for sending a custom dlt message
+**mct-log-writer** - Console based application for generating logs
 
 # SYNOPSIS
 
-**dlt-example-user** \[**-h**\] \[**-g**\] \[**-a**\] \[**-k**\] \[**-d** delay\] \[**-f** filename\] \[**-S** filesize\] \[**-n** count\] \[**-m** mode\] \[**-l** level\] \[**-A** appID\] \[**-C** contextID\] \[**-t** timeout\] \[**-s** size\] message
+**mct-log-writer** \[**-h**\] \[**-g**\] \[**-a**\] \[**-k**\] \[**-d** delay\] \[**-f** filename\] \[**-S** filesize\] \[**-n** count\] \[**-m** mode\] \[**-l** level\] \[**-A** appID\] \[**-C** contextID\] \[**-t** timeout\] \[**-s** size\] message
 
 # DESCRIPTION
 
-Sends the given message as DLT messages to DLT daemon or prints the raw DLT messages into a local file.
+Sends the given message as MCT messages to MCT daemon or prints the raw MCT messages into a local file.
 
 ## OPTIONS
 
@@ -24,7 +24,7 @@ Sends the given message as DLT messages to DLT daemon or prints the raw DLT mess
 
 -a
 
-: Enable local printing of DLT messages (Default: disabled).
+: Enable local printing of MCT messages (Default: disabled).
 
 -k
 
@@ -73,21 +73,21 @@ Sends the given message as DLT messages to DLT daemon or prints the raw DLT mess
 
 # EXAMPLES
 
-Send "HelloWorld" with default settings (10 times, every 0.5 seconds) as DLT message to dlt-daemon::
+Send "HelloWorld" with default settings (10 times, every 0.5 seconds) as MCT message to mct-daemon::
 
-    dlt-example-user HelloWorld
+    mct-log-writer HelloWorld
 
 Set app ID to `APP1`, context Id to `TEST` and log level to `error` for send message::
 
-    dlt-example-user -l 2 -A APP1 -C TEST HelloWorld
+    mct-log-writer -l 2 -A APP1 -C TEST HelloWorld
 
-Send 100 DLT messages every second::
+Send 100 MCT messages every second::
 
-    dlt-example-user -n 100 -d 1000 HelloWorld
+    mct-log-writer -n 100 -d 1000 HelloWorld
 
 Send "HelloWorld" can log to local file with maximum size 1000 bytes::
 
-    dlt-example-user -f helloworld.dlt -S 1000 HelloWorld
+    mct-log-writer -f helloworld.mct -S 1000 HelloWorld
 
 # EXIT STATUS
 
@@ -99,16 +99,19 @@ The default descriptions for application and context registration are used irres
 
 # AUTHOR
 
-Darian Biastoch (dbiastoch@de.adit-jv.com)
+Luu Quang Minh, Hoang Quang Chanh, Nguyen Nhu Thuan
 
 # COPYRIGHT
 
-Copyright (C) 2020 ADIT GmbH. License MPL-2.0: Mozilla Public License version 2.0 <http://mozilla.org/MPL/2.0/>.
 
 # BUGS
 
-See Github issue: <https://github.com/GENIVI/dlt-daemon/issues>
+The log-writer still could not receive any informming message telling
+about the connection establishment between log-reader and log-writer.
 
+We are looking for solution!
+
+See Github issue: <>
 # SEE ALSO
 
-**dlt-daemon(1)**
+**mct-daemon**

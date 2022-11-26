@@ -1,88 +1,86 @@
-# DLT Demo Setup
+# MCT Demo Setup
 Back to [README.md](../README.md)
 
-In this document you will run an instance of
-dlt-daemon. It silently waits to collect and buffer log messages that are
-produced by one or multiple DLT users. You will run one of those DLT users and
-make it produce log messages that are sent to the daemon. Eventually, you launch
-a client that collects and displays these messages.
+This document demonstrates steps to run MCT Daemon. The Daemon will run silently
+in the background, waiting for logs from log-writer and buffer the logs to
+log-reader. The demo is for normal case of 1 writer and 1 reader. We are still on
+experiment for multi-writers/readers, and the feature will be available in the
+next stable release 1.0.1
 
-*Note: We assume that you installed DLT (i.e. executed the [two optional steps
+*NOTE: We assume that you installed MCT (i.e. executed the [two optional steps
 after build](../README.md#build-and-install)). Otherwise you have to take care
 of the executable paths and explicitly state the library path.*
 
-## Run the DLT Daemon
-The DLT daemon is highly configurable but for this case the default settings are
-okay. Don't be put off by warning messages:
+## Run the MCT Daemon
+The MCT Daemon could be triggered as below, do not worry of those Warning messages,
+we are still working on them :))
 ```bash
-$ dlt-daemon
-[1886222.668006]~DLT~32290~NOTICE   ~Starting DLT Daemon; DLT Package Version: 2.18.0 STABLE, Package Revision: v2.18.1, build on Dec  8 2020 11:11:51
--SYSTEMD -SYSTEMD_WATCHDOG -TEST -SHM
+$ mct-daemon
+[18903.248291]~MCT~10357~NOTICE   ~Starting MCT Daemon; MCT Package Version: 1.0.0 STABLE, Package Revision: , build on Nov 26 2022 16:37:35
 
-[1886222.668651]~DLT~32290~INFO     ~FIFO size: 65536
-[1886222.668764]~DLT~32290~INFO     ~Activate connection type: 5
-[1886222.668897]~DLT~32290~INFO     ~dlt_daemon_socket_open: Socket created
-[1886222.669047]~DLT~32290~INFO     ~dlt_daemon_socket_open: Listening on ip 0.0.0.0 and port: 3490
-[1886222.669159]~DLT~32290~INFO     ~dlt_daemon_socket_open: Socket send queue size: 16384
-[1886222.669355]~DLT~32290~INFO     ~Activate connection type: 1
-[1886222.669509]~DLT~32290~INFO     ~Activate connection type: 9
-[1886222.669644]~DLT~32290~INFO     ~Ringbuffer configuration: 500000/10000000/500000
-[1886222.669924]~DLT~32290~NOTICE   ~Failed to open ECU Software version file.
-[1886222.670034]~DLT~32290~INFO     ~Activate connection type: 6
-[1886222.670188]~DLT~32290~INFO     ~Switched to buffer state for socket connections.
-[1886222.670365]~DLT~32290~WARNING  ~dlt_daemon_applications_load: cannot open file /tmp/dlt-runtime-application.cfg: No such file or directory
+[18903.248339]~MCT~10357~WARNING  ~Entry does not exist in section: Backend
+[18903.248343]~MCT~10357~INFO     ~Optional parameter 'Backend' not specified
+[18903.248374]~MCT~10357~INFO     ~FIFO size: 65536
+[18903.248381]~MCT~10357~INFO     ~Activate connection type: 5
+[18903.248389]~MCT~10357~INFO     ~mct_daemon_socket_open: Socket created
+[18903.248396]~MCT~10357~INFO     ~mct_daemon_socket_open: Listening on ip 0.0.0.0 and port: 3490
+[18903.248400]~MCT~10357~INFO     ~mct_daemon_socket_open: Socket send queue size: 16384
+[18903.248405]~MCT~10357~INFO     ~Activate connection type: 1
+[18903.248421]~MCT~10357~INFO     ~Activate connection type: 9
+[18903.248426]~MCT~10357~INFO     ~Cannot open configuration file: /tmp/mct-runtime.cfg
+[18903.248431]~MCT~10357~INFO     ~Ringbuffer configuration: 500000/10000000/500000
+[18903.248566]~MCT~10357~NOTICE   ~Failed to open ECU Software version file.
+[18903.248576]~MCT~10357~INFO     ~<Timing packet> initialized with 1 timer
+[18903.248578]~MCT~10357~CRITICAL ~Unable to get receiver from 6 connection.
+[18903.248581]~MCT~10357~INFO     ~Switched to buffer state for socket connections.
+[18903.248586]~MCT~10357~WARNING  ~mct_daemon_applications_load: cannot open file /tmp/mct-runtime-application.cfg: No such file or directory
+
 ```
-The daemon opened a named pipe from which it is ready to read and buffer log
-messages. It also accepts connections on TCP port 3490 by clients to collect
-the messages.
+MCT Daemon here opens a named pipe and will read/buffer logs from the pipe. The
+connection is established on TCP port 3490, log-reader could collect messages through
+the connection in real time.
 
-## Produce Log Messages
-A simulated ECU - a DLT user - will now use the DLT library to create log
+## MCT-log-writer: mini portable log generator
+A simulated control unit - a MCT user - will now use the MCT library to create log
 messages and send them through the named pipe for the daemon to collect. Open a
 second terminal and run
 ```bash
-$ dlt-example-user -n 5 -l 3 "This is my first log message"
-Send 0 This is my first log message
-Log level changed of context TEST, LogLevel=4, TraceState=0
-Log level changed of context TS1, LogLevel=4, TraceState=0
-Log level changed of context TS2, LogLevel=4, TraceState=0
-Send 1 This is my first log message
-Client disconnected!
-Send 2 This is my first log message
-Send 3 This is my first log message
-Send 4 This is my first log message
+Dr.Mint@:~
+$ mct-log-writer -n 5 -l 3 "Hello This is mtc-vjpro hehe"
+Send 0 Hello This is mtc-vjpro hehe
+Send 1 Hello This is mtc-vjpro hehe
+Send 2 Hello This is mtc-vjpro hehe
+Send 3 Hello This is mtc-vjpro hehe
+Send 4 Hello This is mtc-vjpro hehe
 ```
-This will send 5 (```-n 5```) identical log messages of Log-Level
-WARNING ```(-l 3)``` containing a string payload.
+Then log-writer will send 5 log messages with the log level of WARN (```-l 3```)
+Here we still have a problem of not receiving any confirmation from the log-writer
+that log-reader has been connected, but logs are still received. We are working on that.
 
-## Read logs
-The DLT daemon now has the messages in its buffer and will keep them there until
-they are fetched. A mighty tool for receiving and processing log messages is the
-[DLT-Viewer](https://github.com/GENIVI/dlt-viewer), which also provides a
-graphical UI. For now, a simple command line client is absolutely sufficient:
+## MCT-log-reader: mini portable log consumer
+The MCT-Daemon will keep the logs there in its buffer, we design a ring buffer to fit that.
+When the logs are fetched by log-reader, logs will be buffered from daemon:
 ```bash
-$ dlt-receive -a localhost
-2020/04/30 12:27:14.976731   17134987 000 ECU1 DA1- DC1- control response N 1 [service(3842), ok, 02 00 00 00 00]
-2020/04/30 12:27:14.976779   17067139 000 ECU1 DA1- DC1- control response N 1 [service(3842), ok, 01 00 00 00 00]
-2020/04/30 12:27:14.976787   17067139 004 ECU1 DLTD INTM log info V 1 [Client connection #7 closed. Total Clients : 0]
-2020/04/30 12:27:14.976794   17104625 005 ECU1 DLTD INTM log info V 1 [ApplicationID 'LOG' registered for PID 5241, Description=Test Application for Logging]
-2020/04/30 12:27:14.976802   17104625 000 ECU1 DA1- DC1- control response N 1 [get_log_info, 07, 01 00 4c 4f 47 00 01 00 54 45 53 54 ff ff 18 00 54 65 73 74 20 43 6f 6e 74 65 78 74 20 66 6f 72 20 4c 6f 67 67 69 6e 67 1c 00 54 65 73 74 20 41 70 70 6c 69 63 61 74 69 6f 6e 20 66 6f 72 20 4c 6f 67 67 69 6e 67 72 65 6d 6f]
-2020/04/30 12:27:14.976823   17104625 000 ECU1 DA1- DC1- control response N 1 [get_log_info, 07, 01 00 4c 4f 47 00 01 00 54 53 31 00 ff ff 1b 00 54 65 73 74 20 43 6f 6e 74 65 78 74 31 20 66 6f 72 20 69 6e 6a 65 63 74 69 6f 6e 1c 00 54 65 73 74 20 41 70 70 6c 69 63 61 74 69 6f 6e 20 66 6f 72 20 4c 6f 67 67 69 6e 67 72 65 6d 6f]
-2020/04/30 12:27:14.976844   17104625 000 ECU1 DA1- DC1- control response N 1 [get_log_info, 07, 01 00 4c 4f 47 00 01 00 54 53 32 00 ff ff 1b 00 54 65 73 74 20 43 6f 6e 74 65 78 74 32 20 66 6f 72 20 69 6e 6a 65 63 74 69 6f 6e 1c 00 54 65 73 74 20 41 70 70 6c 69 63 61 74 69 6f 6e 20 66 6f 72 20 4c 6f 67 67 69 6e 67 72 65 6d 6f]
-2020/04/30 12:27:14.976866   17104588 000 ECU1 LOG- TEST log warn V 2 [0 This is my first log message]
-2020/04/30 12:27:14.976872   17109592 001 ECU1 LOG- TEST log warn V 2 [1 This is my first log message]
-2020/04/30 12:27:14.976880   17114599 002 ECU1 LOG- TEST log warn V 2 [2 This is my first log message]
-2020/04/30 12:27:14.976884   17119607 003 ECU1 LOG- TEST log warn V 2 [3 This is my first log message]
-2020/04/30 12:27:14.976889   17124611 004 ECU1 LOG- TEST log warn V 2 [4 This is my first log message]
-2020/04/30 12:27:14.976894   17134988 006 ECU1 DLTD INTM log info V 1 [New client connection #8 established, Total Clients : 1]
-2020/04/30 12:27:15.442016   17139641 000 ECU1 DA1- DC1- control response N 1 [service(3841), ok, 4c 4f 47 00 54 45 53 54 72 65 6d 6f]
-2020/04/30 12:27:15.442044   17139642 007 ECU1 DLTD INTM log info V 1 [Unregistered ApID 'LOG']
+$ mct-log-reader -a localhost
+2022/11/26 19:03:34.640378  241840146 000 ECU1 DA1- DC1- control response N 1 [service(3842), ok, 02 00 00 00 00]
+2022/11/26 19:03:34.640409  189032485 000 ECU1 MCTD INTM log info V 1 [Daemon launched. Starting to output traces...]
+2022/11/26 19:03:34.640417  201289364 000 ECU1 LOG- TEST log warn V 2 [0 Hello This is mtc-vjpro hehe]
+2022/11/26 19:03:34.640421  201294369 001 ECU1 LOG- TEST log warn V 2 [1 Hello This is mtc-vjpro hehe]
+2022/11/26 19:03:34.640424  201299376 002 ECU1 LOG- TEST log warn V 2 [2 Hello This is mtc-vjpro hehe]
+2022/11/26 19:03:34.640427  201304383 003 ECU1 LOG- TEST log warn V 2 [3 Hello This is mtc-vjpro hehe]
+2022/11/26 19:03:34.640430  201309387 004 ECU1 LOG- TEST log warn V 2 [4 Hello This is mtc-vjpro hehe]
+2022/11/26 19:03:34.640432  201324410 000 ECU1 DA1- DC1- control response N 1 [service(3841), ok, 4c 4f 47 00 54 45 53 54 72 65 6d 6f]
+2022/11/26 19:03:34.640438  241840146 001 ECU1 MCTD INTM log info V 1 [New client connection 7 established, Total Clients : 1]
 ```
 The client connects to the default port 3490 of localhost to collect all
 messages and interprets the payload as ASCII text (```-a```). You can see lots
 of additional messages. These are control messages to control the flow between
 client and daemon. You will learn about them later. For now, you have set up a
-basic example have seen DLT in action.
+basic example have seen MCT in action.
 
-You can now experiment with this setup. What happens if you start the DLT user
-first and (while the DLT user is still running) the daemon?
+You can now experiment with this setup. What happens if you start the MCT user
+first and (while the MCT user is still running) the daemon?
+
+The log-reader connects to the port of 3490 by default and IP localhost (127.0.0.1), then it collects
+all logs and interprets the payload as ASCII text (```-a```). Logs will be showed in stdout, or could
+be stored in file using other parser (```-o```)

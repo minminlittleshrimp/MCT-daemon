@@ -20,7 +20,7 @@
 #include "mct_common.h"
 #include "mct_daemon_socket.h"
 
-static DltConnectionId connectionId;
+static MctConnectionId connectionId;
 extern char *app_recv_buffer;
 
 /** @brief Generic sending function.
@@ -34,15 +34,15 @@ extern char *app_recv_buffer;
  * @param msg The message buffer to be sent
  * @param msg_size The length of the message to be sent
  *
- * @return DLT_DAEMON_ERROR_OK on success, DLT_DAEMON_ERROR_SEND_FAILED
- *         on send failure, DLT_DAEMON_ERROR_UNKNOWN otherwise.
+ * @return MCT_DAEMON_ERROR_OK on success, MCT_DAEMON_ERROR_SEND_FAILED
+ *         on send failure, MCT_DAEMON_ERROR_UNKNOWN otherwise.
  *         errno is appropriately set.
  */
-DLT_STATIC int mct_connection_send(DltConnection *conn,
+static int mct_connection_send(MctConnection *conn,
                                    void *msg,
                                    size_t msg_size)
 {
-    DltConnectionType type = DLT_CONNECTION_TYPE_MAX;
+    MctConnectionType type = MCT_CONNECTION_TYPE_MAX;
     int ret = 0;
 
     if ((conn != NULL) && (conn->receiver != NULL)) {
@@ -50,21 +50,21 @@ DLT_STATIC int mct_connection_send(DltConnection *conn,
     }
 
     switch (type) {
-        case DLT_CONNECTION_CLIENT_MSG_SERIAL:
+        case MCT_CONNECTION_CLIENT_MSG_SERIAL:
 
             if (write(conn->receiver->fd, msg, msg_size) > 0) {
-                return DLT_DAEMON_ERROR_OK;
+                return MCT_DAEMON_ERROR_OK;
             }
 
-            return DLT_DAEMON_ERROR_UNKNOWN;
+            return MCT_DAEMON_ERROR_UNKNOWN;
 
-        case DLT_CONNECTION_CLIENT_MSG_TCP:
+        case MCT_CONNECTION_CLIENT_MSG_TCP:
             ret = mct_daemon_socket_sendreliable(conn->receiver->fd,
                                                  msg,
                                                  msg_size);
             return ret;
         default:
-            return DLT_DAEMON_ERROR_UNKNOWN;
+            return MCT_DAEMON_ERROR_UNKNOWN;
     }
 }
 
@@ -80,9 +80,9 @@ DLT_STATIC int mct_connection_send(DltConnection *conn,
  * @param size2 The second message size.
  * @param sendserialheader Whether we need or not to send the serial header.
  *
- * @return DLT_DAEMON_ERROR_OK on success, -1 otherwise. errno is properly set.
+ * @return MCT_DAEMON_ERROR_OK on success, -1 otherwise. errno is properly set.
  */
-int mct_connection_send_multiple(DltConnection *con,
+int mct_connection_send_multiple(MctConnection *con,
                                  void *data1,
                                  int size1,
                                  void *data2,
@@ -92,7 +92,7 @@ int mct_connection_send_multiple(DltConnection *con,
     int ret = 0;
 
     if (con == NULL) {
-        return DLT_DAEMON_ERROR_UNKNOWN;
+        return MCT_DAEMON_ERROR_UNKNOWN;
     }
 
     if (sendserialheader) {
@@ -101,11 +101,11 @@ int mct_connection_send_multiple(DltConnection *con,
                                   sizeof(mctSerialHeader));
     }
 
-    if ((data1 != NULL) && (ret == DLT_RETURN_OK)) {
+    if ((data1 != NULL) && (ret == MCT_RETURN_OK)) {
         ret = mct_connection_send(con, data1, size1);
     }
 
-    if ((data2 != NULL) && (ret == DLT_RETURN_OK)) {
+    if ((data2 != NULL) && (ret == MCT_RETURN_OK)) {
         ret = mct_connection_send(con, data2, size2);
     }
 
@@ -124,9 +124,9 @@ int mct_connection_send_multiple(DltConnection *con,
  *
  * @return The next available connection of the considered types or NULL.
  */
-DltConnection *mct_connection_get_next(DltConnection *current, int type_mask)
+MctConnection *mct_connection_get_next(MctConnection *current, int type_mask)
 {
-    if (type_mask == DLT_CONNECTION_NONE) {
+    if (type_mask == MCT_CONNECTION_NONE) {
         return NULL;
     }
 
@@ -136,17 +136,17 @@ DltConnection *mct_connection_get_next(DltConnection *current, int type_mask)
     return current;
 }
 
-DLT_STATIC void mct_connection_destroy_receiver(DltConnection *con)
+static void mct_connection_destroy_receiver(MctConnection *con)
 {
     if (!con) {
         return;
     }
 
     switch (con->type) {
-        case DLT_CONNECTION_GATEWAY:
+        case MCT_CONNECTION_GATEWAY:
             /* We rely on the gateway for clean-up */
             break;
-        case DLT_CONNECTION_APP_MSG:
+        case MCT_CONNECTION_APP_MSG:
             mct_receiver_free_global_buffer(con->receiver);
             free(con->receiver);
             con->receiver = NULL;
@@ -165,59 +165,59 @@ DLT_STATIC void mct_connection_destroy_receiver(DltConnection *con)
  * This behavior is mainly due to the fact that it's not intended to modify
  * the whole design of the daemon while implementing the new event handling.
  * Based on the connection type provided, this function returns the pointer
- * to the DltReceiver structure corresponding.
+ * to the MctReceiver structure corresponding.
  *
- * @param daemon_local Structure where to take the DltReceiver pointer from.
+ * @param daemon_local Structure where to take the MctReceiver pointer from.
  * @param type Type of the connection.
  * @param fd File descriptor
  *
- * @return DltReceiver structure or NULL if none corresponds to the type.
+ * @return MctReceiver structure or NULL if none corresponds to the type.
  */
-DLT_STATIC DltReceiver *mct_connection_get_receiver(DltConnectionType type,
+static MctReceiver *mct_connection_get_receiver(MctConnectionType type,
                                                     int fd)
 {
-    DltReceiver *ret = NULL;
-    DltReceiverType receiver_type = DLT_RECEIVE_FD;
+    MctReceiver *ret = NULL;
+    MctReceiverType receiver_type = MCT_RECEIVE_FD;
     struct stat statbuf;
 
     switch (type) {
-        case DLT_CONNECTION_CONTROL_CONNECT:
+        case MCT_CONNECTION_CONTROL_CONNECT:
         /* FALL THROUGH */
-        case DLT_CONNECTION_CONTROL_MSG:
+        case MCT_CONNECTION_CONTROL_MSG:
         /* FALL THROUGH */
-        case DLT_CONNECTION_CLIENT_CONNECT:
+        case MCT_CONNECTION_CLIENT_CONNECT:
         /* FALL THROUGH */
-        case DLT_CONNECTION_FILTER:
+        case MCT_CONNECTION_FILTER:
         /* FALL THROUGH */
-        case DLT_CONNECTION_CLIENT_MSG_TCP:
-            ret = calloc(1, sizeof(DltReceiver));
+        case MCT_CONNECTION_CLIENT_MSG_TCP:
+            ret = calloc(1, sizeof(MctReceiver));
 
             if (ret) {
-                mct_receiver_init(ret, fd, DLT_RECEIVE_SOCKET, DLT_DAEMON_RCVBUFSIZESOCK);
+                mct_receiver_init(ret, fd, MCT_RECEIVE_SOCKET, MCT_DAEMON_RCVBUFSIZESOCK);
             }
 
             break;
-        case DLT_CONNECTION_CLIENT_MSG_SERIAL:
-            ret = calloc(1, sizeof(DltReceiver));
+        case MCT_CONNECTION_CLIENT_MSG_SERIAL:
+            ret = calloc(1, sizeof(MctReceiver));
 
             if (ret) {
-                mct_receiver_init(ret, fd, DLT_RECEIVE_FD, DLT_DAEMON_RCVBUFSIZESERIAL);
+                mct_receiver_init(ret, fd, MCT_RECEIVE_FD, MCT_DAEMON_RCVBUFSIZESERIAL);
             }
 
             break;
-        case DLT_CONNECTION_APP_MSG:
-            ret = calloc(1, sizeof(DltReceiver));
+        case MCT_CONNECTION_APP_MSG:
+            ret = calloc(1, sizeof(MctReceiver));
 
-            receiver_type = DLT_RECEIVE_FD;
+            receiver_type = MCT_RECEIVE_FD;
 
             if (fstat(fd, &statbuf) == 0) {
                 if (S_ISSOCK(statbuf.st_mode)) {
-                    receiver_type = DLT_RECEIVE_SOCKET;
+                    receiver_type = MCT_RECEIVE_SOCKET;
                 }
             } else {
                 mct_vlog(
                     LOG_WARNING,
-                    "Failed to determine receive type for DLT_CONNECTION_APP_MSG, using \"FD\"\n");
+                    "Failed to determine receive type for MCT_CONNECTION_APP_MSG, using \"FD\"\n");
             }
 
             if (ret) {
@@ -225,13 +225,13 @@ DLT_STATIC DltReceiver *mct_connection_get_receiver(DltConnectionType type,
             }
 
             break;
-#if defined DLT_DAEMON_USE_UNIX_SOCKET_IPC
-        case DLT_CONNECTION_APP_CONNECT:
+#if defined MCT_DAEMON_USE_UNIX_SOCKET_IPC
+        case MCT_CONNECTION_APP_CONNECT:
             /* FALL THROUGH */
 #endif
-        case DLT_CONNECTION_ONE_S_TIMER:
+        case MCT_CONNECTION_ONE_S_TIMER:
         /* FALL THROUGH */
-        case DLT_CONNECTION_SIXTY_S_TIMER:
+        case MCT_CONNECTION_SIXTY_S_TIMER:
         default:
             ret = NULL;
     }
@@ -250,51 +250,51 @@ DLT_STATIC DltReceiver *mct_connection_get_receiver(DltConnectionType type,
  *
  * @return Function pointer or NULL.
  */
-void *mct_connection_get_callback(DltConnection *con)
+void *mct_connection_get_callback(MctConnection *con)
 {
     void *ret = NULL;
-    DltConnectionType type = DLT_CONNECTION_TYPE_MAX;
+    MctConnectionType type = MCT_CONNECTION_TYPE_MAX;
 
     if (con) {
         type = con->type;
     }
 
     switch (type) {
-        case DLT_CONNECTION_CLIENT_CONNECT:
+        case MCT_CONNECTION_CLIENT_CONNECT:
             ret = mct_daemon_process_client_connect;
             break;
-        case DLT_CONNECTION_CLIENT_MSG_TCP:
+        case MCT_CONNECTION_CLIENT_MSG_TCP:
             ret = mct_daemon_process_client_messages;
             break;
-        case DLT_CONNECTION_CLIENT_MSG_SERIAL:
+        case MCT_CONNECTION_CLIENT_MSG_SERIAL:
             ret = mct_daemon_process_client_messages_serial;
             break;
-#if defined DLT_DAEMON_USE_UNIX_SOCKET_IPC
-        case DLT_CONNECTION_APP_CONNECT:
+#if defined MCT_DAEMON_USE_UNIX_SOCKET_IPC
+        case MCT_CONNECTION_APP_CONNECT:
             ret = mct_daemon_process_app_connect;
             break;
 #endif
-        case DLT_CONNECTION_APP_MSG:
+        case MCT_CONNECTION_APP_MSG:
             ret = mct_daemon_process_user_messages;
             break;
-        case DLT_CONNECTION_ONE_S_TIMER:
+        case MCT_CONNECTION_ONE_S_TIMER:
             ret = mct_daemon_process_one_s_timer;
             break;
-        case DLT_CONNECTION_SIXTY_S_TIMER:
+        case MCT_CONNECTION_SIXTY_S_TIMER:
             ret = mct_daemon_process_sixty_s_timer;
             break;
-#ifdef DLT_SYSTEMD_WATCHDOG_ENABLE
-        case DLT_CONNECTION_SYSTEMD_TIMER:
+#ifdef MCT_SYSTEMD_WATCHDOG_ENABLE
+        case MCT_CONNECTION_SYSTEMD_TIMER:
             ret = mct_daemon_process_systemd_timer;
             break;
 #endif
-        case DLT_CONNECTION_CONTROL_CONNECT:
+        case MCT_CONNECTION_CONTROL_CONNECT:
             ret = mct_daemon_process_control_connect;
             break;
-        case DLT_CONNECTION_CONTROL_MSG:
+        case MCT_CONNECTION_CONTROL_MSG:
             ret = mct_daemon_process_control_messages;
             break;
-        case DLT_CONNECTION_FILTER:
+        case MCT_CONNECTION_FILTER:
             ret = mct_daemon_filter_process_filter_control_messages;
             break;
         default:
@@ -307,13 +307,13 @@ void *mct_connection_get_callback(DltConnection *con)
 /** @brief Destroys a connection.
  *
  * This function closes and frees the corresponding connection. This is expected
- * to be called by the connection owner: the DltEventHandler.
+ * to be called by the connection owner: the MctEventHandler.
  * Ownership of the connection is given during the registration to
- * the DltEventHandler.
+ * the MctEventHandler.
  *
  * @param to_destroy Connection to be destroyed.
  */
-void mct_connection_destroy(DltConnection *to_destroy)
+void mct_connection_destroy(MctConnection *to_destroy)
 {
     to_destroy->id = 0;
     close(to_destroy->receiver->fd);
@@ -321,28 +321,28 @@ void mct_connection_destroy(DltConnection *to_destroy)
     free(to_destroy);
 }
 
-/** @brief Creates a connection and registers it to the DltEventHandler.
+/** @brief Creates a connection and registers it to the MctEventHandler.
  *
  * The function will allocate memory for the connection, and give the pointer
- * to the DltEventHandler in order to register it for incoming events.
+ * to the MctEventHandler in order to register it for incoming events.
  * The connection is then destroyed later on, once it's not needed anymore or
  * it the event handler is destroyed.
  *
  * @param daemon_local Structure were some needed information is.
- * @param evh DltEventHandler to register the connection to.
+ * @param evh MctEventHandler to register the connection to.
  * @param fd File descriptor of the connection.
  * @param mask Event list bit mask.
  * @param type Connection type.
  *
  * @return 0 On success, -1 otherwise.
  */
-int mct_connection_create(DltDaemonLocal *daemon_local,
-                          DltEventHandler *evh,
+int mct_connection_create(MctDaemonLocal *daemon_local,
+                          MctEventHandler *evh,
                           int fd,
                           int mask,
-                          DltConnectionType type)
+                          MctConnectionType type)
 {
-    DltConnection *temp = NULL;
+    MctConnection *temp = NULL;
 
     if (fd < 0) {
         /* Nothing to do */
@@ -358,14 +358,14 @@ int mct_connection_create(DltDaemonLocal *daemon_local,
         return 0;
     }
 
-    temp = (DltConnection *)malloc(sizeof(DltConnection));
+    temp = (MctConnection *)malloc(sizeof(MctConnection));
 
     if (temp == NULL) {
         mct_log(LOG_CRIT, "Allocation of client handle failed\n");
         return -1;
     }
 
-    memset(temp, 0, sizeof(DltConnection));
+    memset(temp, 0, sizeof(MctConnection));
 
     temp->receiver = mct_connection_get_receiver(type, fd);
 

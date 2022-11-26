@@ -15,31 +15,31 @@
 
 #define COMMAND_SIZE        1024    /* Size of command */
 #define FILENAME_SIZE       1024    /* Size of filename */
-#define DLT_EXTENSION       "mct"
-#define DLT_CONVERT_WS      "/tmp/mct_convert_workspace/"
+#define MCT_EXTENSION       "mct"
+#define MCT_CONVERT_WS      "/tmp/mct_convert_workspace/"
 
 /**
  * Print usage information of tool.
  */
 void usage()
 {
-    char version[DLT_CONVERT_TEXTBUFSIZE];
+    char version[MCT_CONVERT_TEXTBUFSIZE];
 
     mct_get_version(version, 255);
 
     printf("Usage: mct-convert [options] [commands] file1 [file2]\n");
-    printf("Read DLT files, print DLT messages as ASCII and store the messages again.\n");
-    printf("Use filters to filter DLT messages.\n");
-    printf("Use Ranges and Output file to cut DLT files.\n");
-    printf("Use two files and Output file to join DLT files.\n");
+    printf("Read MCT files, print MCT messages as ASCII and store the messages again.\n");
+    printf("Use filters to filter MCT messages.\n");
+    printf("Use Ranges and Output file to cut MCT files.\n");
+    printf("Use two files and Output file to join MCT files.\n");
     printf("%s \n", version);
     printf("Commands:\n");
     printf("  -h            Usage\n");
-    printf("  -a            Print DLT file; payload as ASCII\n");
-    printf("  -x            Print DLT file; payload as hex\n");
-    printf("  -m            Print DLT file; payload as hex and ASCII\n");
-    printf("  -s            Print DLT file; only headers\n");
-    printf("  -o filename   Output messages in new DLT file\n");
+    printf("  -a            Print MCT file; payload as ASCII\n");
+    printf("  -x            Print MCT file; payload as hex\n");
+    printf("  -m            Print MCT file; payload as hex and ASCII\n");
+    printf("  -s            Print MCT file; only headers\n");
+    printf("  -o filename   Output messages in new MCT file\n");
     printf("Options:\n");
     printf("  -v            Verbose mode\n");
     printf("  -c            Count number of messages\n");
@@ -130,14 +130,14 @@ int main(int argc, char *argv[])
     int index;
     int c;
 
-    DltFile file;
-    DltFilter filter;
+    MctFile file;
+    MctFilter filter;
 
     int ohandle = -1;
 
     int num, begin, end;
 
-    char text[DLT_CONVERT_TEXTBUFSIZE] = { 0 };
+    char text[MCT_CONVERT_TEXTBUFSIZE] = { 0 };
 
     /* For handling compressed files */
     char tmp_filename[FILENAME_SIZE] = { 0 };
@@ -241,12 +241,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Initialize structure to use DLT file */
+    /* Initialize structure to use MCT file */
     mct_file_init(&file, vflag);
 
     /* first parse filter file if filter parameter is used */
     if (fvalue) {
-        if (mct_filter_load(&filter, fvalue, vflag) < DLT_RETURN_OK) {
+        if (mct_filter_load(&filter, fvalue, vflag) < MCT_RETURN_OK) {
             mct_file_free(&file, vflag);
             return -1;
         }
@@ -266,9 +266,9 @@ int main(int argc, char *argv[])
 
     if (tflag) {
         /* Prepare the temp dir to untar compressed files */
-        if (stat(DLT_CONVERT_WS, &st) == -1) {
-            if (mkdir(DLT_CONVERT_WS, 0700) != 0) {
-                fprintf(stderr,"ERROR: Cannot create temp dir %s!\n", DLT_CONVERT_WS);
+        if (stat(MCT_CONVERT_WS, &st) == -1) {
+            if (mkdir(MCT_CONVERT_WS, 0700) != 0) {
+                fprintf(stderr,"ERROR: Cannot create temp dir %s!\n", MCT_CONVERT_WS);
                 if (ovalue)
                     close(ohandle);
 
@@ -277,33 +277,33 @@ int main(int argc, char *argv[])
         }
         else {
             if (S_ISDIR(st.st_mode))
-                empty_dir(DLT_CONVERT_WS);
+                empty_dir(MCT_CONVERT_WS);
             else
-                fprintf(stderr, "ERROR: %s is not a directory", DLT_CONVERT_WS);
+                fprintf(stderr, "ERROR: %s is not a directory", MCT_CONVERT_WS);
         }
 
         for (index = optind; index < argc; index++) {
             /* Check extension of input file
              * If it is a compressed file, uncompress it
              */
-            if (strcmp(get_filename_ext(argv[index]), DLT_EXTENSION) != 0) {
-                syserr = mct_execute_command(NULL, "tar", "xf", argv[index], "-C", DLT_CONVERT_WS, NULL);
+            if (strcmp(get_filename_ext(argv[index]), MCT_EXTENSION) != 0) {
+                syserr = mct_execute_command(NULL, "tar", "xf", argv[index], "-C", MCT_CONVERT_WS, NULL);
                 if (syserr != 0)
                     fprintf(stderr, "ERROR: Failed to uncompress %s to %s with error [%d]\n",
-                            argv[index], DLT_CONVERT_WS, WIFEXITED(syserr));
+                            argv[index], MCT_CONVERT_WS, WIFEXITED(syserr));
             }
             else {
-                syserr = mct_execute_command(NULL, "cp", argv[index], DLT_CONVERT_WS, NULL);
+                syserr = mct_execute_command(NULL, "cp", argv[index], MCT_CONVERT_WS, NULL);
                 if (syserr != 0)
                     fprintf(stderr, "ERROR: Failed to copy %s to %s with error [%d]\n",
-                            argv[index], DLT_CONVERT_WS, WIFEXITED(syserr));
+                            argv[index], MCT_CONVERT_WS, WIFEXITED(syserr));
             }
 
         }
 
-        n = scandir(DLT_CONVERT_WS, &files, NULL, alphasort);
+        n = scandir(MCT_CONVERT_WS, &files, NULL, alphasort);
         if (n == -1) {
-            fprintf(stderr,"ERROR: Cannot scan temp dir %s!\n", DLT_CONVERT_WS);
+            fprintf(stderr,"ERROR: Cannot scan temp dir %s!\n", MCT_CONVERT_WS);
             if (ovalue)
                 close(ohandle);
 
@@ -318,14 +318,14 @@ int main(int argc, char *argv[])
         if (tflag) {
             memset(tmp_filename, 0, FILENAME_SIZE);
             snprintf(tmp_filename, FILENAME_SIZE, "%s%s",
-                    DLT_CONVERT_WS, files[index - optind + 2]->d_name);
+                    MCT_CONVERT_WS, files[index - optind + 2]->d_name);
 
             argv[index] = tmp_filename;
         }
 
         /* load, analyze data file and create index list */
-        if (mct_file_open(&file, argv[index], vflag) >= DLT_RETURN_OK) {
-            while (mct_file_read(&file, vflag) >= DLT_RETURN_OK) {
+        if (mct_file_open(&file, argv[index], vflag) >= MCT_RETURN_OK) {
+            while (mct_file_read(&file, vflag) >= MCT_RETURN_OK) {
             }
         }
 
@@ -357,36 +357,36 @@ int main(int argc, char *argv[])
             }
 
             for (num = begin; num <= end; num++) {
-                if (mct_file_message(&file, num, vflag) < DLT_RETURN_OK)
+                if (mct_file_message(&file, num, vflag) < MCT_RETURN_OK)
                     continue;
 
                 if (xflag) {
                     printf("%d ", num);
-                    if (mct_message_print_hex(&(file.msg), text, DLT_CONVERT_TEXTBUFSIZE, vflag) < DLT_RETURN_OK)
+                    if (mct_message_print_hex(&(file.msg), text, MCT_CONVERT_TEXTBUFSIZE, vflag) < MCT_RETURN_OK)
                         continue;
                 }
                 else if (aflag) {
                     printf("%d ", num);
 
-                    if (mct_message_header(&(file.msg), text, DLT_CONVERT_TEXTBUFSIZE, vflag) < DLT_RETURN_OK)
+                    if (mct_message_header(&(file.msg), text, MCT_CONVERT_TEXTBUFSIZE, vflag) < MCT_RETURN_OK)
                         continue;
 
                     printf("%s ", text);
 
-                    if (mct_message_payload(&file.msg, text, DLT_CONVERT_TEXTBUFSIZE, DLT_OUTPUT_ASCII, vflag) < DLT_RETURN_OK)
+                    if (mct_message_payload(&file.msg, text, MCT_CONVERT_TEXTBUFSIZE, MCT_OUTPUT_ASCII, vflag) < MCT_RETURN_OK)
                         continue;
 
                     printf("[%s]\n", text);
                 }
                 else if (mflag) {
                     printf("%d ", num);
-                    if (mct_message_print_mixed_plain(&(file.msg), text, DLT_CONVERT_TEXTBUFSIZE, vflag) < DLT_RETURN_OK)
+                    if (mct_message_print_mixed_plain(&(file.msg), text, MCT_CONVERT_TEXTBUFSIZE, vflag) < MCT_RETURN_OK)
                         continue;
                 }
                 else if (sflag) {
                     printf("%d ", num);
 
-                    if (mct_message_header(&(file.msg), text, DLT_CONVERT_TEXTBUFSIZE, vflag) < DLT_RETURN_OK)
+                    if (mct_message_header(&(file.msg), text, MCT_CONVERT_TEXTBUFSIZE, vflag) < MCT_RETURN_OK)
                         continue;
 
                     printf("%s \n", text);
@@ -444,7 +444,7 @@ int main(int argc, char *argv[])
         close(ohandle);
 
     if (tflag) {
-        empty_dir(DLT_CONVERT_WS);
+        empty_dir(MCT_CONVERT_WS);
         if (files) {
             for (i = 0; i < n ; i++)
                 if (files[i])
@@ -452,7 +452,7 @@ int main(int argc, char *argv[])
 
             free(files);
         }
-        rmdir(DLT_CONVERT_WS);
+        rmdir(MCT_CONVERT_WS);
     }
     if (index == optind) {
         /* no file selected, show usage and terminate */

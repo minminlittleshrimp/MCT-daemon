@@ -14,7 +14,7 @@
 
 #include "mct_common.h"
 
-#define DLT_VERBUFSIZE  255
+#define MCT_VERBUFSIZE  255
 #define FIFTY_SEC_IN_MSEC 500000
 #define THREE_MIN_IN_SEC  180
 
@@ -87,7 +87,7 @@ int compare_index_systime(const void *a, const void *b) {
 /**
  * Write the messages in the order specified by the given index
  */
-void write_messages(int ohandle, DltFile *file,
+void write_messages(int ohandle, MctFile *file,
         TimestampIndex *timestamps, uint32_t message_count) {
     struct iovec iov[2];
     ssize_t bytes_written;
@@ -101,7 +101,7 @@ void write_messages(int ohandle, DltFile *file,
         if ((0 == i % 1001) || (i == message_count - 1))
             verbose(2, "Writing message %d\r", i);
 
-        if (mct_file_message(file, timestamps[i].num, 0) < DLT_RETURN_OK)
+        if (mct_file_message(file, timestamps[i].num, 0) < MCT_RETURN_OK)
             continue;
         iov[0].iov_base = file->msg.headerbuffer;
         iov[0].iov_len = file->msg.headersize;
@@ -136,14 +136,14 @@ void write_messages(int ohandle, DltFile *file,
  * Print usage information of tool.
  */
 void usage() {
-    char version[DLT_VERBUFSIZE];
+    char version[MCT_VERBUFSIZE];
 
-    mct_get_version(version, DLT_VERBUFSIZE);
+    mct_get_version(version, MCT_VERBUFSIZE);
 
     printf("Usage: mct-sortbytimestamp [options] [commands] file_in file_out\n");
-    printf("Read DLT file, sort by timestamp and store the messages again.\n");
-    printf("Use filters to filter DLT messages.\n");
-    printf("Use range to cut DLT file. Indices are zero based.\n");
+    printf("Read MCT file, sort by timestamp and store the messages again.\n");
+    printf("Use filters to filter MCT messages.\n");
+    printf("Use range to cut MCT file. Indices are zero based.\n");
     printf("%s \n", version);
     printf("Commands:\n");
     printf("  -h            Usage\n");
@@ -179,8 +179,8 @@ int main(int argc, char *argv[]) {
 
     int c;
 
-    DltFile file;
-    DltFilter filter;
+    MctFile file;
+    MctFilter filter;
 
     int ohandle = -1;
 
@@ -249,7 +249,7 @@ int main(int argc, char *argv[]) {
 
     verbose (1, "Initializing\n");
 
-    /* Initialize structure to use DLT file */
+    /* Initialize structure to use MCT file */
     mct_file_init(&file, vflag);
 
     /* first parse filter file if filter parameter is used */
@@ -260,7 +260,7 @@ int main(int argc, char *argv[]) {
             return -1;
         }
 
-        if (mct_filter_load(&filter, fvalue, vflag) < DLT_RETURN_OK) {
+        if (mct_filter_load(&filter, fvalue, vflag) < MCT_RETURN_OK) {
             mct_file_free(&file, vflag);
             return -1;
         }
@@ -296,8 +296,8 @@ int main(int argc, char *argv[]) {
     verbose(1, "Loading\n");
 
     /* load, analyze data file and create index list */
-    if (mct_file_open(&file, ivalue, vflag) >= DLT_RETURN_OK) {
-        while (mct_file_read(&file, vflag) >= DLT_RETURN_OK) {
+    if (mct_file_open(&file, ivalue, vflag) >= MCT_RETURN_OK) {
+        while (mct_file_read(&file, vflag) >= MCT_RETURN_OK) {
         }
     }
 
@@ -344,7 +344,7 @@ int main(int argc, char *argv[]) {
     verbose(1, "Filling %d entries\n", message_count);
 
     for (num = begin; num <= end; num++) {
-        if (mct_file_message(&file, num, vflag) < DLT_RETURN_OK)
+        if (mct_file_message(&file, num, vflag) < MCT_RETURN_OK)
             continue;
         timestamp_index[num - begin].num = num;
         timestamp_index[num - begin].systmsp = file.msg.storageheader->seconds;
@@ -397,8 +397,8 @@ int main(int argc, char *argv[]) {
     }
 
     /*
-     * In case there is only cycle of boot in DLT file,
-     * sort the DLT file again by timestamp then write
+     * In case there is only cycle of boot in MCT file,
+     * sort the MCT file again by timestamp then write
      * all messages out.
      */
     if (count == message_count) {

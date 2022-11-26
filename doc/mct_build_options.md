@@ -1,25 +1,18 @@
 # MCT Build Options
 
-Change a value with: cmake -D\<Variable\>=\<Value\>, E.g.
-
-```bash
-cmake .. -DWITH_<OPTION>=ON
--DCMAKE_INSTALL_PREFIX=/usr
-```
-
 ## General Options
 
 Option | Value | Comment
 :--- | :--- | :---
-BUILD\_SHARED\_LIBS | ON | Set to OFF to build static libraries
-MCT\_PUBLISHER                         | mct         | Set publisher for process not run as root
-CMAKE\_INSTALL\_PREFIX            | /usr/local
-
-## Command Line Tool Options
-
- Option | Value | Comment
- :--- | :--- | :---
-WITH\_MCT\_LOGKEEPER\_CTRL\_UDEV | OFF            | PROTOTYPE! Set to ON to build
-
-
-
+BUILD\_SHARED\_LIBS | OFF | Set to ON to build dynamic libraries
+ WITH\_MCT\_CONSOLE | ON  | Set to ON to build src/console binaries
+WITH\_MCT\_CONSOLE\_SBTM | OFF | Set to ON to build mct-sortbytimestamp under src/console
+MCT\_USER | mct-vjpro | Set user for process not run as root
+CMAKE\_INSTALL\_PREFIX | /usr/local
+CMAKE\_BUILD\_TYPE | RelWithDebInfo
+CMAKE\_HOST\_SYSTEM\_PROCESSOR | x86_64
+CMAKE\_SYSTEM\_PROCESSOR | x86_64
+WITH\_MCT\_LOGSTORAGE\_CTRL\_UDEV | OFF | PROTOTYPE! Set to ON to build logstorage control application with udev support
+WITH\_MCT\_LOGSTORAGE\_CTRL\_PROP | OFF | PROTOTYPE! Set to ON to build logstorage control application with proprietary support
+MCT\_IPC | FIFO | Set to UNIX_SOCKET for unix_socket IPC (Default: FIFO, path: /tmp)
+WITH\_MCT\_DISABLE\_MACRO | OFF | Set to ON to build code without Macro interface support

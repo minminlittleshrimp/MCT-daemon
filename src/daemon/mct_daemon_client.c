@@ -20,10 +20,6 @@
 #include <linux/stat.h>
 #endif
 
-#ifdef DLT_SYSTEMD_WATCHDOG_ENABLE
-#include <systemd/sd-daemon.h>
-#endif
-
 #include "mct_types.h"
 #include "mct-daemon.h"
 #include "mct-daemon_cfg.h"
@@ -71,8 +67,8 @@ static inline int8_t getStatus(uint8_t request_log, int context_log)
  *
  * @return The amount of data transfered.
  */
-static int mct_daemon_client_send_all_multiple(DltDaemon *daemon,
-                                               DltDaemonLocal *daemon_local,
+static int mct_daemon_client_send_all_multiple(MctDaemon *daemon,
+                                               MctDaemonLocal *daemon_local,
                                                void *data1,
                                                int size1,
                                                void *data2,
@@ -82,9 +78,9 @@ static int mct_daemon_client_send_all_multiple(DltDaemon *daemon,
     int sent = 0;
     unsigned int i = 0;
     int ret = 0;
-    DltConnection *temp = NULL;
-    int type_mask = DLT_CONNECTION_NONE;
-    int client_mask = DLT_FILTER_CLIENT_CONNECTION_DEFAULT_MASK;
+    MctConnection *temp = NULL;
+    int type_mask = MCT_CONNECTION_NONE;
+    int client_mask = MCT_FILTER_CLIENT_CONNECTION_DEFAULT_MASK;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -97,12 +93,12 @@ static int mct_daemon_client_send_all_multiple(DltDaemon *daemon,
     client_mask |= daemon_local->pFilter.current->client_mask;
 
     /* check for TCP and Serial if allowed in current filter configuration*/
-    if (client_mask & DLT_CONNECTION_TO_MASK(DLT_CONNECTION_CLIENT_MSG_TCP)) {
-        type_mask |= DLT_CON_MASK_CLIENT_MSG_TCP;
+    if (client_mask & MCT_CONNECTION_TO_MASK(MCT_CONNECTION_CLIENT_MSG_TCP)) {
+        type_mask |= MCT_CON_MASK_CLIENT_MSG_TCP;
     }
 
-    if (client_mask & DLT_CONNECTION_TO_MASK(DLT_CONNECTION_CLIENT_MSG_SERIAL)) {
-        type_mask |= DLT_CON_MASK_CLIENT_MSG_SERIAL;
+    if (client_mask & MCT_CONNECTION_TO_MASK(MCT_CONNECTION_CLIENT_MSG_SERIAL)) {
+        type_mask |= MCT_CON_MASK_CLIENT_MSG_SERIAL;
     }
 
     for (i = 0; i < daemon_local->pEvent.nfds; i++) {
@@ -122,15 +118,15 @@ static int mct_daemon_client_send_all_multiple(DltDaemon *daemon,
                                            size2,
                                            daemon->sendserialheader);
 
-        if ((ret != DLT_DAEMON_ERROR_OK) &&
-            (DLT_CONNECTION_CLIENT_MSG_TCP == temp->type)) {
+        if ((ret != MCT_DAEMON_ERROR_OK) &&
+            (MCT_CONNECTION_CLIENT_MSG_TCP == temp->type)) {
             mct_daemon_close_socket(temp->receiver->fd,
                                     daemon,
                                     daemon_local,
                                     verbose);
         }
 
-        if (ret != DLT_DAEMON_ERROR_OK) {
+        if (ret != MCT_DAEMON_ERROR_OK) {
             mct_vlog(LOG_WARNING, "%s: send mct message failed\n", __func__);
         } else {
             /* If sent to at  least one client,
@@ -144,8 +140,8 @@ static int mct_daemon_client_send_all_multiple(DltDaemon *daemon,
 }
 
 int mct_daemon_client_send(int sock,
-                           DltDaemon *daemon,
-                           DltDaemonLocal *daemon_local,
+                           MctDaemon *daemon,
+                           MctDaemonLocal *daemon_local,
                            void *storage_header,
                            int storage_header_size,
                            void *data1,
@@ -156,21 +152,21 @@ int mct_daemon_client_send(int sock,
 {
     int sent, ret;
     int ret_logstorage = 0;
-    int client_mask = DLT_FILTER_CLIENT_CONNECTION_DEFAULT_MASK;
+    int client_mask = MCT_FILTER_CLIENT_CONNECTION_DEFAULT_MASK;
     static int sent_message_overflow_cnt = 0;
 
     if ((daemon == NULL) || (daemon_local == NULL)) {
         mct_vlog(LOG_ERR, "%s: Invalid arguments\n", __func__);
-        return DLT_DAEMON_ERROR_UNKNOWN;
+        return MCT_DAEMON_ERROR_UNKNOWN;
     }
 
     /* get current client mask to avoid multiple function calls */
     client_mask |= daemon_local->pFilter.current->client_mask;
 
-    if ((sock != DLT_DAEMON_SEND_TO_ALL) && (sock != DLT_DAEMON_SEND_FORCE)) {
+    if ((sock != MCT_DAEMON_SEND_TO_ALL) && (sock != MCT_DAEMON_SEND_FORCE)) {
         /* FIXME:
          * maybe we need to check here as well if the sock belongs to an allowed
-         * connection or not. Currently, the DLT Viewer receives some daemon
+         * connection or not. Currently, the MCT Viewer receives some daemon
          * status messages also in states where no log messages are received */
 
         /* Send message to specific socket */
@@ -190,15 +186,15 @@ int mct_daemon_client_send(int sock,
             }
         }
 
-        return DLT_DAEMON_ERROR_OK;
+        return MCT_DAEMON_ERROR_OK;
     }
 
     /* write message to offline trace */
     /* In the SEND_BUFFER state we must skip offline tracing because the offline traces */
     /* are going without buffering directly to the offline trace. Thus we have to filter out */
     /* the traces that are coming from the buffer. */
-    if ((sock != DLT_DAEMON_SEND_FORCE) && (daemon->state != DLT_DAEMON_STATE_SEND_BUFFER)) {
-        if ((client_mask & DLT_CONNECTION_TO_MASK(DLT_CONNECTION_CLIENT_MSG_OFFLINE_TRACE)) &&
+    if ((sock != MCT_DAEMON_SEND_FORCE) && (daemon->state != MCT_DAEMON_STATE_SEND_BUFFER)) {
+        if ((client_mask & MCT_CONNECTION_TO_MASK(MCT_CONNECTION_CLIENT_MSG_OFFLINE_TRACE)) &&
             daemon_local->flags.offlineTraceDirectory[0]) {
             if (mct_offline_trace_write(&(daemon_local->offlineTrace), storage_header,
                                         storage_header_size, data1,
@@ -210,14 +206,14 @@ int mct_daemon_client_send(int sock,
                     error_mct_offline_trace_write_failed = 1;
                 }
 
-                /*return DLT_DAEMON_ERROR_WRITE_FAILED; */
+                /*return MCT_DAEMON_ERROR_WRITE_FAILED; */
             }
         }
 
         /* write messages to offline logstorage only if there is an extended header set
          * this need to be checked because the function is mct_daemon_client_send is called by
          * newly introduced mct_daemon_log_internal */
-        if ((client_mask & DLT_CONNECTION_TO_MASK(DLT_CONNECTION_CLIENT_MSG_OFFLINE_LOGSTORAGE)) &&
+        if ((client_mask & MCT_CONNECTION_TO_MASK(MCT_CONNECTION_CLIENT_MSG_OFFLINE_LOGSTORAGE)) &&
             (daemon_local->flags.offlineLogstorageMaxDevices > 0)) {
             ret_logstorage = mct_daemon_logstorage_write(daemon,
                                                          &daemon_local->flags,
@@ -231,10 +227,10 @@ int mct_daemon_client_send(int sock,
     }
 
     /* send messages to daemon socket */
-    if ((client_mask & DLT_CONNECTION_TO_MASK(DLT_CONNECTION_CLIENT_MSG_TCP)) ||
-        (client_mask & DLT_CONNECTION_TO_MASK(DLT_CONNECTION_CLIENT_MSG_SERIAL))) {
+    if ((client_mask & MCT_CONNECTION_TO_MASK(MCT_CONNECTION_CLIENT_MSG_TCP)) ||
+        (client_mask & MCT_CONNECTION_TO_MASK(MCT_CONNECTION_CLIENT_MSG_SERIAL))) {
 
-        if ((sock == DLT_DAEMON_SEND_FORCE) || (daemon->state == DLT_DAEMON_STATE_SEND_DIRECT)) {
+        if ((sock == MCT_DAEMON_SEND_FORCE) || (daemon->state == MCT_DAEMON_STATE_SEND_DIRECT)) {
             /* Forward message to network client if network routing is not disabled */
             if (ret_logstorage != 1) {
                 sent = mct_daemon_client_send_all_multiple(daemon,
@@ -245,34 +241,34 @@ int mct_daemon_client_send(int sock,
                                                            size2,
                                                            verbose);
 
-                if ((sock == DLT_DAEMON_SEND_FORCE) && !sent) {
-                    return DLT_DAEMON_ERROR_SEND_FAILED;
+                if ((sock == MCT_DAEMON_SEND_FORCE) && !sent) {
+                    return MCT_DAEMON_ERROR_SEND_FAILED;
                 }
             }
         }
     }
 
     /* Message was not sent to client, so store it in client ringbuffer */
-    if ((sock != DLT_DAEMON_SEND_FORCE) &&
-        ((daemon->state == DLT_DAEMON_STATE_BUFFER) ||
-         (daemon->state == DLT_DAEMON_STATE_SEND_BUFFER) ||
-         (daemon->state == DLT_DAEMON_STATE_BUFFER_FULL))) {
-        if (daemon->state != DLT_DAEMON_STATE_BUFFER_FULL) {
+    if ((sock != MCT_DAEMON_SEND_FORCE) &&
+        ((daemon->state == MCT_DAEMON_STATE_BUFFER) ||
+         (daemon->state == MCT_DAEMON_STATE_SEND_BUFFER) ||
+         (daemon->state == MCT_DAEMON_STATE_BUFFER_FULL))) {
+        if (daemon->state != MCT_DAEMON_STATE_BUFFER_FULL) {
             /* Store message in history buffer */
             ret = mct_buffer_push3(&(daemon->client_ringbuffer), data1, size1, data2, size2, 0, 0);
-            if (ret < DLT_RETURN_OK) {
-                mct_daemon_change_state(daemon, DLT_DAEMON_STATE_BUFFER_FULL);
+            if (ret < MCT_RETURN_OK) {
+                mct_daemon_change_state(daemon, MCT_DAEMON_STATE_BUFFER_FULL);
             }
         }
 
-        if (daemon->state == DLT_DAEMON_STATE_BUFFER_FULL) {
+        if (daemon->state == MCT_DAEMON_STATE_BUFFER_FULL) {
             daemon->overflow_counter += 1;
 
             if (daemon->overflow_counter == 1) {
                 mct_vlog(LOG_INFO, "%s: Buffer is full! Messages will be discarded.\n", __func__);
             }
 
-            return DLT_DAEMON_ERROR_BUFFER_FULL;
+            return MCT_DAEMON_ERROR_BUFFER_FULL;
         }
     } else {
         if ((daemon->overflow_counter > 0) &&
@@ -283,7 +279,7 @@ int mct_daemon_client_send(int sock,
             }
             else {
                 if (mct_daemon_send_message_overflow(daemon, daemon_local,
-                                          verbose) == DLT_DAEMON_ERROR_OK) {
+                                          verbose) == MCT_DAEMON_ERROR_OK) {
                     mct_vlog(LOG_WARNING,
                              "%s: %u messages discarded! Now able to send messages to the client.\n",
                              __func__,
@@ -295,27 +291,27 @@ int mct_daemon_client_send(int sock,
         }
     }
 
-    return DLT_DAEMON_ERROR_OK;
+    return MCT_DAEMON_ERROR_OK;
 }
 
-int mct_daemon_client_send_message_to_all_client(DltDaemon *daemon,
-                                                 DltDaemonLocal *daemon_local,
+int mct_daemon_client_send_message_to_all_client(MctDaemon *daemon,
+                                                 MctDaemonLocal *daemon_local,
                                                  int verbose)
 {
-    static char text[DLT_DAEMON_TEXTSIZE];
+    static char text[MCT_DAEMON_TEXTSIZE];
     char *ecu_ptr = NULL;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
     if ((daemon == NULL) || (daemon_local == NULL)) {
         mct_vlog(LOG_ERR, "%s: invalid arguments\n", __func__);
-        return DLT_DAEMON_ERROR_UNKNOWN;
+        return MCT_DAEMON_ERROR_UNKNOWN;
     }
 
     /* set overwrite ecu id */
     if ((daemon_local->flags.evalue[0]) &&
         (strncmp(daemon_local->msg.headerextra.ecu,
-                 DLT_DAEMON_ECU_ID, DLT_ID_SIZE) == 0)) {
+                 MCT_DAEMON_ECU_ID, MCT_ID_SIZE) == 0)) {
         /* Set header extra parameters */
         mct_set_id(daemon_local->msg.headerextra.ecu, daemon->ecuid);
 
@@ -323,16 +319,16 @@ int mct_daemon_client_send_message_to_all_client(DltDaemon *daemon,
         if (mct_message_set_extraparameters(&(daemon_local->msg), 0)) {
             mct_vlog(LOG_WARNING,
                      "%s: failed to set message extra parameters.\n", __func__);
-            return DLT_DAEMON_ERROR_UNKNOWN;
+            return MCT_DAEMON_ERROR_UNKNOWN;
         }
 
         /* Correct value of timestamp, this was changed by mct_message_set_extraparameters() */
         daemon_local->msg.headerextra.tmsp =
-            DLT_BETOH_32(daemon_local->msg.headerextra.tmsp);
+            MCT_BETOH_32(daemon_local->msg.headerextra.tmsp);
     }
 
     /* prepare storage header */
-    if (DLT_IS_HTYP_WEID(daemon_local->msg.standardheader->htyp)) {
+    if (MCT_IS_HTYP_WEID(daemon_local->msg.standardheader->htyp)) {
         ecu_ptr = daemon_local->msg.headerextra.ecu;
     } else {
         ecu_ptr = daemon->ecuid;
@@ -342,42 +338,42 @@ int mct_daemon_client_send_message_to_all_client(DltDaemon *daemon,
         mct_vlog(LOG_WARNING,
                  "%s: failed to set storage header with header type: 0x%x\n",
                  __func__, daemon_local->msg.standardheader->htyp);
-        return DLT_DAEMON_ERROR_UNKNOWN;
+        return MCT_DAEMON_ERROR_UNKNOWN;
     }
 
     /* if no filter set or filter is matching display message */
     if (daemon_local->flags.xflag) {
-        if (DLT_RETURN_OK !=
+        if (MCT_RETURN_OK !=
             mct_message_print_hex(&(daemon_local->msg), text,
-                                  DLT_DAEMON_TEXTSIZE, verbose)) {
+                                  MCT_DAEMON_TEXTSIZE, verbose)) {
             mct_log(LOG_WARNING, "mct_message_print_hex() failed!\n");
         }
     } else if (daemon_local->flags.aflag) {
-        if (DLT_RETURN_OK !=
+        if (MCT_RETURN_OK !=
             mct_message_print_ascii(&(daemon_local->msg), text,
-                                    DLT_DAEMON_TEXTSIZE, verbose)) {
+                                    MCT_DAEMON_TEXTSIZE, verbose)) {
             mct_log(LOG_WARNING, "mct_message_print_ascii() failed!\n");
         }
     } else if (daemon_local->flags.sflag) {
-        if (DLT_RETURN_OK !=
+        if (MCT_RETURN_OK !=
             mct_message_print_header(&(daemon_local->msg), text,
-                                     DLT_DAEMON_TEXTSIZE, verbose)) {
+                                     MCT_DAEMON_TEXTSIZE, verbose)) {
             mct_log(LOG_WARNING, "mct_message_print_header() failed!\n");
         }
     }
 
     /* send message to client or write to log file */
-    return mct_daemon_client_send(DLT_DAEMON_SEND_TO_ALL, daemon, daemon_local,
-                                  daemon_local->msg.headerbuffer, sizeof(DltStorageHeader),
-                                  daemon_local->msg.headerbuffer + sizeof(DltStorageHeader),
-                                  daemon_local->msg.headersize - sizeof(DltStorageHeader),
+    return mct_daemon_client_send(MCT_DAEMON_SEND_TO_ALL, daemon, daemon_local,
+                                  daemon_local->msg.headerbuffer, sizeof(MctStorageHeader),
+                                  daemon_local->msg.headerbuffer + sizeof(MctStorageHeader),
+                                  daemon_local->msg.headersize - sizeof(MctStorageHeader),
                                   daemon_local->msg.databuffer, daemon_local->msg.datasize, verbose);
 }
 
 int mct_daemon_client_send_control_message(int sock,
-                                           DltDaemon *daemon,
-                                           DltDaemonLocal *daemon_local,
-                                           DltMessage *msg,
+                                           MctDaemon *daemon,
+                                           MctDaemonLocal *daemon_local,
+                                           MctMessage *msg,
                                            char *apid,
                                            char *ctid,
                                            int verbose)
@@ -388,23 +384,23 @@ int mct_daemon_client_send_control_message(int sock,
     PRINT_FUNCTION_VERBOSE(verbose);
 
     if ((daemon == 0) || (msg == 0) || (apid == 0) || (ctid == 0)) {
-        return DLT_DAEMON_ERROR_UNKNOWN;
+        return MCT_DAEMON_ERROR_UNKNOWN;
     }
 
     /* prepare storage header */
-    msg->storageheader = (DltStorageHeader *)msg->headerbuffer;
+    msg->storageheader = (MctStorageHeader *)msg->headerbuffer;
 
-    if (mct_set_storageheader(msg->storageheader, daemon->ecuid) == DLT_RETURN_ERROR) {
-        return DLT_DAEMON_ERROR_UNKNOWN;
+    if (mct_set_storageheader(msg->storageheader, daemon->ecuid) == MCT_RETURN_ERROR) {
+        return MCT_DAEMON_ERROR_UNKNOWN;
     }
 
     /* prepare standard header */
-    msg->standardheader = (DltStandardHeader *)(msg->headerbuffer + sizeof(DltStorageHeader));
-    msg->standardheader->htyp = DLT_HTYP_WEID | DLT_HTYP_WTMS | DLT_HTYP_UEH |
-        DLT_HTYP_PROTOCOL_VERSION1;
+    msg->standardheader = (MctStandardHeader *)(msg->headerbuffer + sizeof(MctStorageHeader));
+    msg->standardheader->htyp = MCT_HTYP_WEID | MCT_HTYP_WTMS | MCT_HTYP_UEH |
+        MCT_HTYP_PROTOCOL_VERSION1;
 
 #if (BYTE_ORDER == BIG_ENDIAN)
-    msg->standardheader->htyp = (msg->standardheader->htyp | DLT_HTYP_MSBF);
+    msg->standardheader->htyp = (msg->standardheader->htyp | MCT_HTYP_MSBF);
 #endif
 
     msg->standardheader->mcnt = 0;
@@ -420,57 +416,57 @@ int mct_daemon_client_send_control_message(int sock,
 
     /* prepare extended header */
     msg->extendedheader =
-        (DltExtendedHeader *)(msg->headerbuffer + sizeof(DltStorageHeader) +
-                              sizeof(DltStandardHeader) +
-                              DLT_STANDARD_HEADER_EXTRA_SIZE(msg->standardheader->htyp));
-    msg->extendedheader->msin = DLT_MSIN_CONTROL_RESPONSE;
+        (MctExtendedHeader *)(msg->headerbuffer + sizeof(MctStorageHeader) +
+                              sizeof(MctStandardHeader) +
+                              MCT_STANDARD_HEADER_EXTRA_SIZE(msg->standardheader->htyp));
+    msg->extendedheader->msin = MCT_MSIN_CONTROL_RESPONSE;
 
     msg->extendedheader->noar = 1; /* number of arguments */
 
     if (strcmp(apid, "") == 0) {
-        mct_set_id(msg->extendedheader->apid, DLT_DAEMON_CTRL_APID);       /* application id */
+        mct_set_id(msg->extendedheader->apid, MCT_DAEMON_CTRL_APID);       /* application id */
     } else {
         mct_set_id(msg->extendedheader->apid, apid);
     }
 
     if (strcmp(ctid, "") == 0) {
-        mct_set_id(msg->extendedheader->ctid, DLT_DAEMON_CTRL_CTID);       /* context id */
+        mct_set_id(msg->extendedheader->ctid, MCT_DAEMON_CTRL_CTID);       /* context id */
     } else {
         mct_set_id(msg->extendedheader->ctid, ctid);
     }
 
     /* prepare length information */
-    msg->headersize = sizeof(DltStorageHeader) + sizeof(DltStandardHeader) +
-        sizeof(DltExtendedHeader) +
-        DLT_STANDARD_HEADER_EXTRA_SIZE(msg->standardheader->htyp);
+    msg->headersize = sizeof(MctStorageHeader) + sizeof(MctStandardHeader) +
+        sizeof(MctExtendedHeader) +
+        MCT_STANDARD_HEADER_EXTRA_SIZE(msg->standardheader->htyp);
 
-    len = msg->headersize - sizeof(DltStorageHeader) + msg->datasize;
+    len = msg->headersize - sizeof(MctStorageHeader) + msg->datasize;
 
     if (len > UINT16_MAX) {
         mct_log(LOG_WARNING, "Huge control message discarded!\n");
-        return DLT_DAEMON_ERROR_UNKNOWN;
+        return MCT_DAEMON_ERROR_UNKNOWN;
     }
 
-    msg->standardheader->len = DLT_HTOBE_16(((uint16_t)len));
+    msg->standardheader->len = MCT_HTOBE_16(((uint16_t)len));
 
     if ((ret =
              mct_daemon_client_send(sock, daemon, daemon_local, msg->headerbuffer,
-                                    sizeof(DltStorageHeader),
-                                    msg->headerbuffer + sizeof(DltStorageHeader),
-                                    msg->headersize - sizeof(DltStorageHeader),
+                                    sizeof(MctStorageHeader),
+                                    msg->headerbuffer + sizeof(MctStorageHeader),
+                                    msg->headersize - sizeof(MctStorageHeader),
                                     msg->databuffer, msg->datasize, verbose))) {
         mct_log(LOG_DEBUG,
-                "mct_daemon_control_send_control_message: DLT message send to all failed!.\n");
+                "mct_daemon_control_send_control_message: MCT message send to all failed!.\n");
         return ret;
     }
 
-    return DLT_DAEMON_ERROR_OK;
+    return MCT_DAEMON_ERROR_OK;
 }
 
 int mct_daemon_client_process_control(int sock,
-                                      DltDaemon *daemon,
-                                      DltDaemonLocal *daemon_local,
-                                      DltMessage *msg,
+                                      MctDaemon *daemon,
+                                      MctDaemonLocal *daemon_local,
+                                      MctMessage *msg,
                                       int verbose)
 {
     uint32_t id, id_tmp = 0;
@@ -485,7 +481,7 @@ int mct_daemon_client_process_control(int sock,
         return -1;
     }
 
-    DltConnection *con =
+    MctConnection *con =
         mct_event_handler_find_connection(&daemon_local->pEvent, sock);
 
     if (con == NULL) {
@@ -495,9 +491,9 @@ int mct_daemon_client_process_control(int sock,
     }
 
     id_tmp = *((uint32_t *)(msg->databuffer));
-    id = DLT_ENDIAN_GET_32(msg->standardheader->htyp, id_tmp);
+    id = MCT_ENDIAN_GET_32(msg->standardheader->htyp, id_tmp);
 
-    if ((id > DLT_SERVICE_ID) && (id < DLT_SERVICE_ID_CALLSW_CINJECTION)) {
+    if ((id > MCT_SERVICE_ID) && (id < MCT_SERVICE_ID_CALLSW_CINJECTION)) {
         if (mct_daemon_filter_is_control_allowed(&daemon_local->pFilter, id) <= 0) {
             /* in case of a filter level change message and no backend is
              * configured and request comes from control socket, allow handling
@@ -509,10 +505,10 @@ int mct_daemon_client_process_control(int sock,
              */
             /* TODO: Refactor and move to is_control_allowed after additional */
             /* requirements are clarified */
-            if ((con->type == DLT_CONNECTION_CONTROL_MSG) &&
+            if ((con->type == MCT_CONNECTION_CONTROL_MSG) &&
                 (((daemon_local->pFilter.backend == NULL) &&
-                  (id == DLT_SERVICE_ID_SET_FILTER_LEVEL)) ||
-                 (id == DLT_SERVICE_ID_GET_FILTER_STATUS))) {
+                  (id == MCT_SERVICE_ID_SET_FILTER_LEVEL)) ||
+                 (id == MCT_SERVICE_ID_GET_FILTER_STATUS))) {
                 mct_vlog(LOG_INFO, "Set Filter Level request received\n");
             } else {
                 mct_vlog(LOG_WARNING,
@@ -520,7 +516,7 @@ int mct_daemon_client_process_control(int sock,
                          mct_get_service_name(id));
 
                 mct_daemon_control_service_response(sock, daemon, daemon_local,
-                                                    id, DLT_SERVICE_RESPONSE_PERM_DENIED, verbose);
+                                                    id, MCT_SERVICE_RESPONSE_PERM_DENIED, verbose);
 
                 return 0;
             }
@@ -528,27 +524,27 @@ int mct_daemon_client_process_control(int sock,
 
         /* Control message handling */
         switch (id) {
-            case DLT_SERVICE_ID_SET_LOG_LEVEL:
+            case MCT_SERVICE_ID_SET_LOG_LEVEL:
             {
                 mct_daemon_control_set_log_level(sock, daemon, daemon_local, msg, verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_TRACE_STATUS:
+            case MCT_SERVICE_ID_SET_TRACE_STATUS:
             {
                 mct_daemon_control_set_trace_status(sock, daemon, daemon_local, msg, verbose);
                 break;
             }
-            case DLT_SERVICE_ID_GET_LOG_INFO:
+            case MCT_SERVICE_ID_GET_LOG_INFO:
             {
                 mct_daemon_control_get_log_info(sock, daemon, daemon_local, msg, verbose);
                 break;
             }
-            case DLT_SERVICE_ID_GET_DEFAULT_LOG_LEVEL:
+            case MCT_SERVICE_ID_GET_DEFAULT_LOG_LEVEL:
             {
                 mct_daemon_control_get_default_log_level(sock, daemon, daemon_local, verbose);
                 break;
             }
-            case DLT_SERVICE_ID_STORE_CONFIG:
+            case MCT_SERVICE_ID_STORE_CONFIG:
             {
                 if (mct_daemon_applications_save(daemon, daemon->runtime_application_cfg,
                                                  verbose) == 0) {
@@ -558,7 +554,7 @@ int mct_daemon_client_process_control(int sock,
                                                             daemon,
                                                             daemon_local,
                                                             id,
-                                                            DLT_SERVICE_RESPONSE_OK,
+                                                            MCT_SERVICE_RESPONSE_OK,
                                                             verbose);
                     } else {
                         /* Delete saved files */
@@ -577,7 +573,7 @@ int mct_daemon_client_process_control(int sock,
                                                             daemon,
                                                             daemon_local,
                                                             id,
-                                                            DLT_SERVICE_RESPONSE_ERROR,
+                                                            MCT_SERVICE_RESPONSE_ERROR,
                                                             verbose);
                     }
                 } else {
@@ -585,13 +581,13 @@ int mct_daemon_client_process_control(int sock,
                                                         daemon,
                                                         daemon_local,
                                                         id,
-                                                        DLT_SERVICE_RESPONSE_ERROR,
+                                                        MCT_SERVICE_RESPONSE_ERROR,
                                                         verbose);
                 }
 
                 break;
             }
-            case DLT_SERVICE_ID_RESET_TO_FACTORY_DEFAULT:
+            case MCT_SERVICE_ID_RESET_TO_FACTORY_DEFAULT:
             {
                 mct_daemon_control_reset_to_factory_default(
                     daemon,
@@ -606,112 +602,112 @@ int mct_daemon_client_process_control(int sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_OK,
+                                                    MCT_SERVICE_RESPONSE_OK,
                                                     verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_COM_INTERFACE_STATUS:
+            case MCT_SERVICE_ID_SET_COM_INTERFACE_STATUS:
             {
                 mct_daemon_control_service_response(sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_NOT_SUPPORTED,
+                                                    MCT_SERVICE_RESPONSE_NOT_SUPPORTED,
                                                     verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_COM_INTERFACE_MAX_BANDWIDTH:
+            case MCT_SERVICE_ID_SET_COM_INTERFACE_MAX_BANDWIDTH:
             {
                 mct_daemon_control_service_response(sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_NOT_SUPPORTED,
+                                                    MCT_SERVICE_RESPONSE_NOT_SUPPORTED,
                                                     verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_VERBOSE_MODE:
+            case MCT_SERVICE_ID_SET_VERBOSE_MODE:
             {
                 mct_daemon_control_service_response(sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_NOT_SUPPORTED,
+                                                    MCT_SERVICE_RESPONSE_NOT_SUPPORTED,
                                                     verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_MESSAGE_FILTERING:
+            case MCT_SERVICE_ID_SET_MESSAGE_FILTERING:
             {
                 mct_daemon_control_service_response(sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_NOT_SUPPORTED,
+                                                    MCT_SERVICE_RESPONSE_NOT_SUPPORTED,
                                                     verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_TIMING_PACKETS:
+            case MCT_SERVICE_ID_SET_TIMING_PACKETS:
             {
                 mct_daemon_control_set_timing_packets(sock, daemon, daemon_local, msg, verbose);
                 break;
             }
-            case DLT_SERVICE_ID_GET_LOCAL_TIME:
+            case MCT_SERVICE_ID_GET_LOCAL_TIME:
             {
                 /* Send response with valid timestamp (TMSP) field */
                 mct_daemon_control_service_response(sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_OK,
+                                                    MCT_SERVICE_RESPONSE_OK,
                                                     verbose);
                 break;
             }
-            case DLT_SERVICE_ID_USE_ECU_ID:
+            case MCT_SERVICE_ID_USE_ECU_ID:
             {
                 mct_daemon_control_service_response(sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_NOT_SUPPORTED,
+                                                    MCT_SERVICE_RESPONSE_NOT_SUPPORTED,
                                                     verbose);
                 break;
             }
-            case DLT_SERVICE_ID_USE_SESSION_ID:
+            case MCT_SERVICE_ID_USE_SESSION_ID:
             {
                 mct_daemon_control_service_response(sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_NOT_SUPPORTED,
+                                                    MCT_SERVICE_RESPONSE_NOT_SUPPORTED,
                                                     verbose);
                 break;
             }
-            case DLT_SERVICE_ID_USE_TIMESTAMP:
+            case MCT_SERVICE_ID_USE_TIMESTAMP:
             {
                 mct_daemon_control_service_response(sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_NOT_SUPPORTED,
+                                                    MCT_SERVICE_RESPONSE_NOT_SUPPORTED,
                                                     verbose);
                 break;
             }
-            case DLT_SERVICE_ID_USE_EXTENDED_HEADER:
+            case MCT_SERVICE_ID_USE_EXTENDED_HEADER:
             {
                 mct_daemon_control_service_response(sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_NOT_SUPPORTED,
+                                                    MCT_SERVICE_RESPONSE_NOT_SUPPORTED,
                                                     verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_DEFAULT_LOG_LEVEL:
+            case MCT_SERVICE_ID_SET_DEFAULT_LOG_LEVEL:
             {
                 mct_daemon_control_set_default_log_level(sock, daemon, daemon_local, msg, verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_DEFAULT_TRACE_STATUS:
+            case MCT_SERVICE_ID_SET_DEFAULT_TRACE_STATUS:
             {
                 mct_daemon_control_set_default_trace_status(sock,
                                                             daemon,
@@ -720,12 +716,12 @@ int mct_daemon_client_process_control(int sock,
                                                             verbose);
                 break;
             }
-            case DLT_SERVICE_ID_GET_SOFTWARE_VERSION:
+            case MCT_SERVICE_ID_GET_SOFTWARE_VERSION:
             {
                 mct_daemon_control_get_software_version(sock, daemon, daemon_local, verbose);
                 break;
             }
-            case DLT_SERVICE_ID_MESSAGE_BUFFER_OVERFLOW:
+            case MCT_SERVICE_ID_MESSAGE_BUFFER_OVERFLOW:
             {
                 mct_daemon_control_message_buffer_overflow(sock,
                                                            daemon,
@@ -735,29 +731,29 @@ int mct_daemon_client_process_control(int sock,
                                                            verbose);
                 break;
             }
-            case DLT_SERVICE_ID_OFFLINE_LOGSTORAGE:
+            case MCT_SERVICE_ID_OFFLINE_LOGSTORAGE:
             {
                 mct_daemon_control_service_logstorage(sock, daemon, daemon_local, msg, verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_FILTER_LEVEL:
+            case MCT_SERVICE_ID_SET_FILTER_LEVEL:
             {
                 mct_daemon_control_set_filter_level(sock, daemon, daemon_local,
                                                     msg, verbose);
                 break;
             }
-            case DLT_SERVICE_ID_GET_FILTER_STATUS:
+            case MCT_SERVICE_ID_GET_FILTER_STATUS:
             {
                 mct_daemon_control_get_filter_status(sock, daemon, daemon_local,
                                                      verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_ALL_LOG_LEVEL:
+            case MCT_SERVICE_ID_SET_ALL_LOG_LEVEL:
             {
                 mct_daemon_control_set_all_log_level(sock, daemon, daemon_local, msg, verbose);
                 break;
             }
-            case DLT_SERVICE_ID_SET_ALL_TRACE_STATUS:
+            case MCT_SERVICE_ID_SET_ALL_TRACE_STATUS:
             {
                 mct_daemon_control_set_all_trace_status(sock, daemon, daemon_local, msg, verbose);
                 break;
@@ -768,7 +764,7 @@ int mct_daemon_client_process_control(int sock,
                                                     daemon,
                                                     daemon_local,
                                                     id,
-                                                    DLT_SERVICE_RESPONSE_NOT_SUPPORTED,
+                                                    MCT_SERVICE_RESPONSE_NOT_SUPPORTED,
                                                     verbose);
                 break;
             }
@@ -786,13 +782,13 @@ int mct_daemon_client_process_control(int sock,
 }
 
 void mct_daemon_control_get_software_version(int sock,
-                                             DltDaemon *daemon,
-                                             DltDaemonLocal *daemon_local,
+                                             MctDaemon *daemon,
+                                             MctDaemonLocal *daemon_local,
                                              int verbose)
 {
-    DltMessage msg;
+    MctMessage msg;
     uint32_t len;
-    DltServiceGetSoftwareVersionResponse *resp;
+    MctServiceGetSoftwareVersionResponse *resp;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -801,12 +797,12 @@ void mct_daemon_control_get_software_version(int sock,
     }
 
     /* initialise new message */
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_GET_SOFTWARE_VERSION,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_GET_SOFTWARE_VERSION,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
         return;
     }
@@ -831,15 +827,15 @@ void mct_daemon_control_get_software_version(int sock,
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_GET_SOFTWARE_VERSION,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_GET_SOFTWARE_VERSION,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
         return;
     }
 
-    resp = (DltServiceGetSoftwareVersionResponse *)msg.databuffer;
-    resp->service_id = DLT_SERVICE_ID_GET_SOFTWARE_VERSION;
-    resp->status = DLT_SERVICE_RESPONSE_OK;
+    resp = (MctServiceGetSoftwareVersionResponse *)msg.databuffer;
+    resp->service_id = MCT_SERVICE_ID_GET_SOFTWARE_VERSION;
+    resp->status = MCT_SERVICE_RESPONSE_OK;
     resp->length = len;
     memcpy(msg.databuffer + msg.datasize - len, daemon->ECUVersionString, len);
 
@@ -851,12 +847,12 @@ void mct_daemon_control_get_software_version(int sock,
 }
 
 void mct_daemon_control_get_default_log_level(int sock,
-                                              DltDaemon *daemon,
-                                              DltDaemonLocal *daemon_local,
+                                              MctDaemon *daemon,
+                                              MctDaemonLocal *daemon_local,
                                               int verbose)
 {
-    DltMessage msg;
-    DltServiceGetDefaultLogLevelResponse *resp;
+    MctMessage msg;
+    MctServiceGetDefaultLogLevelResponse *resp;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -865,17 +861,17 @@ void mct_daemon_control_get_default_log_level(int sock,
     }
 
     /* initialise new message */
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_GET_DEFAULT_LOG_LEVEL,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_GET_DEFAULT_LOG_LEVEL,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
         return;
     }
 
-    msg.datasize = sizeof(DltServiceGetDefaultLogLevelResponse);
+    msg.datasize = sizeof(MctServiceGetDefaultLogLevelResponse);
 
     if (msg.databuffer && (msg.databuffersize < msg.datasize)) {
         free(msg.databuffer);
@@ -891,15 +887,15 @@ void mct_daemon_control_get_default_log_level(int sock,
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_GET_DEFAULT_LOG_LEVEL,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_GET_DEFAULT_LOG_LEVEL,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
         return;
     }
 
-    resp = (DltServiceGetDefaultLogLevelResponse *)msg.databuffer;
-    resp->service_id = DLT_SERVICE_ID_GET_DEFAULT_LOG_LEVEL;
-    resp->status = DLT_SERVICE_RESPONSE_OK;
+    resp = (MctServiceGetDefaultLogLevelResponse *)msg.databuffer;
+    resp->service_id = MCT_SERVICE_ID_GET_DEFAULT_LOG_LEVEL;
+    resp->status = MCT_SERVICE_RESPONSE_OK;
     resp->log_level = daemon->default_log_level;
 
     /* send message */
@@ -910,20 +906,20 @@ void mct_daemon_control_get_default_log_level(int sock,
 }
 
 void mct_daemon_control_get_log_info(int sock,
-                                     DltDaemon *daemon,
-                                     DltDaemonLocal *daemon_local,
-                                     DltMessage *msg,
+                                     MctDaemon *daemon,
+                                     MctDaemonLocal *daemon_local,
+                                     MctMessage *msg,
                                      int verbose)
 {
-    DltServiceGetLogInfoRequest *req;
-    DltMessage resp;
-    DltDaemonContext *context = 0;
-    DltDaemonApplication *application = 0;
+    MctServiceGetLogInfoRequest *req;
+    MctMessage resp;
+    MctDaemonContext *context = 0;
+    MctDaemonApplication *application = 0;
 
     int num_applications = 0, num_contexts = 0;
     uint16_t count_app_ids = 0, count_con_ids = 0;
 
-#if (DLT_DEBUG_GETLOGINFO == 1)
+#if (MCT_DEBUG_GETLOGINFO == 1)
     char buf[255];
 #endif
 
@@ -937,7 +933,7 @@ void mct_daemon_control_get_log_info(int sock,
 
     uint32_t sid;
 
-    DltDaemonRegisteredUsers *user_list = NULL;
+    MctDaemonRegisteredUsers *user_list = NULL;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -945,7 +941,7 @@ void mct_daemon_control_get_log_info(int sock,
         return;
     }
 
-    if (mct_check_rcv_data_size(msg->datasize, sizeof(DltServiceGetLogInfoRequest)) < 0) {
+    if (mct_check_rcv_data_size(msg->datasize, sizeof(MctServiceGetLogInfoRequest)) < 0) {
         return;
     }
 
@@ -956,15 +952,15 @@ void mct_daemon_control_get_log_info(int sock,
     }
 
     /* prepare pointer to message request */
-    req = (DltServiceGetLogInfoRequest *)(msg->databuffer);
+    req = (MctServiceGetLogInfoRequest *)(msg->databuffer);
 
     /* initialise new message */
-    if (mct_message_init(&resp, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_init(&resp, 0) == MCT_RETURN_ERROR) {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_GET_LOG_INFO,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_GET_LOG_INFO,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
         return;
     }
@@ -974,8 +970,8 @@ void mct_daemon_control_get_log_info(int sock,
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_GET_LOG_INFO,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_GET_LOG_INFO,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
         return;
     }
@@ -1013,7 +1009,7 @@ void mct_daemon_control_get_log_info(int sock,
     /* prepare payload of data */
 
     /* Calculate maximum size for a response */
-    resp.datasize = sizeof(uint32_t) /* SID */ + sizeof(int8_t) /* status*/ + sizeof(ID4) /* DLT_DAEMON_REMO_STRING */;
+    resp.datasize = sizeof(uint32_t) /* SID */ + sizeof(int8_t) /* status*/ + sizeof(ID4) /* MCT_DAEMON_REMO_STRING */;
 
     sizecont = sizeof(uint32_t) /* context_id */;
 
@@ -1114,8 +1110,8 @@ void mct_daemon_control_get_log_info(int sock,
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_GET_LOG_INFO,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_GET_LOG_INFO,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
         return;
     }
@@ -1124,7 +1120,7 @@ void mct_daemon_control_get_log_info(int sock,
     /* Preparation finished */
 
     /* Prepare response */
-    sid = DLT_SERVICE_ID_GET_LOG_INFO;
+    sid = MCT_SERVICE_ID_GET_LOG_INFO;
     memcpy(resp.databuffer, &sid, sizeof(uint32_t));
     offset += sizeof(uint32_t);
 
@@ -1139,7 +1135,7 @@ void mct_daemon_control_get_log_info(int sock,
         memcpy(resp.databuffer + offset, &count_app_ids, sizeof(uint16_t));
         offset += sizeof(uint16_t);
 
-#if (DLT_DEBUG_GETLOGINFO == 1)
+#if (MCT_DEBUG_GETLOGINFO == 1)
         mct_vlog(LOG_DEBUG, "#apid: %d \n", count_app_ids);
 #endif
 
@@ -1171,7 +1167,7 @@ void mct_daemon_control_get_log_info(int sock,
                 mct_set_id((char *)(resp.databuffer + offset), apid);
                 offset += sizeof(ID4);
 
-#if (DLT_DEBUG_GETLOGINFO == 1)
+#if (MCT_DEBUG_GETLOGINFO == 1)
                 mct_print_id(buf, apid);
                 mct_vlog(LOG_DEBUG, "apid: %s\n", buf);
 #endif
@@ -1185,12 +1181,12 @@ void mct_daemon_control_get_log_info(int sock,
                 memcpy(resp.databuffer + offset, &count_con_ids, sizeof(uint16_t));
                 offset += sizeof(uint16_t);
 
-#if (DLT_DEBUG_GETLOGINFO == 1)
+#if (MCT_DEBUG_GETLOGINFO == 1)
                 mct_vlog(LOG_DEBUG, "#ctid: %d \n", count_con_ids);
 #endif
 
                 for (j = 0; j < count_con_ids; j++) {
-#if (DLT_DEBUG_GETLOGINFO == 1)
+#if (MCT_DEBUG_GETLOGINFO == 1)
                     mct_vlog(LOG_DEBUG, "j: %d \n", j);
 #endif
 
@@ -1205,12 +1201,12 @@ void mct_daemon_control_get_log_info(int sock,
                     if ((context) &&
                         ((req->ctid[0] == '\0') || ((req->ctid[0] != '\0') &&
                                                     (memcmp(context->ctid, req->ctid,
-                                                            DLT_ID_SIZE) == 0)))
+                                                            MCT_ID_SIZE) == 0)))
                         ) {
                         mct_set_id((char *)(resp.databuffer + offset), context->ctid);
                         offset += sizeof(ID4);
 
-#if (DLT_DEBUG_GETLOGINFO == 1)
+#if (MCT_DEBUG_GETLOGINFO == 1)
                         mct_print_id(buf, context->ctid);
                         mct_vlog(LOG_DEBUG, "ctid: %s \n", buf);
 #endif
@@ -1245,13 +1241,13 @@ void mct_daemon_control_get_log_info(int sock,
                             }
                         }
 
-#if (DLT_DEBUG_GETLOGINFO == 1)
+#if (MCT_DEBUG_GETLOGINFO == 1)
                         mct_vlog(LOG_DEBUG, "ll=%d ts=%d \n", (int32_t)ll,
                                  (int32_t)ts);
 #endif
                     }
 
-#if (DLT_DEBUG_GETLOGINFO == 1)
+#if (MCT_DEBUG_GETLOGINFO == 1)
                     mct_log(LOG_DEBUG, "\n");
 #endif
                 }
@@ -1275,7 +1271,7 @@ void mct_daemon_control_get_log_info(int sock,
         }     /* for (i=0;i<count_app_ids;i++) */
     }         /* if (count_app_ids!=0) */
 
-    mct_set_id((char *)(resp.databuffer + offset), DLT_DAEMON_REMO_STRING);
+    mct_set_id((char *)(resp.databuffer + offset), MCT_DAEMON_REMO_STRING);
 
     /* send message */
     mct_daemon_client_send_control_message(sock, daemon, daemon_local, &resp, "", "", verbose);
@@ -1285,35 +1281,35 @@ void mct_daemon_control_get_log_info(int sock,
 }
 
 int mct_daemon_control_message_buffer_overflow(int sock,
-                                               DltDaemon *daemon,
-                                               DltDaemonLocal *daemon_local,
+                                               MctDaemon *daemon,
+                                               MctDaemonLocal *daemon_local,
                                                unsigned int overflow_counter,
                                                char *apid,
                                                int verbose)
 {
     int ret;
-    DltMessage msg;
-    DltServiceMessageBufferOverflowResponse *resp;
+    MctMessage msg;
+    MctServiceMessageBufferOverflowResponse *resp;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
     if (daemon == 0) {
-        return DLT_DAEMON_ERROR_UNKNOWN;
+        return MCT_DAEMON_ERROR_UNKNOWN;
     }
 
     /* initialise new message */
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_MESSAGE_BUFFER_OVERFLOW,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_MESSAGE_BUFFER_OVERFLOW,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
-        return DLT_DAEMON_ERROR_UNKNOWN;
+        return MCT_DAEMON_ERROR_UNKNOWN;
     }
 
     /* prepare payload of data */
-    msg.datasize = sizeof(DltServiceMessageBufferOverflowResponse);
+    msg.datasize = sizeof(MctServiceMessageBufferOverflowResponse);
 
     if (msg.databuffer && (msg.databuffersize < msg.datasize)) {
         free(msg.databuffer);
@@ -1326,13 +1322,13 @@ int mct_daemon_control_message_buffer_overflow(int sock,
     }
 
     if (msg.databuffer == 0) {
-        return DLT_DAEMON_ERROR_UNKNOWN;
+        return MCT_DAEMON_ERROR_UNKNOWN;
     }
 
-    resp = (DltServiceMessageBufferOverflowResponse *)msg.databuffer;
-    resp->service_id = DLT_SERVICE_ID_MESSAGE_BUFFER_OVERFLOW;
-    resp->status = DLT_SERVICE_RESPONSE_OK;
-    resp->overflow = DLT_MESSAGE_BUFFER_OVERFLOW;
+    resp = (MctServiceMessageBufferOverflowResponse *)msg.databuffer;
+    resp->service_id = MCT_SERVICE_ID_MESSAGE_BUFFER_OVERFLOW;
+    resp->status = MCT_SERVICE_RESPONSE_OK;
+    resp->overflow = MCT_MESSAGE_BUFFER_OVERFLOW;
     resp->overflow_counter = overflow_counter;
 
     /* send message */
@@ -1346,18 +1342,18 @@ int mct_daemon_control_message_buffer_overflow(int sock,
     /* free message */
     mct_message_free(&msg, 0);
 
-    return DLT_DAEMON_ERROR_OK;
+    return MCT_DAEMON_ERROR_OK;
 }
 
 void mct_daemon_control_service_response(int sock,
-                                         DltDaemon *daemon,
-                                         DltDaemonLocal *daemon_local,
+                                         MctDaemon *daemon,
+                                         MctDaemonLocal *daemon_local,
                                          uint32_t service_id,
                                          int8_t status,
                                          int verbose)
 {
-    DltMessage msg;
-    DltServiceResponse *resp;
+    MctMessage msg;
+    MctServiceResponse *resp;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -1366,12 +1362,12 @@ void mct_daemon_control_service_response(int sock,
     }
 
     /* initialise new message */
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
         return;
     }
 
     /* prepare payload of data */
-    msg.datasize = sizeof(DltServiceResponse);
+    msg.datasize = sizeof(MctServiceResponse);
 
     if (msg.databuffer && (msg.databuffersize < msg.datasize)) {
         free(msg.databuffer);
@@ -1387,7 +1383,7 @@ void mct_daemon_control_service_response(int sock,
         return;
     }
 
-    resp = (DltServiceResponse *)msg.databuffer;
+    resp = (MctServiceResponse *)msg.databuffer;
     resp->service_id = service_id;
     resp->status = status;
 
@@ -1399,15 +1395,15 @@ void mct_daemon_control_service_response(int sock,
 }
 
 int mct_daemon_control_message_unregister_context(int sock,
-                                                  DltDaemon *daemon,
-                                                  DltDaemonLocal *daemon_local,
+                                                  MctDaemon *daemon,
+                                                  MctDaemonLocal *daemon_local,
                                                   char *apid,
                                                   char *ctid,
                                                   char *comid,
                                                   int verbose)
 {
-    DltMessage msg;
-    DltServiceUnregisterContext *resp;
+    MctMessage msg;
+    MctServiceUnregisterContext *resp;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -1416,12 +1412,12 @@ int mct_daemon_control_message_unregister_context(int sock,
     }
 
     /* initialise new message */
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
         return -1;
     }
 
     /* prepare payload of data */
-    msg.datasize = sizeof(DltServiceUnregisterContext);
+    msg.datasize = sizeof(MctServiceUnregisterContext);
 
     if (msg.databuffer && (msg.databuffersize < msg.datasize)) {
         free(msg.databuffer);
@@ -1437,9 +1433,9 @@ int mct_daemon_control_message_unregister_context(int sock,
         return -1;
     }
 
-    resp = (DltServiceUnregisterContext *)msg.databuffer;
-    resp->service_id = DLT_SERVICE_ID_UNREGISTER_CONTEXT;
-    resp->status = DLT_SERVICE_RESPONSE_OK;
+    resp = (MctServiceUnregisterContext *)msg.databuffer;
+    resp->service_id = MCT_SERVICE_ID_UNREGISTER_CONTEXT;
+    resp->status = MCT_SERVICE_RESPONSE_OK;
     mct_set_id(resp->apid, apid);
     mct_set_id(resp->ctid, ctid);
     mct_set_id(resp->comid, comid);
@@ -1458,14 +1454,14 @@ int mct_daemon_control_message_unregister_context(int sock,
 }
 
 int mct_daemon_control_message_connection_info(int sock,
-                                               DltDaemon *daemon,
-                                               DltDaemonLocal *daemon_local,
+                                               MctDaemon *daemon,
+                                               MctDaemonLocal *daemon_local,
                                                uint8_t state,
                                                char *comid,
                                                int verbose)
 {
-    DltMessage msg;
-    DltServiceConnectionInfo *resp;
+    MctMessage msg;
+    MctServiceConnectionInfo *resp;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -1474,12 +1470,12 @@ int mct_daemon_control_message_connection_info(int sock,
     }
 
     /* initialise new message */
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
         return -1;
     }
 
     /* prepare payload of data */
-    msg.datasize = sizeof(DltServiceConnectionInfo);
+    msg.datasize = sizeof(MctServiceConnectionInfo);
 
     if (msg.databuffer && (msg.databuffersize < msg.datasize)) {
         free(msg.databuffer);
@@ -1495,9 +1491,9 @@ int mct_daemon_control_message_connection_info(int sock,
         return -1;
     }
 
-    resp = (DltServiceConnectionInfo *)msg.databuffer;
-    resp->service_id = DLT_SERVICE_ID_CONNECTION_INFO;
-    resp->status = DLT_SERVICE_RESPONSE_OK;
+    resp = (MctServiceConnectionInfo *)msg.databuffer;
+    resp->service_id = MCT_SERVICE_ID_CONNECTION_INFO;
+    resp->status = MCT_SERVICE_RESPONSE_OK;
     resp->state = state;
     mct_set_id(resp->comid, comid);
 
@@ -1515,12 +1511,12 @@ int mct_daemon_control_message_connection_info(int sock,
 }
 
 int mct_daemon_control_message_timezone(int sock,
-                                        DltDaemon *daemon,
-                                        DltDaemonLocal *daemon_local,
+                                        MctDaemon *daemon,
+                                        MctDaemonLocal *daemon_local,
                                         int verbose)
 {
-    DltMessage msg;
-    DltServiceTimezone *resp;
+    MctMessage msg;
+    MctServiceTimezone *resp;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -1529,12 +1525,12 @@ int mct_daemon_control_message_timezone(int sock,
     }
 
     /* initialise new message */
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
         return -1;
     }
 
     /* prepare payload of data */
-    msg.datasize = sizeof(DltServiceTimezone);
+    msg.datasize = sizeof(MctServiceTimezone);
 
     if (msg.databuffer && (msg.databuffersize < msg.datasize)) {
         free(msg.databuffer);
@@ -1550,9 +1546,9 @@ int mct_daemon_control_message_timezone(int sock,
         return -1;
     }
 
-    resp = (DltServiceTimezone *)msg.databuffer;
-    resp->service_id = DLT_SERVICE_ID_TIMEZONE;
-    resp->status = DLT_SERVICE_RESPONSE_OK;
+    resp = (MctServiceTimezone *)msg.databuffer;
+    resp->service_id = MCT_SERVICE_ID_TIMEZONE;
+    resp->status = MCT_SERVICE_RESPONSE_OK;
 
     time_t t = time(NULL);
     struct tm lt;
@@ -1577,12 +1573,12 @@ int mct_daemon_control_message_timezone(int sock,
 }
 
 int mct_daemon_control_message_marker(int sock,
-                                      DltDaemon *daemon,
-                                      DltDaemonLocal *daemon_local,
+                                      MctDaemon *daemon,
+                                      MctDaemonLocal *daemon_local,
                                       int verbose)
 {
-    DltMessage msg;
-    DltServiceMarker *resp;
+    MctMessage msg;
+    MctServiceMarker *resp;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -1591,12 +1587,12 @@ int mct_daemon_control_message_marker(int sock,
     }
 
     /* initialise new message */
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
         return -1;
     }
 
     /* prepare payload of data */
-    msg.datasize = sizeof(DltServiceMarker);
+    msg.datasize = sizeof(MctServiceMarker);
 
     if (msg.databuffer && (msg.databuffersize < msg.datasize)) {
         free(msg.databuffer);
@@ -1612,9 +1608,9 @@ int mct_daemon_control_message_marker(int sock,
         return -1;
     }
 
-    resp = (DltServiceMarker *)msg.databuffer;
-    resp->service_id = DLT_SERVICE_ID_MARKER;
-    resp->status = DLT_SERVICE_RESPONSE_OK;
+    resp = (MctServiceMarker *)msg.databuffer;
+    resp->service_id = MCT_SERVICE_ID_MARKER;
+    resp->status = MCT_SERVICE_RESPONSE_OK;
 
     /* send message */
     if (mct_daemon_client_send_control_message(sock, daemon, daemon_local, &msg, "", "",
@@ -1630,23 +1626,23 @@ int mct_daemon_control_message_marker(int sock,
 }
 
 void mct_daemon_control_callsw_cinjection(int sock,
-                                          DltDaemon *daemon,
-                                          DltDaemonLocal *daemon_local,
-                                          DltMessage *msg,
+                                          MctDaemon *daemon,
+                                          MctDaemonLocal *daemon_local,
+                                          MctMessage *msg,
                                           int verbose)
 {
-    char apid[DLT_ID_SIZE], ctid[DLT_ID_SIZE];
+    char apid[MCT_ID_SIZE], ctid[MCT_ID_SIZE];
     uint32_t id = 0, id_tmp = 0;
     uint8_t *ptr;
-    DltDaemonContext *context;
+    MctDaemonContext *context;
     int32_t data_length_inject = 0;
     uint32_t data_length_inject_tmp = 0;
 
     int32_t datalength;
 
-    DltUserHeader userheader;
-    DltStandardHeaderExtra extra;
-    DltUserControlMsgInjection usercontext;
+    MctUserHeader userheader;
+    MctStandardHeaderExtra extra;
+    MctUserControlMsgInjection usercontext;
     uint8_t *userbuffer;
 
     PRINT_FUNCTION_VERBOSE(verbose);
@@ -1658,8 +1654,8 @@ void mct_daemon_control_callsw_cinjection(int sock,
     datalength = msg->datasize;
     ptr = msg->databuffer;
 
-    DLT_MSG_READ_VALUE(id_tmp, ptr, datalength, uint32_t); /* Get service id */
-    id = DLT_ENDIAN_GET_32(msg->standardheader->htyp, id_tmp);
+    MCT_MSG_READ_VALUE(id_tmp, ptr, datalength, uint32_t); /* Get service id */
+    id = MCT_ENDIAN_GET_32(msg->standardheader->htyp, id_tmp);
 
     /* injectionMode is disabled */
     if (daemon_local->flags.injectionMode == 0) {
@@ -1667,23 +1663,23 @@ void mct_daemon_control_callsw_cinjection(int sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_PERM_DENIED,
+                                            MCT_SERVICE_RESPONSE_PERM_DENIED,
                                             verbose);
         return;
     }
 
-    /* id is always less than DLT_DAEMON_INJECTION_MAX since its type is uinit32_t */
-    if (id >= DLT_DAEMON_INJECTION_MIN) {
+    /* id is always less than MCT_DAEMON_INJECTION_MAX since its type is uinit32_t */
+    if (id >= MCT_DAEMON_INJECTION_MIN) {
         /* This a a real SW-C injection call */
         data_length_inject = 0;
         data_length_inject_tmp = 0;
 
-        DLT_MSG_READ_VALUE(data_length_inject_tmp, ptr, datalength, uint32_t); /* Get data length */
-        data_length_inject = DLT_ENDIAN_GET_32(msg->standardheader->htyp, data_length_inject_tmp);
+        MCT_MSG_READ_VALUE(data_length_inject_tmp, ptr, datalength, uint32_t); /* Get data length */
+        data_length_inject = MCT_ENDIAN_GET_32(msg->standardheader->htyp, data_length_inject_tmp);
 
         /* Get context handle for apid, ctid (and seid) */
         /* Warning: seid is ignored in this implementation! */
-        if (DLT_IS_HTYP_UEH(msg->standardheader->htyp)) {
+        if (MCT_IS_HTYP_UEH(msg->standardheader->htyp)) {
             mct_set_id(apid, msg->extendedheader->apid);
             mct_set_id(ctid, msg->extendedheader->ctid);
         } else {
@@ -1692,7 +1688,7 @@ void mct_daemon_control_callsw_cinjection(int sock,
                                                 daemon,
                                                 daemon_local,
                                                 id,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
             return;
         }
@@ -1710,7 +1706,7 @@ void mct_daemon_control_callsw_cinjection(int sock,
                                                 daemon,
                                                 daemon_local,
                                                 id,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
             return;
         }
@@ -1730,17 +1726,17 @@ void mct_daemon_control_callsw_cinjection(int sock,
             mct_log(LOG_WARNING, "Not allowed injection message received!\n");
             /* send a permission denied response when not allowed */
             mct_daemon_control_service_response(sock, daemon, daemon_local, id,
-                                                DLT_SERVICE_RESPONSE_PERM_DENIED, verbose);
+                                                MCT_SERVICE_RESPONSE_PERM_DENIED, verbose);
             return;
         }
 
         /* Send user message to handle, specified in context */
-        if (mct_user_set_userheader(&userheader, DLT_USER_MESSAGE_INJECTION) < DLT_RETURN_OK) {
+        if (mct_user_set_userheader(&userheader, MCT_USER_MESSAGE_INJECTION) < MCT_RETURN_OK) {
             mct_daemon_control_service_response(sock,
                                                 daemon,
                                                 daemon_local,
                                                 id,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
             return;
         }
@@ -1752,7 +1748,7 @@ void mct_daemon_control_callsw_cinjection(int sock,
                                                 daemon,
                                                 daemon_local,
                                                 id,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
             return;
         }
@@ -1764,7 +1760,7 @@ void mct_daemon_control_callsw_cinjection(int sock,
                                                 daemon,
                                                 daemon_local,
                                                 id,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
             return;
         }
@@ -1775,30 +1771,30 @@ void mct_daemon_control_callsw_cinjection(int sock,
         memcpy(userbuffer, ptr, data_length_inject);  /* Copy received injection to send buffer */
 
         /* write to FIFO */
-        DltReturnValue ret =
-            mct_user_log_out3(context->user_handle, &(userheader), sizeof(DltUserHeader),
-                              &(usercontext), sizeof(DltUserControlMsgInjection),
+        MctReturnValue ret =
+            mct_user_log_out3(context->user_handle, &(userheader), sizeof(MctUserHeader),
+                              &(usercontext), sizeof(MctUserControlMsgInjection),
                               userbuffer, data_length_inject);
 
-        if (ret < DLT_RETURN_OK) {
-            if (ret == DLT_RETURN_PIPE_ERROR) {
+        if (ret < MCT_RETURN_OK) {
+            if (ret == MCT_RETURN_PIPE_ERROR) {
                 /* Close connection */
                 close(context->user_handle);
-                context->user_handle = DLT_FD_INIT;
+                context->user_handle = MCT_FD_INIT;
             }
 
             mct_daemon_control_service_response(sock,
                                                 daemon,
                                                 daemon_local,
                                                 id,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
         } else {
             mct_daemon_control_service_response(sock,
                                                 daemon,
                                                 daemon_local,
                                                 id,
-                                                DLT_SERVICE_RESPONSE_OK,
+                                                MCT_SERVICE_RESPONSE_OK,
                                                 verbose);
         }
 
@@ -1810,33 +1806,33 @@ void mct_daemon_control_callsw_cinjection(int sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_NOT_SUPPORTED,
+                                            MCT_SERVICE_RESPONSE_NOT_SUPPORTED,
                                             verbose);
     }
 }
 
 void mct_daemon_send_log_level(int sock,
-                               DltDaemon *daemon,
-                               DltDaemonLocal *daemon_local,
-                               DltDaemonContext *context,
+                               MctDaemon *daemon,
+                               MctDaemonLocal *daemon_local,
+                               MctDaemonContext *context,
                                int8_t loglevel,
                                int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
-    int32_t id = DLT_SERVICE_ID_SET_LOG_LEVEL;
+    int32_t id = MCT_SERVICE_ID_SET_LOG_LEVEL;
     int8_t old_log_level = 0;
 
     old_log_level = context->log_level;
     context->log_level = loglevel; /* No endianess conversion necessary*/
 
-    if ((context->user_handle >= DLT_FD_MINIMUM) &&
+    if ((context->user_handle >= MCT_FD_MINIMUM) &&
         (mct_daemon_user_send_log_level(daemon, context, verbose) == 0)) {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_OK,
+                                            MCT_SERVICE_RESPONSE_OK,
                                             verbose);
     } else {
         mct_log(LOG_ERR, "Log level could not be sent!\n");
@@ -1845,14 +1841,14 @@ void mct_daemon_send_log_level(int sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
     }
 }
 
 void mct_daemon_find_multiple_context_and_send_log_level(int sock,
-                                                         DltDaemon *daemon,
-                                                         DltDaemonLocal *daemon_local,
+                                                         MctDaemon *daemon,
+                                                         MctDaemonLocal *daemon_local,
                                                          int8_t app_flag,
                                                          char *str,
                                                          int8_t len,
@@ -1862,10 +1858,10 @@ void mct_daemon_find_multiple_context_and_send_log_level(int sock,
     PRINT_FUNCTION_VERBOSE(verbose);
 
     int count = 0;
-    DltDaemonContext *context = NULL;
-    char src_str[DLT_ID_SIZE + 1] = {0};
+    MctDaemonContext *context = NULL;
+    char src_str[MCT_ID_SIZE + 1] = {0};
     int ret = 0;
-    DltDaemonRegisteredUsers *user_list = NULL;
+    MctDaemonRegisteredUsers *user_list = NULL;
 
     if (daemon == 0) {
         mct_vlog(LOG_ERR, "%s: Invalid parameters\n", __func__);
@@ -1883,9 +1879,9 @@ void mct_daemon_find_multiple_context_and_send_log_level(int sock,
 
         if (context) {
             if (app_flag == 1) {
-                strncpy(src_str, context->apid, DLT_ID_SIZE);
+                strncpy(src_str, context->apid, MCT_ID_SIZE);
             } else {
-                strncpy(src_str, context->ctid, DLT_ID_SIZE);
+                strncpy(src_str, context->ctid, MCT_ID_SIZE);
             }
 
             ret = strncmp(src_str, str, len);
@@ -1902,17 +1898,17 @@ void mct_daemon_find_multiple_context_and_send_log_level(int sock,
 }
 
 void mct_daemon_control_set_log_level(int sock,
-                                      DltDaemon *daemon,
-                                      DltDaemonLocal *daemon_local,
-                                      DltMessage *msg,
+                                      MctDaemon *daemon,
+                                      MctDaemonLocal *daemon_local,
+                                      MctMessage *msg,
                                       int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
-    char apid[DLT_ID_SIZE + 1] = {0};
-    char ctid[DLT_ID_SIZE + 1] = {0};
-    DltServiceSetLogLevel *req = NULL;
-    DltDaemonContext *context = NULL;
+    char apid[MCT_ID_SIZE + 1] = {0};
+    char ctid[MCT_ID_SIZE + 1] = {0};
+    MctServiceSetLogLevel *req = NULL;
+    MctDaemonContext *context = NULL;
     int8_t apid_length = 0;
     int8_t ctid_length = 0;
 
@@ -1920,11 +1916,11 @@ void mct_daemon_control_set_log_level(int sock,
         return;
     }
 
-    if (mct_check_rcv_data_size(msg->datasize, sizeof(DltServiceSetLogLevel)) < 0) {
+    if (mct_check_rcv_data_size(msg->datasize, sizeof(MctServiceSetLogLevel)) < 0) {
         return;
     }
 
-    req = (DltServiceSetLogLevel *)(msg->databuffer);
+    req = (MctServiceSetLogLevel *)(msg->databuffer);
 
     if (daemon_local->flags.enforceContextLLAndTS) {
         req->log_level = getStatus(req->log_level, daemon_local->flags.contextLogLevel);
@@ -1959,7 +1955,7 @@ void mct_daemon_control_set_log_level(int sock,
                                                             daemon_local,
                                                             1,
                                                             apid,
-                                                            DLT_ID_SIZE,
+                                                            MCT_ID_SIZE,
                                                             req->log_level,
                                                             verbose);
     } else if ((ctid_length != 0) && (ctid[ctid_length - 1] != '*') && (apid[0] == 0)) { /*only context id case*/
@@ -1968,7 +1964,7 @@ void mct_daemon_control_set_log_level(int sock,
                                                             daemon_local,
                                                             0,
                                                             ctid,
-                                                            DLT_ID_SIZE,
+                                                            MCT_ID_SIZE,
                                                             req->log_level,
                                                             verbose);
     } else {
@@ -1990,8 +1986,8 @@ void mct_daemon_control_set_log_level(int sock,
             mct_daemon_control_service_response(sock,
                                                 daemon,
                                                 daemon_local,
-                                                DLT_SERVICE_ID_SET_LOG_LEVEL,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_ID_SET_LOG_LEVEL,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
         }
     }
@@ -1999,27 +1995,27 @@ void mct_daemon_control_set_log_level(int sock,
 
 
 void mct_daemon_send_trace_status(int sock,
-                                  DltDaemon *daemon,
-                                  DltDaemonLocal *daemon_local,
-                                  DltDaemonContext *context,
+                                  MctDaemon *daemon,
+                                  MctDaemonLocal *daemon_local,
+                                  MctDaemonContext *context,
                                   int8_t tracestatus,
                                   int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
-    int32_t id = DLT_SERVICE_ID_SET_TRACE_STATUS;
+    int32_t id = MCT_SERVICE_ID_SET_TRACE_STATUS;
     int8_t old_trace_status = 0;
 
     old_trace_status = context->trace_status;
     context->trace_status = tracestatus; /* No endianess conversion necessary*/
 
-    if ((context->user_handle >= DLT_FD_MINIMUM) &&
+    if ((context->user_handle >= MCT_FD_MINIMUM) &&
         (mct_daemon_user_send_log_level(daemon, context, verbose) == 0)) {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_OK,
+                                            MCT_SERVICE_RESPONSE_OK,
                                             verbose);
     } else {
         mct_log(LOG_ERR, "Trace status could not be sent!\n");
@@ -2028,14 +2024,14 @@ void mct_daemon_send_trace_status(int sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
     }
 }
 
 void mct_daemon_find_multiple_context_and_send_trace_status(int sock,
-                                                            DltDaemon *daemon,
-                                                            DltDaemonLocal *daemon_local,
+                                                            MctDaemon *daemon,
+                                                            MctDaemonLocal *daemon_local,
                                                             int8_t app_flag,
                                                             char *str,
                                                             int8_t len,
@@ -2045,10 +2041,10 @@ void mct_daemon_find_multiple_context_and_send_trace_status(int sock,
     PRINT_FUNCTION_VERBOSE(verbose);
 
     int count = 0;
-    DltDaemonContext *context = NULL;
-    char src_str[DLT_ID_SIZE + 1] = {0};
+    MctDaemonContext *context = NULL;
+    char src_str[MCT_ID_SIZE + 1] = {0};
     int ret = 0;
-    DltDaemonRegisteredUsers *user_list = NULL;
+    MctDaemonRegisteredUsers *user_list = NULL;
 
     if (daemon == 0) {
         mct_vlog(LOG_ERR, "%s: Invalid parameters\n", __func__);
@@ -2066,9 +2062,9 @@ void mct_daemon_find_multiple_context_and_send_trace_status(int sock,
 
         if (context) {
             if (app_flag == 1) {
-                strncpy(src_str, context->apid, DLT_ID_SIZE);
+                strncpy(src_str, context->apid, MCT_ID_SIZE);
             } else {
-                strncpy(src_str, context->ctid, DLT_ID_SIZE);
+                strncpy(src_str, context->ctid, MCT_ID_SIZE);
             }
 
             ret = strncmp(src_str, str, len);
@@ -2090,17 +2086,17 @@ void mct_daemon_find_multiple_context_and_send_trace_status(int sock,
 }
 
 void mct_daemon_control_set_trace_status(int sock,
-                                         DltDaemon *daemon,
-                                         DltDaemonLocal *daemon_local,
-                                         DltMessage *msg,
+                                         MctDaemon *daemon,
+                                         MctDaemonLocal *daemon_local,
+                                         MctMessage *msg,
                                          int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
-    char apid[DLT_ID_SIZE + 1] = {0};
-    char ctid[DLT_ID_SIZE + 1] = {0};
-    DltServiceSetLogLevel *req = NULL;
-    DltDaemonContext *context = NULL;
+    char apid[MCT_ID_SIZE + 1] = {0};
+    char ctid[MCT_ID_SIZE + 1] = {0};
+    MctServiceSetLogLevel *req = NULL;
+    MctDaemonContext *context = NULL;
     int8_t apid_length = 0;
     int8_t ctid_length = 0;
 
@@ -2108,11 +2104,11 @@ void mct_daemon_control_set_trace_status(int sock,
         return;
     }
 
-    if (mct_check_rcv_data_size(msg->datasize, sizeof(DltServiceSetLogLevel)) < 0) {
+    if (mct_check_rcv_data_size(msg->datasize, sizeof(MctServiceSetLogLevel)) < 0) {
         return;
     }
 
-    req = (DltServiceSetLogLevel *)(msg->databuffer);
+    req = (MctServiceSetLogLevel *)(msg->databuffer);
 
     if (daemon_local->flags.enforceContextLLAndTS) {
         req->log_level = getStatus(req->log_level, daemon_local->flags.contextTraceStatus);
@@ -2147,7 +2143,7 @@ void mct_daemon_control_set_trace_status(int sock,
                                                                daemon_local,
                                                                1,
                                                                apid,
-                                                               DLT_ID_SIZE,
+                                                               MCT_ID_SIZE,
                                                                req->log_level,
                                                                verbose);
     } else if ((ctid_length != 0) && (ctid[ctid_length - 1] != '*') && (apid[0] == 0)) { /*only context id case*/
@@ -2156,7 +2152,7 @@ void mct_daemon_control_set_trace_status(int sock,
                                                                daemon_local,
                                                                0,
                                                                ctid,
-                                                               DLT_ID_SIZE,
+                                                               MCT_ID_SIZE,
                                                                req->log_level,
                                                                verbose);
     } else {
@@ -2179,36 +2175,36 @@ void mct_daemon_control_set_trace_status(int sock,
             mct_daemon_control_service_response(sock,
                                                 daemon,
                                                 daemon_local,
-                                                DLT_SERVICE_ID_SET_LOG_LEVEL,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_ID_SET_LOG_LEVEL,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
         }
     }
 }
 
 void mct_daemon_control_set_default_log_level(int sock,
-                                              DltDaemon *daemon,
-                                              DltDaemonLocal *daemon_local,
-                                              DltMessage *msg,
+                                              MctDaemon *daemon,
+                                              MctDaemonLocal *daemon_local,
+                                              MctMessage *msg,
                                               int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
-    DltServiceSetDefaultLogLevel *req;
-    int32_t id = DLT_SERVICE_ID_SET_DEFAULT_LOG_LEVEL;
+    MctServiceSetDefaultLogLevel *req;
+    int32_t id = MCT_SERVICE_ID_SET_DEFAULT_LOG_LEVEL;
 
     if ((daemon == NULL) || (msg == NULL) || (msg->databuffer == NULL)) {
         return;
     }
 
-    if (mct_check_rcv_data_size(msg->datasize, sizeof(DltServiceSetDefaultLogLevel)) < 0) {
+    if (mct_check_rcv_data_size(msg->datasize, sizeof(MctServiceSetDefaultLogLevel)) < 0) {
         return;
     }
 
-    req = (DltServiceSetDefaultLogLevel *)(msg->databuffer);
+    req = (MctServiceSetDefaultLogLevel *)(msg->databuffer);
 
     /* No endianess conversion necessary */
-    if ((req->log_level <= DLT_LOG_VERBOSE)) {
+    if ((req->log_level <= MCT_LOG_VERBOSE)) {
         if (daemon_local->flags.enforceContextLLAndTS) {
             daemon->default_log_level = getStatus(req->log_level,
                                                   daemon_local->flags.contextLogLevel);
@@ -2223,28 +2219,28 @@ void mct_daemon_control_set_default_log_level(int sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_OK,
+                                            MCT_SERVICE_RESPONSE_OK,
                                             verbose);
     } else {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
     }
 }
 
 void mct_daemon_control_set_all_log_level(int sock,
-                                          DltDaemon *daemon,
-                                          DltDaemonLocal *daemon_local,
-                                          DltMessage *msg,
+                                          MctDaemon *daemon,
+                                          MctDaemonLocal *daemon_local,
+                                          MctMessage *msg,
                                           int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
-    DltServiceSetDefaultLogLevel *req = NULL;
-    int32_t id = DLT_SERVICE_ID_SET_ALL_LOG_LEVEL;
+    MctServiceSetDefaultLogLevel *req = NULL;
+    int32_t id = MCT_SERVICE_ID_SET_ALL_LOG_LEVEL;
     int8_t loglevel = 0;
 
     if ((daemon == NULL) || (msg == NULL) || (msg->databuffer == NULL)) {
@@ -2252,15 +2248,15 @@ void mct_daemon_control_set_all_log_level(int sock,
         return;
     }
 
-    if (mct_check_rcv_data_size(msg->datasize, sizeof(DltServiceSetDefaultLogLevel)) < 0) {
+    if (mct_check_rcv_data_size(msg->datasize, sizeof(MctServiceSetDefaultLogLevel)) < 0) {
         return;
     }
 
-    req = (DltServiceSetDefaultLogLevel *)(msg->databuffer);
+    req = (MctServiceSetDefaultLogLevel *)(msg->databuffer);
 
     /* No endianess conversion necessary */
     if ((req != NULL) &&
-        ((req->log_level <= DLT_LOG_VERBOSE) || (req->log_level == (uint8_t)DLT_LOG_DEFAULT))) {
+        ((req->log_level <= MCT_LOG_VERBOSE) || (req->log_level == (uint8_t)MCT_LOG_DEFAULT))) {
         if (daemon_local->flags.enforceContextLLAndTS) {
             loglevel = getStatus(req->log_level, daemon_local->flags.contextLogLevel);
         } else {
@@ -2274,43 +2270,43 @@ void mct_daemon_control_set_all_log_level(int sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_OK,
+                                            MCT_SERVICE_RESPONSE_OK,
                                             verbose);
     } else {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
     }
 }
 
 void mct_daemon_control_set_default_trace_status(int sock,
-                                                 DltDaemon *daemon,
-                                                 DltDaemonLocal *daemon_local,
-                                                 DltMessage *msg,
+                                                 MctDaemon *daemon,
+                                                 MctDaemonLocal *daemon_local,
+                                                 MctMessage *msg,
                                                  int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
     /* Payload of request message */
-    DltServiceSetDefaultLogLevel *req;
-    int32_t id = DLT_SERVICE_ID_SET_DEFAULT_TRACE_STATUS;
+    MctServiceSetDefaultLogLevel *req;
+    int32_t id = MCT_SERVICE_ID_SET_DEFAULT_TRACE_STATUS;
 
     if ((daemon == NULL) || (msg == NULL) || (msg->databuffer == NULL)) {
         return;
     }
 
-    if (mct_check_rcv_data_size(msg->datasize, sizeof(DltServiceSetDefaultLogLevel)) < 0) {
+    if (mct_check_rcv_data_size(msg->datasize, sizeof(MctServiceSetDefaultLogLevel)) < 0) {
         return;
     }
 
-    req = (DltServiceSetDefaultLogLevel *)(msg->databuffer);
+    req = (MctServiceSetDefaultLogLevel *)(msg->databuffer);
 
     /* No endianess conversion necessary */
-    if ((req->log_level == DLT_TRACE_STATUS_OFF) ||
-        (req->log_level == DLT_TRACE_STATUS_ON)) {
+    if ((req->log_level == MCT_TRACE_STATUS_OFF) ||
+        (req->log_level == MCT_TRACE_STATUS_ON)) {
         if (daemon_local->flags.enforceContextLLAndTS) {
             daemon->default_trace_status = getStatus(req->log_level,
                                                      daemon_local->flags.contextTraceStatus);
@@ -2325,28 +2321,28 @@ void mct_daemon_control_set_default_trace_status(int sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_OK,
+                                            MCT_SERVICE_RESPONSE_OK,
                                             verbose);
     } else {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
     }
 }
 
 void mct_daemon_control_set_all_trace_status(int sock,
-                                             DltDaemon *daemon,
-                                             DltDaemonLocal *daemon_local,
-                                             DltMessage *msg,
+                                             MctDaemon *daemon,
+                                             MctDaemonLocal *daemon_local,
+                                             MctMessage *msg,
                                              int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
-    DltServiceSetDefaultLogLevel *req = NULL;
-    int32_t id = DLT_SERVICE_ID_SET_ALL_TRACE_STATUS;
+    MctServiceSetDefaultLogLevel *req = NULL;
+    int32_t id = MCT_SERVICE_ID_SET_ALL_TRACE_STATUS;
     int8_t tracestatus = 0;
 
     if ((daemon == NULL) || (msg == NULL) || (msg->databuffer == NULL)) {
@@ -2354,16 +2350,16 @@ void mct_daemon_control_set_all_trace_status(int sock,
         return;
     }
 
-    if (mct_check_rcv_data_size(msg->datasize, sizeof(DltServiceSetDefaultLogLevel)) < 0) {
+    if (mct_check_rcv_data_size(msg->datasize, sizeof(MctServiceSetDefaultLogLevel)) < 0) {
         return;
     }
 
-    req = (DltServiceSetDefaultLogLevel *)(msg->databuffer);
+    req = (MctServiceSetDefaultLogLevel *)(msg->databuffer);
 
     /* No endianess conversion necessary */
     if ((req != NULL) &&
-        ((req->log_level <= DLT_TRACE_STATUS_ON) ||
-         (req->log_level == (uint8_t)DLT_TRACE_STATUS_DEFAULT))) {
+        ((req->log_level <= MCT_TRACE_STATUS_ON) ||
+         (req->log_level == (uint8_t)MCT_TRACE_STATUS_DEFAULT))) {
         if (daemon_local->flags.enforceContextLLAndTS) {
             tracestatus = getStatus(req->log_level, daemon_local->flags.contextTraceStatus);
         } else {
@@ -2377,38 +2373,38 @@ void mct_daemon_control_set_all_trace_status(int sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_OK,
+                                            MCT_SERVICE_RESPONSE_OK,
                                             verbose);
     } else {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
     }
 }
 
 void mct_daemon_control_set_timing_packets(int sock,
-                                           DltDaemon *daemon,
-                                           DltDaemonLocal *daemon_local,
-                                           DltMessage *msg,
+                                           MctDaemon *daemon,
+                                           MctDaemonLocal *daemon_local,
+                                           MctMessage *msg,
                                            int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
-    DltServiceSetVerboseMode *req;  /* request uses same struct as set verbose mode */
-    int32_t id = DLT_SERVICE_ID_SET_TIMING_PACKETS;
+    MctServiceSetVerboseMode *req;  /* request uses same struct as set verbose mode */
+    int32_t id = MCT_SERVICE_ID_SET_TIMING_PACKETS;
 
     if ((daemon == NULL) || (msg == NULL) || (msg->databuffer == NULL)) {
         return;
     }
 
-    if (mct_check_rcv_data_size(msg->datasize, sizeof(DltServiceSetVerboseMode)) < 0) {
+    if (mct_check_rcv_data_size(msg->datasize, sizeof(MctServiceSetVerboseMode)) < 0) {
         return;
     }
 
-    req = (DltServiceSetVerboseMode *)(msg->databuffer);
+    req = (MctServiceSetVerboseMode *)(msg->databuffer);
 
     if ((req->new_status == 0) || (req->new_status == 1)) {
         daemon->timingpackets = req->new_status;
@@ -2417,24 +2413,24 @@ void mct_daemon_control_set_timing_packets(int sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_OK,
+                                            MCT_SERVICE_RESPONSE_OK,
                                             verbose);
     } else {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
                                             id,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
     }
 }
 
 void mct_daemon_control_message_time(int sock,
-                                     DltDaemon *daemon,
-                                     DltDaemonLocal *daemon_local,
+                                     MctDaemon *daemon,
+                                     MctDaemonLocal *daemon_local,
                                      int verbose)
 {
-    DltMessage msg;
+    MctMessage msg;
     int32_t len;
 
     PRINT_FUNCTION_VERBOSE(verbose);
@@ -2444,23 +2440,23 @@ void mct_daemon_control_message_time(int sock,
     }
 
     /* initialise new message */
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
         return;
     }
 
     /* send message */
 
     /* prepare storage header */
-    msg.storageheader = (DltStorageHeader *)msg.headerbuffer;
+    msg.storageheader = (MctStorageHeader *)msg.headerbuffer;
     mct_set_storageheader(msg.storageheader, daemon->ecuid);
 
     /* prepare standard header */
-    msg.standardheader = (DltStandardHeader *)(msg.headerbuffer + sizeof(DltStorageHeader));
-    msg.standardheader->htyp = DLT_HTYP_WEID | DLT_HTYP_WTMS | DLT_HTYP_UEH |
-        DLT_HTYP_PROTOCOL_VERSION1;
+    msg.standardheader = (MctStandardHeader *)(msg.headerbuffer + sizeof(MctStorageHeader));
+    msg.standardheader->htyp = MCT_HTYP_WEID | MCT_HTYP_WTMS | MCT_HTYP_UEH |
+        MCT_HTYP_PROTOCOL_VERSION1;
 
 #if (BYTE_ORDER == BIG_ENDIAN)
-    msg.standardheader->htyp = (msg.standardheader->htyp | DLT_HTYP_MSBF);
+    msg.standardheader->htyp = (msg.standardheader->htyp | MCT_HTYP_MSBF);
 #endif
 
     msg.standardheader->mcnt = 0;
@@ -2473,21 +2469,21 @@ void mct_daemon_control_message_time(int sock,
 
     /* prepare extended header */
     msg.extendedheader =
-        (DltExtendedHeader *)(msg.headerbuffer + sizeof(DltStorageHeader) +
-                              sizeof(DltStandardHeader) +
-                              DLT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->htyp));
-    msg.extendedheader->msin = DLT_MSIN_CONTROL_TIME;
+        (MctExtendedHeader *)(msg.headerbuffer + sizeof(MctStorageHeader) +
+                              sizeof(MctStandardHeader) +
+                              MCT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->htyp));
+    msg.extendedheader->msin = MCT_MSIN_CONTROL_TIME;
 
     msg.extendedheader->noar = 0;                  /* number of arguments */
     mct_set_id(msg.extendedheader->apid, "");      /* application id */
     mct_set_id(msg.extendedheader->ctid, "");      /* context id */
 
     /* prepare length information */
-    msg.headersize = sizeof(DltStorageHeader) + sizeof(DltStandardHeader) +
-        sizeof(DltExtendedHeader) +
-        DLT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->htyp);
+    msg.headersize = sizeof(MctStorageHeader) + sizeof(MctStandardHeader) +
+        sizeof(MctExtendedHeader) +
+        MCT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->htyp);
 
-    len = msg.headersize - sizeof(DltStorageHeader) + msg.datasize;
+    len = msg.headersize - sizeof(MctStorageHeader) + msg.datasize;
 
     if (len > UINT16_MAX) {
         mct_log(LOG_WARNING, "Huge control message discarded!\n");
@@ -2498,27 +2494,27 @@ void mct_daemon_control_message_time(int sock,
         return;
     }
 
-    msg.standardheader->len = DLT_HTOBE_16(((uint16_t)len));
+    msg.standardheader->len = MCT_HTOBE_16(((uint16_t)len));
 
     /* Send message, ignore return value */
     mct_daemon_client_send(sock, daemon, daemon_local, msg.headerbuffer,
-                           sizeof(DltStorageHeader),
-                           msg.headerbuffer + sizeof(DltStorageHeader),
-                           msg.headersize - sizeof(DltStorageHeader),
+                           sizeof(MctStorageHeader),
+                           msg.headerbuffer + sizeof(MctStorageHeader),
+                           msg.headersize - sizeof(MctStorageHeader),
                            msg.databuffer, msg.datasize, verbose);
 
     /* free message */
     mct_message_free(&msg, 0);
 }
 
-void mct_daemon_control_set_filter_level(int sock, DltDaemon *daemon,
-                                         DltDaemonLocal *daemon_local,
-                                         DltMessage *msg, int verbose)
+void mct_daemon_control_set_filter_level(int sock, MctDaemon *daemon,
+                                         MctDaemonLocal *daemon_local,
+                                         MctMessage *msg, int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
-    DltServiceSetFilterLevel *req;
-    uint32_t id = DLT_SERVICE_ID_SET_FILTER_LEVEL;
+    MctServiceSetFilterLevel *req;
+    uint32_t id = MCT_SERVICE_ID_SET_FILTER_LEVEL;
     int new_level = 0;
 
     if ((daemon == NULL) || (daemon_local == NULL) || (msg == NULL) ||
@@ -2526,27 +2522,27 @@ void mct_daemon_control_set_filter_level(int sock, DltDaemon *daemon,
         return;
     }
 
-    req = (DltServiceSetFilterLevel *)msg->databuffer;
+    req = (MctServiceSetFilterLevel *)msg->databuffer;
     new_level = req->level;
 
     if (mct_daemon_filter_change_filter_level(daemon_local, new_level,
                                               verbose) < 0) {
         mct_daemon_control_service_response(sock, daemon, daemon_local, id,
-                                            DLT_SERVICE_RESPONSE_ERROR, verbose);
+                                            MCT_SERVICE_RESPONSE_ERROR, verbose);
     } else {
         mct_daemon_control_service_response(sock, daemon, daemon_local, id,
-                                            DLT_SERVICE_RESPONSE_OK, verbose);
+                                            MCT_SERVICE_RESPONSE_OK, verbose);
     }
 }
 
-void mct_daemon_control_get_filter_status(int sock, DltDaemon *daemon,
-                                          DltDaemonLocal *daemon_local,
+void mct_daemon_control_get_filter_status(int sock, MctDaemon *daemon,
+                                          MctDaemonLocal *daemon_local,
                                           int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
-    DltMessage msg = {0};
-    DltServiceGetCurrentFilterInfo *resp;
+    MctMessage msg = {0};
+    MctServiceGetCurrentFilterInfo *resp;
     int num_injections = 0;
     char **injections = NULL;
 
@@ -2562,7 +2558,7 @@ void mct_daemon_control_get_filter_status(int sock, DltDaemon *daemon,
     injections = daemon_local->pFilter.current->injections;
 
     /* prepare payload of data */
-    msg.datasize = sizeof(DltServiceGetCurrentFilterInfo);
+    msg.datasize = sizeof(MctServiceGetCurrentFilterInfo);
 
     msg.databuffer = (uint8_t *)calloc(msg.datasize, sizeof(uint8_t));
 
@@ -2573,9 +2569,9 @@ void mct_daemon_control_get_filter_status(int sock, DltDaemon *daemon,
 
     msg.databuffersize = msg.datasize;
 
-    resp = (DltServiceGetCurrentFilterInfo *)msg.databuffer;
-    resp->service_id = DLT_SERVICE_ID_GET_FILTER_STATUS;
-    resp->status = DLT_SERVICE_RESPONSE_OK;
+    resp = (MctServiceGetCurrentFilterInfo *)msg.databuffer;
+    resp->service_id = MCT_SERVICE_ID_GET_FILTER_STATUS;
+    resp->status = MCT_SERVICE_RESPONSE_OK;
     strncpy(resp->name, daemon_local->pFilter.current->name, sizeof(resp->name));
     resp->level_min = daemon_local->pFilter.current->level_min;
     resp->level_max = daemon_local->pFilter.current->level_max;
@@ -2590,12 +2586,12 @@ void mct_daemon_control_get_filter_status(int sock, DltDaemon *daemon,
     /* create a list of injection names for the filter config */
     if (num_injections == -1) {
         memcpy(resp->injections,
-               DLT_FILTER_CLIENT_ALL,
-               strlen(DLT_FILTER_CLIENT_ALL));
+               MCT_FILTER_CLIENT_ALL,
+               strlen(MCT_FILTER_CLIENT_ALL));
     } else if (num_injections == 0) {
         memcpy(resp->injections,
-               DLT_FILTER_CLIENT_NONE,
-               strlen(DLT_FILTER_CLIENT_NONE));
+               MCT_FILTER_CLIENT_NONE,
+               strlen(MCT_FILTER_CLIENT_NONE));
     } else {
         char *p = resp->injections;
         int i = 0;
@@ -2604,7 +2600,7 @@ void mct_daemon_control_get_filter_status(int sock, DltDaemon *daemon,
         for (i = 0; i < num_injections; i++) {
             int len = strlen(injections[i]);
 
-            if ((string_len + len + 1) < DLT_CONFIG_FILE_ENTRY_MAX_LEN) {
+            if ((string_len + len + 1) < MCT_CONFIG_FILE_ENTRY_MAX_LEN) {
                 memcpy(p, injections[i], len);
                 p += len;
 
@@ -2628,9 +2624,9 @@ void mct_daemon_control_get_filter_status(int sock, DltDaemon *daemon,
     mct_message_free(&msg, verbose);
 }
 
-int mct_daemon_process_one_s_timer(DltDaemon *daemon,
-                                   DltDaemonLocal *daemon_local,
-                                   DltReceiver *receiver,
+int mct_daemon_process_one_s_timer(MctDaemon *daemon,
+                                   MctDaemonLocal *daemon_local,
+                                   MctReceiver *receiver,
                                    int verbose)
 {
     uint64_t expir = 0;
@@ -2652,8 +2648,8 @@ int mct_daemon_process_one_s_timer(DltDaemon *daemon,
          * let's go on sending notification */
     }
 
-    if ((daemon->state == DLT_DAEMON_STATE_SEND_BUFFER) ||
-        (daemon->state == DLT_DAEMON_STATE_BUFFER_FULL)) {
+    if ((daemon->state == MCT_DAEMON_STATE_SEND_BUFFER) ||
+        (daemon->state == MCT_DAEMON_STATE_BUFFER_FULL)) {
         if (mct_daemon_send_ringbuffer_to_client(daemon,
                                                  daemon_local,
                                                  daemon_local->flags.vflag)) {
@@ -2663,8 +2659,8 @@ int mct_daemon_process_one_s_timer(DltDaemon *daemon,
     }
 
     if ((daemon->timingpackets) &&
-        (daemon->state == DLT_DAEMON_STATE_SEND_DIRECT)) {
-        mct_daemon_control_message_time(DLT_DAEMON_SEND_TO_ALL,
+        (daemon->state == MCT_DAEMON_STATE_SEND_DIRECT)) {
+        mct_daemon_control_message_time(MCT_DAEMON_SEND_TO_ALL,
                                         daemon,
                                         daemon_local,
                                         daemon_local->flags.vflag);
@@ -2675,9 +2671,9 @@ int mct_daemon_process_one_s_timer(DltDaemon *daemon,
     return 0;
 }
 
-int mct_daemon_process_sixty_s_timer(DltDaemon *daemon,
-                                     DltDaemonLocal *daemon_local,
-                                     DltReceiver *receiver,
+int mct_daemon_process_sixty_s_timer(MctDaemon *daemon,
+                                     MctDaemonLocal *daemon_local,
+                                     MctReceiver *receiver,
                                      int verbose)
 {
     uint64_t expir = 0;
@@ -2700,7 +2696,7 @@ int mct_daemon_process_sixty_s_timer(DltDaemon *daemon,
     }
 
     if (daemon_local->flags.sendECUSoftwareVersion > 0) {
-        mct_daemon_control_get_software_version(DLT_DAEMON_SEND_TO_ALL,
+        mct_daemon_control_get_software_version(MCT_DAEMON_SEND_TO_ALL,
                                                 daemon,
                                                 daemon_local,
                                                 daemon_local->flags.vflag);
@@ -2716,7 +2712,7 @@ int mct_daemon_process_sixty_s_timer(DltDaemon *daemon,
         tzset();
         localtime_r(&t, &lt);
 
-        mct_daemon_control_message_timezone(DLT_DAEMON_SEND_TO_ALL,
+        mct_daemon_control_message_timezone(MCT_DAEMON_SEND_TO_ALL,
                                             daemon,
                                             daemon_local,
                                             daemon_local->flags.vflag);
@@ -2727,10 +2723,10 @@ int mct_daemon_process_sixty_s_timer(DltDaemon *daemon,
     return 0;
 }
 
-#ifdef DLT_SYSTEMD_WATCHDOG_ENABLE
-int mct_daemon_process_systemd_timer(DltDaemon *daemon,
-                                     DltDaemonLocal *daemon_local,
-                                     DltReceiver *receiver,
+#ifdef MCT_SYSTEMD_WATCHDOG_ENABLE
+int mct_daemon_process_systemd_timer(MctDaemon *daemon,
+                                     MctDaemonLocal *daemon_local,
+                                     MctReceiver *receiver,
                                      int verbose)
 {
     uint64_t expir = 0;
@@ -2760,9 +2756,9 @@ int mct_daemon_process_systemd_timer(DltDaemon *daemon,
     return 0;
 }
 #else
-int mct_daemon_process_systemd_timer(DltDaemon *daemon,
-                                     DltDaemonLocal *daemon_local,
-                                     DltReceiver *receiver,
+int mct_daemon_process_systemd_timer(MctDaemon *daemon,
+                                     MctDaemonLocal *daemon_local,
+                                     MctReceiver *receiver,
                                      int verbose)
 {
     (void)daemon;
@@ -2777,15 +2773,15 @@ int mct_daemon_process_systemd_timer(DltDaemon *daemon,
 #endif
 
 void mct_daemon_control_service_logstorage(int sock,
-                                           DltDaemon *daemon,
-                                           DltDaemonLocal *daemon_local,
-                                           DltMessage *msg,
+                                           MctDaemon *daemon,
+                                           MctDaemonLocal *daemon_local,
+                                           MctMessage *msg,
                                            int verbose)
 {
-    DltServiceOfflineLogstorage *req;
+    MctServiceOfflineLogstorage *req;
     int ret;
     unsigned int connection_type = 0;
-    DltLogStorage *device = NULL;
+    MctLogStorage *device = NULL;
     int device_index = -1;
     int i = 0;
 
@@ -2810,8 +2806,8 @@ void mct_daemon_control_service_logstorage(int sock,
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
 
         mct_log(LOG_INFO,
@@ -2819,21 +2815,21 @@ void mct_daemon_control_service_logstorage(int sock,
         return;
     }
 
-    if (mct_check_rcv_data_size(msg->datasize, sizeof(DltServiceOfflineLogstorage)) < 0) {
+    if (mct_check_rcv_data_size(msg->datasize, sizeof(MctServiceOfflineLogstorage)) < 0) {
         return;
     }
 
-    req = (DltServiceOfflineLogstorage *)(msg->databuffer);
+    req = (MctServiceOfflineLogstorage *)(msg->databuffer);
 
-    if(req->connection_type != DLT_OFFLINE_LOGSTORAGE_SYNC_CACHES) {
+    if(req->connection_type != MCT_OFFLINE_LOGSTORAGE_SYNC_CACHES) {
         req_st_status = stat(req->mount_point, &req_mpoint_st);
         tmp_errno = errno;
         if (req_st_status < 0) {
             mct_daemon_control_service_response(sock,
                                                 daemon,
                                                 daemon_local,
-                                                DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
 
             mct_vlog(LOG_WARNING,
@@ -2857,8 +2853,8 @@ void mct_daemon_control_service_logstorage(int sock,
                 mct_daemon_control_service_response(sock,
                                                     daemon,
                                                     daemon_local,
-                                                    DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                                    DLT_SERVICE_RESPONSE_ERROR,
+                                                    MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                                    MCT_SERVICE_RESPONSE_ERROR,
                                                     verbose);
                 mct_vlog(LOG_WARNING,
                          "%s: Failed to stat daemon mount point [%s] with error [%s]\n",
@@ -2876,14 +2872,14 @@ void mct_daemon_control_service_logstorage(int sock,
         }
 
         /* Get first available device index here */
-        if ((connection_type != DLT_OFFLINE_LOGSTORAGE_DEVICE_CONNECTED) &&
+        if ((connection_type != MCT_OFFLINE_LOGSTORAGE_DEVICE_CONNECTED) &&
             (device_index == -1)) {
             device_index = i;
         }
     }
 
     /* It might be possible to sync all caches of all devices */
-    if ((req->connection_type == DLT_OFFLINE_LOGSTORAGE_SYNC_CACHES) &&
+    if ((req->connection_type == MCT_OFFLINE_LOGSTORAGE_SYNC_CACHES) &&
         (strlen(req->mount_point) == 0)) {
         /* It is expected to receive an empty mount point to sync all Logstorage
          * devices in this case. */
@@ -2891,8 +2887,8 @@ void mct_daemon_control_service_logstorage(int sock,
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
         mct_log(LOG_WARNING, "MAX devices already in use  \n");
         return;
@@ -2901,23 +2897,23 @@ void mct_daemon_control_service_logstorage(int sock,
     /* Check for device connection request from log storage ctrl app  */
     device = &daemon->storage_handle[device_index];
 
-    if (req->connection_type == DLT_OFFLINE_LOGSTORAGE_DEVICE_CONNECTED) {
+    if (req->connection_type == MCT_OFFLINE_LOGSTORAGE_DEVICE_CONNECTED) {
         ret = mct_logstorage_device_connected(device, req->mount_point);
 
         if (ret == 1) {
             mct_daemon_control_service_response(sock,
                                                 daemon,
                                                 daemon_local,
-                                                DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                                DLT_SERVICE_RESPONSE_WARNING,
+                                                MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                                MCT_SERVICE_RESPONSE_WARNING,
                                                 verbose);
             return;
         } else if (ret != 0) {
             mct_daemon_control_service_response(sock,
                                                 daemon,
                                                 daemon_local,
-                                                DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
             return;
         }
@@ -2925,25 +2921,25 @@ void mct_daemon_control_service_logstorage(int sock,
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                            DLT_SERVICE_RESPONSE_OK,
+                                            MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                            MCT_SERVICE_RESPONSE_OK,
                                             verbose);
 
         /* Update maintain logstorage loglevel if necessary */
         if (daemon->storage_handle[device_index].maintain_logstorage_loglevel !=
-            DLT_MAINTAIN_LOGSTORAGE_LOGLEVEL_UNDEF) {
+            MCT_MAINTAIN_LOGSTORAGE_LOGLEVEL_UNDEF) {
             daemon->maintain_logstorage_loglevel =
                 daemon->storage_handle[device_index].maintain_logstorage_loglevel;
         }
 
         /* update BlockMode if necessary */
-        if (daemon_local->flags.blockModeAllowed == DLT_DAEMON_BLOCK_MODE_ENABLED) {
-            if (daemon->storage_handle[device_index].block_mode != DLT_MODE_BLOCKING_UNDEF) {
+        if (daemon_local->flags.blockModeAllowed == MCT_DAEMON_BLOCK_MODE_ENABLED) {
+            if (daemon->storage_handle[device_index].block_mode != MCT_MODE_BLOCKING_UNDEF) {
                 if (mct_daemon_user_update_blockmode(daemon,
-                                                     DLT_ALL_APPLICATIONS,
+                                                     MCT_ALL_APPLICATIONS,
                                                      daemon->storage_handle[device_index].
                                                      block_mode,
-                                                     verbose) != DLT_RETURN_OK) {
+                                                     verbose) != MCT_RETURN_OK) {
                     mct_log(LOG_WARNING,
                             "BlockMode request of internal logstorage device failed\n");
                 }
@@ -2962,7 +2958,7 @@ void mct_daemon_control_service_logstorage(int sock,
         daemon_local->internal_client_connections++;
     }
     /* Check for device disconnection request from log storage ctrl app  */
-    else if (req->connection_type == DLT_OFFLINE_LOGSTORAGE_DEVICE_DISCONNECTED) {
+    else if (req->connection_type == MCT_OFFLINE_LOGSTORAGE_DEVICE_DISCONNECTED) {
         /* Check if log level of running application needs to be reset */
         mct_daemon_logstorage_reset_application_loglevel(
             daemon,
@@ -2972,39 +2968,39 @@ void mct_daemon_control_service_logstorage(int sock,
             verbose);
 
         mct_logstorage_device_disconnected(&(daemon->storage_handle[device_index]),
-                                           DLT_LOGSTORAGE_SYNC_ON_DEVICE_DISCONNECT);
+                                           MCT_LOGSTORAGE_SYNC_ON_DEVICE_DISCONNECT);
 
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                            DLT_SERVICE_RESPONSE_OK,
+                                            MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                            MCT_SERVICE_RESPONSE_OK,
                                             verbose);
 
         daemon_local->internal_client_connections--;
 
         /* switch to NON-BLOCKING if no other client is connected */
-        if ((daemon_local->flags.blockModeAllowed == DLT_DAEMON_BLOCK_MODE_ENABLED) &&
+        if ((daemon_local->flags.blockModeAllowed == MCT_DAEMON_BLOCK_MODE_ENABLED) &&
             (daemon_local->client_connections == 0) &&
             (daemon_local->internal_client_connections == 0)) {
             if (mct_daemon_user_update_blockmode(daemon,
-                                                 DLT_ALL_APPLICATIONS,
-                                                 DLT_MODE_NON_BLOCKING,
-                                                 verbose) != DLT_RETURN_OK) {
+                                                 MCT_ALL_APPLICATIONS,
+                                                 MCT_MODE_NON_BLOCKING,
+                                                 verbose) != MCT_RETURN_OK) {
                 mct_log(LOG_WARNING,
                         "BlockMode request of internal logstorage device failed\n");
             }
         }
     }
     /* Check for cache synchronization request from log storage ctrl app */
-    else if (req->connection_type == DLT_OFFLINE_LOGSTORAGE_SYNC_CACHES) {
+    else if (req->connection_type == MCT_OFFLINE_LOGSTORAGE_SYNC_CACHES) {
         ret = 0;
 
         if (device_index == -1) { /* sync all Logstorage devices */
 
             for (i = 0; i < daemon_local->flags.offlineLogstorageMaxDevices; i++) {
                 if (daemon->storage_handle[i].connection_type ==
-                    DLT_OFFLINE_LOGSTORAGE_DEVICE_CONNECTED) {
+                    MCT_OFFLINE_LOGSTORAGE_DEVICE_CONNECTED) {
                     ret = mct_daemon_logstorage_sync_cache(
                             daemon,
                             daemon_local,
@@ -3024,23 +3020,23 @@ void mct_daemon_control_service_logstorage(int sock,
             mct_daemon_control_service_response(sock,
                                                 daemon,
                                                 daemon_local,
-                                                DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                                DLT_SERVICE_RESPONSE_OK,
+                                                MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                                MCT_SERVICE_RESPONSE_OK,
                                                 verbose);
         } else {
             mct_daemon_control_service_response(sock,
                                                 daemon,
                                                 daemon_local,
-                                                DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                                DLT_SERVICE_RESPONSE_ERROR,
+                                                MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                                MCT_SERVICE_RESPONSE_ERROR,
                                                 verbose);
         }
     } else {
         mct_daemon_control_service_response(sock,
                                             daemon,
                                             daemon_local,
-                                            DLT_SERVICE_ID_OFFLINE_LOGSTORAGE,
-                                            DLT_SERVICE_RESPONSE_ERROR,
+                                            MCT_SERVICE_ID_OFFLINE_LOGSTORAGE,
+                                            MCT_SERVICE_RESPONSE_ERROR,
                                             verbose);
     }
 }

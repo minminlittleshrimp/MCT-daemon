@@ -6,7 +6,7 @@ set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS TRUE)
 
 include(GNUInstallDirs)
 # Set version parameters
-set(DLT_VERSION_STATE STABLE)
+set(MCT_VERSION_STATE STABLE)
 
 # set default build type, if not defined by user
 if(NOT CMAKE_BUILD_TYPE)
@@ -17,15 +17,14 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Set of indiviual options
-option(BUILD_SHARED_LIBS      "Set to OFF to build static libraries"                                                         ON)
-option(WITH_DLT_CONSOLE       "Set to ON to build src/console binaries"                                                      ON)
-option(WITH_DLT_CONSOLE_SBTM  "Set to ON to build mct-sortbytimestamp under src/console"                                     OFF)
-option(WITH_DLT_EXAMPLES      "Set to ON to build src/examples binaries"                                                     ON)
-set(DLT_IPC "FIFO" CACHE STRING "UNIX_SOCKET,FIFO")
-set(DLT_USER "genivi" CACHE STRING "Set user for process not run as root")
-option(WITH_DLT_LOGSTORAGE_CTRL_UDEV "PROTOTYPE! Set to ON to build logstorage control application with udev support"        OFF)
-option(WITH_DLT_LOGSTORAGE_CTRL_PROP "PROTOTYPE! Set to ON to build logstorage control application with proprietary support" OFF)
-option(WITH_DLT_DISABLE_MACRO "Set to ON to build code without Macro interface support"                                      OFF)
+option(BUILD_SHARED_LIBS      "Set to ON to build dynamic libraries"                                                         OFF)
+option(WITH_MCT_CONSOLE       "Set to ON to build src/console binaries"                                                      ON)
+option(WITH_MCT_CONSOLE_SBTM  "Set to ON to build mct-sortbytimestamp under src/console"                                     OFF)
+set(MCT_IPC "FIFO" CACHE STRING "UNIX_SOCKET,FIFO")
+set(MCT_USER "mct-vjpro" CACHE STRING "Set user for process not run as root")
+option(WITH_MCT_LOGSTORAGE_CTRL_UDEV "PROTOTYPE! Set to ON to build logstorage control application with udev support"        OFF)
+option(WITH_MCT_LOGSTORAGE_CTRL_PROP "PROTOTYPE! Set to ON to build logstorage control application with proprietary support" OFF)
+option(WITH_MCT_DISABLE_MACRO "Set to ON to build code without Macro interface support"                                      OFF)
 
 
 
@@ -47,16 +46,16 @@ include_directories(
 
 add_definitions(-D_GNU_SOURCE)
 
-if(NOT DLT_IPC STREQUAL "UNIX_SOCKET" AND NOT DLT_IPC STREQUAL "FIFO")
-    message(FATAL_ERROR "${DLT_IPC} is not a valid value for DLT_IPC")
+if(NOT MCT_IPC STREQUAL "UNIX_SOCKET" AND NOT MCT_IPC STREQUAL "FIFO")
+    message(FATAL_ERROR "${MCT_IPC} is not a valid value for MCT_IPC")
 endif()
 
-add_definitions(-DDLT_DAEMON_USE_${DLT_IPC}_IPC)
-add_definitions(-DDLT_LIB_USE_${DLT_IPC}_IPC)
-if(NOT DLT_USER_IPC_PATH)
-    set(DLT_USER_IPC_PATH "/tmp")
+add_definitions(-DMCT_DAEMON_USE_${MCT_IPC}_IPC)
+add_definitions(-DMCT_LIB_USE_${MCT_IPC}_IPC)
+if(NOT MCT_USER_IPC_PATH)
+    set(MCT_USER_IPC_PATH "/tmp")
 endif()
-add_definitions(-DDLT_USER_IPC_PATH="${DLT_USER_IPC_PATH}")
+add_definitions(-DMCT_USER_IPC_PATH="${MCT_USER_IPC_PATH}")
 
 add_compile_options(
     $<$<COMPILE_LANGUAGE:C>:-std=gnu99>
@@ -76,10 +75,10 @@ add_subdirectory(cmake)
 
 
 
-if(WITH_DLT_LOGSTORAGE_CTRL_UDEV)
-    add_definitions(-DDLT_LOGSTORAGE_CTRL_UDEV_ENABLE)
+if(WITH_MCT_LOGSTORAGE_CTRL_UDEV)
+    add_definitions(-DMCT_LOGSTORAGE_CTRL_UDEV_ENABLE)
 endif()
-if(WITH_DLT_LOGSTORAGE_CTRL_PROP)
+if(WITH_MCT_LOGSTORAGE_CTRL_PROP)
     add_definitions(-DHAS_PROPRIETARY_LOGSTORAGE)
 endif()
 
@@ -89,20 +88,19 @@ add_subdirectory(include)
 
 message(STATUS)
 message(STATUS "-------------------------------------------------------------------------------")
-message(STATUS "Build for Version ${PROJECT_VERSION} build, version state ${DLT_VERSION_STATE}")
+message(STATUS "Build for Version ${PROJECT_VERSION} build, version state ${MCT_VERSION_STATE}")
 message(STATUS "BUILD_SHARED_LIBS = ${BUILD_SHARED_LIBS}")
-message(STATUS "WITH_DLT_CONSOLE = ${WITH_DLT_CONSOLE}")
-message(STATUS "WITH_DLT_CONSOLE_SBTM = ${WITH_DLT_CONSOLE_SBTM}")
-message(STATUS "WITH_DLT_EXAMPLES = ${WITH_DLT_EXAMPLES}")
-message(STATUS "DLT_USER = ${DLT_USER}")
+message(STATUS "WITH_MCT_CONSOLE = ${WITH_MCT_CONSOLE}")
+message(STATUS "WITH_MCT_CONSOLE_SBTM = ${WITH_MCT_CONSOLE_SBTM}")
+message(STATUS "MCT_USER = ${MCT_USER}")
 message(STATUS "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 message(STATUS "CMAKE_HOST_SYSTEM_PROCESSOR = ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 message(STATUS "CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
-message(STATUS "WITH_DLT_LOGSTORAGE_CTRL_UDEV = ${WITH_DLT_LOGSTORAGE_CTRL_UDEV}")
-message(STATUS "WITH_DLT_LOGSTORAGE_CTRL_PROP = ${WITH_DLT_LOGSTORAGE_CTRL_PROP}")
-message(STATUS "DLT_IPC = ${DLT_IPC} (Path: ${DLT_USER_IPC_PATH})")
-message(STATUS "WITH_DLT_DISABLE_MACRO = ${WITH_DLT_DISABLE_MACRO}")
+message(STATUS "WITH_MCT_LOGSTORAGE_CTRL_UDEV = ${WITH_MCT_LOGSTORAGE_CTRL_UDEV}")
+message(STATUS "WITH_MCT_LOGSTORAGE_CTRL_PROP = ${WITH_MCT_LOGSTORAGE_CTRL_PROP}")
+message(STATUS "MCT_IPC = ${MCT_IPC} (Path: ${MCT_USER_IPC_PATH})")
+message(STATUS "WITH_MCT_DISABLE_MACRO = ${WITH_MCT_DISABLE_MACRO}")
 message(STATUS "Change a value with: cmake -D<Variable>=<Value>")
 message(STATUS "-------------------------------------------------------------------------------")
 message(STATUS)

@@ -33,7 +33,7 @@ int mct_daemon_socket_open(int *sock, unsigned int servPort, char *ip)
     int ret_inet_pton = 1;
     int lastErrno = 0;
 
-#ifdef DLT_USE_IPv6
+#ifdef MCT_USE_IPv6
 
     /* create socket */
     if ((*sock = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
@@ -68,7 +68,7 @@ int mct_daemon_socket_open(int *sock, unsigned int servPort, char *ip)
     }
 
     /* bind */
-#ifdef DLT_USE_IPv6
+#ifdef MCT_USE_IPv6
     struct sockaddr_in6 forced_addr;
     memset(&forced_addr, 0, sizeof(forced_addr));
     forced_addr.sin6_family = AF_INET6;
@@ -141,7 +141,7 @@ int mct_daemon_socket_send(int sock,
                            int size2,
                            char serialheader)
 {
-    int ret = DLT_RETURN_OK;
+    int ret = MCT_RETURN_OK;
 
     /* Optional: Send serial header, if requested */
     if (serialheader) {
@@ -149,7 +149,7 @@ int mct_daemon_socket_send(int sock,
                                              (void *)mctSerialHeader,
                                              sizeof(mctSerialHeader));
 
-        if (ret != DLT_RETURN_OK) {
+        if (ret != MCT_RETURN_OK) {
             return ret;
         }
     }
@@ -158,7 +158,7 @@ int mct_daemon_socket_send(int sock,
     if ((data1 != NULL) && (size1 > 0)) {
         ret = mct_daemon_socket_sendreliable(sock, data1, size1);
 
-        if (ret != DLT_RETURN_OK) {
+        if (ret != MCT_RETURN_OK) {
             return ret;
         }
     }
@@ -192,12 +192,12 @@ int mct_daemon_socket_sendreliable(int sock, void *data_buffer, int message_size
         if (ret < 0) {
             mct_vlog(LOG_WARNING,
                      "%s: socket send failed [errno: %d]!\n", __func__, errno);
-            return DLT_DAEMON_ERROR_SEND_FAILED;
+            return MCT_DAEMON_ERROR_SEND_FAILED;
         } else {
             data_sent += ret;
         }
     }
 
-    return DLT_DAEMON_ERROR_OK;
+    return MCT_DAEMON_ERROR_OK;
 }
 

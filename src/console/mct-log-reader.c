@@ -18,9 +18,9 @@
 
 #include "mct_client.h"
 
-#define DLT_RECEIVE_ECU_ID "RECV"
+#define MCT_RECEIVE_ECU_ID "RECV"
 
-DltClient mctclient;
+MctClient mctclient;
 
 void signal_handler(int signal)
 {
@@ -40,7 +40,7 @@ void signal_handler(int signal)
 }
 
 /* Function prototypes */
-int mct_receive_message_callback(DltMessage *message, void *data);
+int mct_receive_message_callback(MctMessage *message, void *data);
 
 typedef struct {
     int aflag;
@@ -64,10 +64,10 @@ typedef struct {
     int ohandle;
     int64_t totalbytes; /* bytes written so far into the output file, used to check the file size limit */
     int part_num;    /* number of current output file if limit was exceeded */
-    DltFile file;
-    DltFilter filter;
+    MctFile file;
+    MctFilter filter;
     int port;
-} DltReceiveData;
+} MctReceiveData;
 
 /**
  * Print usage information of tool.
@@ -79,14 +79,14 @@ void usage()
     mct_get_version(version, 255);
 
     printf("Usage: mct-receive [options] hostname/serial_device_name\n");
-    printf("Receive DLT messages from DLT daemon and print or store the messages.\n");
+    printf("Receive MCT messages from MCT daemon and print or store the messages.\n");
     printf("Use filters to filter received messages.\n");
     printf("%s \n", version);
     printf("Options:\n");
-    printf("  -a            Print DLT messages; payload as ASCII\n");
-    printf("  -x            Print DLT messages; payload as hex\n");
-    printf("  -m            Print DLT messages; payload as hex and ASCII\n");
-    printf("  -s            Print DLT messages; only headers\n");
+    printf("  -a            Print MCT messages; payload as ASCII\n");
+    printf("  -x            Print MCT messages; payload as hex\n");
+    printf("  -m            Print MCT messages; payload as hex and ASCII\n");
+    printf("  -s            Print MCT messages; only headers\n");
     printf("  -v            Verbose mode\n");
     printf("  -h            Usage\n");
     printf("  -S            Send message with serial header (Default: Without serial header)\n");
@@ -95,7 +95,7 @@ void usage()
     printf("  -u            UDP multicast mode\n");
     printf("  -b baudrate   Serial device baudrate (Default: 115200)\n");
     printf("  -e ecuid      Set ECU ID (Default: RECV)\n");
-    printf("  -o filename   Output messages in new DLT file\n");
+    printf("  -o filename   Output messages in new MCT file\n");
     printf("  -c limit      Restrict file size to <limit> bytes when output to file\n");
     printf("                When limit is reached, a new file is opened. Use K,M,G as\n");
     printf("                suffix to specify kilo-, mega-, giga-bytes respectively\n");
@@ -142,9 +142,9 @@ int64_t convert_arg_to_byte_size(char *arg)
     /* The result be at least the size of one message
      * One message consists of its header + user data:
      */
-    DltMessage msg;
+    MctMessage msg;
     int64_t min_size = sizeof(msg.headerbuffer);
-    min_size += 2048 /* DLT_USER_BUF_MAX_SIZE */;
+    min_size += 2048 /* MCT_USER_BUF_MAX_SIZE */;
 
     if (min_size > result) {
         mct_vlog(LOG_ERR,
@@ -161,7 +161,7 @@ int64_t convert_arg_to_byte_size(char *arg)
 /*
  * open output file
  */
-int mct_receive_open_output_file(DltReceiveData *mctdata)
+int mct_receive_open_output_file(MctReceiveData *mctdata)
 {
     /* if (file_already_exists) */
     glob_t outer;
@@ -226,7 +226,7 @@ int mct_receive_open_output_file(DltReceiveData *mctdata)
 }
 
 
-void mct_receive_close_output_file(DltReceiveData *mctdata)
+void mct_receive_close_output_file(MctReceiveData *mctdata)
 {
     if (mctdata->ohandle) {
         close(mctdata->ohandle);
@@ -240,7 +240,7 @@ void mct_receive_close_output_file(DltReceiveData *mctdata)
  */
 int main(int argc, char *argv[])
 {
-    DltReceiveData mctdata;
+    MctReceiveData mctdata;
     int c;
     int index;
 
@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
     mctdata.ohandle = -1;
     mctdata.totalbytes = 0;
     mctdata.part_num = -1;
-    mctdata.Bflag = DLT_MODE_NON_BLOCKING;
+    mctdata.Bflag = MCT_MODE_NON_BLOCKING;
     mctdata.port = 3490;
 
     /* Config signal handler */
@@ -341,10 +341,6 @@ int main(int argc, char *argv[])
         }
         case 'j':
         {
-            #ifdef EXTENDED_FILTERING
-            mctdata.jvalue = optarg;
-            break;
-            #else
             fprintf (stderr,
                      "Extended filtering is not supported. Please build with the corresponding cmake option to use it.\n");
             return -1;
@@ -381,7 +377,7 @@ int main(int argc, char *argv[])
         }
         case 'B':
         {
-            mctdata.Bflag = DLT_MODE_BLOCKING;
+            mctdata.Bflag = MCT_MODE_BLOCKING;
             break;
         }
         case 'p':
@@ -422,21 +418,21 @@ int main(int argc, char *argv[])
         }
         }
 
-    /* Initialize DLT Client */
+    /* Initialize MCT Client */
     mct_client_init(&mctclient, mctdata.vflag);
 
     /* Register callback to be called when message was received */
     mct_client_register_message_callback(mct_receive_message_callback);
 
-    /* Setup DLT Client structure */
+    /* Setup MCT Client structure */
     if(mctdata.uflag) {
-        mctclient.mode = DLT_CLIENT_MODE_UDP_MULTICAST;
+        mctclient.mode = MCT_CLIENT_MODE_UDP_MULTICAST;
     }
     else {
         mctclient.mode = mctdata.yflag;
     }
 
-    if (mctclient.mode == DLT_CLIENT_MODE_TCP || mctclient.mode == DLT_CLIENT_MODE_UDP_MULTICAST) {
+    if (mctclient.mode == MCT_CLIENT_MODE_TCP || mctclient.mode == MCT_CLIENT_MODE_UDP_MULTICAST) {
         mctclient.port = mctdata.port;
         for (index = optind; index < argc; index++)
             if (mct_client_set_server_ip(&mctclient, argv[index]) == -1) {
@@ -473,14 +469,14 @@ int main(int argc, char *argv[])
     mctclient.send_serial_header = mctdata.sendSerialHeaderFlag;
     mctclient.resync_serial_header = mctdata.resyncSerialHeaderFlag;
 
-    /* initialise structure to use DLT file */
+    /* initialise structure to use MCT file */
     mct_file_init(&(mctdata.file), mctdata.vflag);
 
     /* first parse filter file if filter parameter is used */
     mct_filter_init(&(mctdata.filter), mctdata.vflag);
 
     if (mctdata.fvalue) {
-        if (mct_filter_load(&(mctdata.filter), mctdata.fvalue, mctdata.vflag) < DLT_RETURN_OK) {
+        if (mct_filter_load(&(mctdata.filter), mctdata.fvalue, mctdata.vflag) < MCT_RETURN_OK) {
             mct_file_free(&(mctdata.file), mctdata.vflag);
             return -1;
         }
@@ -488,20 +484,7 @@ int main(int argc, char *argv[])
         mct_file_set_filter(&(mctdata.file), &(mctdata.filter), mctdata.vflag);
     }
 
-    #ifdef EXTENDED_FILTERING
-
-    if (mctdata.jvalue) {
-        if (mct_json_filter_load(&(mctdata.filter), mctdata.jvalue, mctdata.vflag) < DLT_RETURN_OK) {
-            mct_file_free(&(mctdata.file), mctdata.vflag);
-            return -1;
-        }
-
-        mct_file_set_filter(&(mctdata.file), &(mctdata.filter), mctdata.vflag);
-    }
-
-    #endif
-
-    /* open DLT output file */
+    /* open MCT output file */
     if (mctdata.ovalue) {
         if (mctdata.climit > -1) {
             mct_vlog(LOG_INFO, "Using file size limit of %" PRId64 "bytes\n",
@@ -522,22 +505,22 @@ int main(int argc, char *argv[])
     if (mctdata.evalue)
         mct_set_id(mctdata.ecuid, mctdata.evalue);
     else
-        mct_set_id(mctdata.ecuid, DLT_RECEIVE_ECU_ID);
+        mct_set_id(mctdata.ecuid, MCT_RECEIVE_ECU_ID);
 
     /* Connect to TCP socket or open serial device */
-    if (mct_client_connect(&mctclient, mctdata.vflag) != DLT_RETURN_ERROR) {
+    if (mct_client_connect(&mctclient, mctdata.vflag) != MCT_RETURN_ERROR) {
         if (mctdata.Bflag) {
             /* send control message*/
-            if (0 != mct_client_send_set_blockmode(&mctclient, DLT_MODE_BLOCKING))
+            if (0 != mct_client_send_set_blockmode(&mctclient, MCT_MODE_BLOCKING))
                 fprintf(stderr, "ERROR: Could not send Blockmode control message\n");
 
             ;
         }
 
-        /* Dlt Client Main Loop */
+        /* Mct Client Main Loop */
         mct_client_main_loop(&mctclient, &mctdata, mctdata.vflag);
 
-        /* Dlt Client Cleanup */
+        /* Mct Client Cleanup */
         mct_client_cleanup(&mctclient, mctdata.vflag);
     }
 
@@ -554,10 +537,10 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-int mct_receive_message_callback(DltMessage *message, void *data)
+int mct_receive_message_callback(MctMessage *message, void *data)
 {
-    DltReceiveData *mctdata;
-    static char text[DLT_RECEIVE_BUFSIZE];
+    MctReceiveData *mctdata;
+    static char text[MCT_RECEIVE_BUFSIZE];
 
     struct iovec iov[2];
     int bytes_written;
@@ -565,39 +548,39 @@ int mct_receive_message_callback(DltMessage *message, void *data)
     if ((message == 0) || (data == 0))
         return -1;
 
-    mctdata = (DltReceiveData *)data;
+    mctdata = (MctReceiveData *)data;
 
     /* prepare storage header */
-    if (DLT_IS_HTYP_WEID(message->standardheader->htyp))
+    if (MCT_IS_HTYP_WEID(message->standardheader->htyp))
         mct_set_storageheader(message->storageheader, message->headerextra.ecu);
     else
         mct_set_storageheader(message->storageheader, mctdata->ecuid);
 
     if (((mctdata->fvalue || mctdata->jvalue) == 0) ||
-        (mct_message_filter_check(message, &(mctdata->filter), mctdata->vflag) == DLT_RETURN_TRUE)) {
+        (mct_message_filter_check(message, &(mctdata->filter), mctdata->vflag) == MCT_RETURN_TRUE)) {
         /* if no filter set or filter is matching display message */
         if (mctdata->xflag) {
-            mct_message_print_hex(message, text, DLT_RECEIVE_BUFSIZE, mctdata->vflag);
+            mct_message_print_hex(message, text, MCT_RECEIVE_BUFSIZE, mctdata->vflag);
         }
         else if (mctdata->aflag)
         {
 
-            mct_message_header(message, text, DLT_RECEIVE_BUFSIZE, mctdata->vflag);
+            mct_message_header(message, text, MCT_RECEIVE_BUFSIZE, mctdata->vflag);
 
             printf("%s ", text);
 
-            mct_message_payload(message, text, DLT_RECEIVE_BUFSIZE, DLT_OUTPUT_ASCII, mctdata->vflag);
+            mct_message_payload(message, text, MCT_RECEIVE_BUFSIZE, MCT_OUTPUT_ASCII, mctdata->vflag);
 
             printf("[%s]\n", text);
         }
         else if (mctdata->mflag)
         {
-            mct_message_print_mixed_plain(message, text, DLT_RECEIVE_BUFSIZE, mctdata->vflag);
+            mct_message_print_mixed_plain(message, text, MCT_RECEIVE_BUFSIZE, mctdata->vflag);
         }
         else if (mctdata->sflag)
         {
 
-            mct_message_header(message, text, DLT_RECEIVE_BUFSIZE, mctdata->vflag);
+            mct_message_header(message, text, MCT_RECEIVE_BUFSIZE, mctdata->vflag);
 
             printf("%s \n", text);
         }

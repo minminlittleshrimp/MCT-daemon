@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define DLT_ENV_LL_SET_INCREASE 10
+#define MCT_ENV_LL_SET_INCREASE 10
 
 
 /* a generic entry looks like:
@@ -263,7 +263,7 @@ int mct_env_init_ll_set(mct_env_ll_set *const ll_set)
         return -1;
     }
 
-    ll_set->array_size = DLT_ENV_LL_SET_INCREASE;
+    ll_set->array_size = MCT_ENV_LL_SET_INCREASE;
     ll_set->item = (mct_env_ll_item *)malloc(sizeof(mct_env_ll_item) * ll_set->array_size);
 
     if (!ll_set->item) {
@@ -314,12 +314,12 @@ int mct_env_increase_ll_set(mct_env_ll_set *const ll_set)
     old_set = ll_set->item;
     old_size = ll_set->array_size;
 
-    ll_set->array_size += DLT_ENV_LL_SET_INCREASE;
+    ll_set->array_size += MCT_ENV_LL_SET_INCREASE;
     ll_set->item = (mct_env_ll_item *)malloc(sizeof(mct_env_ll_item) * ll_set->array_size);
 
     if (!ll_set->item) {
         /* should trigger a warning: no memory left */
-        ll_set->array_size -= DLT_ENV_LL_SET_INCREASE;
+        ll_set->array_size -= MCT_ENV_LL_SET_INCREASE;
         return -1;
     } else {
         memcpy(ll_set->item, old_set, sizeof(mct_env_ll_item) * old_size);

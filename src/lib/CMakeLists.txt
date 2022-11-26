@@ -19,7 +19,7 @@ else()
 endif()
 
 if(HAVE_FUNC_PTHREAD_SETNAME_NP)
-    add_definitions(-DDLT_USE_PTHREAD_SETNAME_NP)
+    add_definitions(-DMCT_USE_PTHREAD_SETNAME_NP)
     message(STATUS "Using pthread_setname_np API to set thread name")
 else()
     message(STATUS "pthread_setname_np API not available on this platform")

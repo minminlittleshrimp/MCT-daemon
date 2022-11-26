@@ -8,8 +8,8 @@
 #include "mct-daemon_cfg.h"
 
 /* internal defines */
-#define DLT_CONFIG_FILE_NEW_SECTION 0x0a
-#define DLT_CONFIG_FILE_NEW_DATA    0x0b
+#define MCT_CONFIG_FILE_NEW_SECTION 0x0a
+#define MCT_CONFIG_FILE_NEW_DATA    0x0b
 
 
 /* internal helper functions */
@@ -61,11 +61,11 @@ static int mct_config_file_ignore_line(char *line)
  *
  * Check if section name already used
  *
- * @param file  DltConfigFile
+ * @param file  MctConfigFile
  * @param name  Name of section
  * @return 0, section name not used, -1 section name already used
  */
-static int mct_config_file_is_section_name(DltConfigFile *file, char *name)
+static int mct_config_file_is_section_name(MctConfigFile *file, char *name)
 {
     int i = 0;
 
@@ -73,9 +73,9 @@ static int mct_config_file_is_section_name(DltConfigFile *file, char *name)
         return -1;
 
     for (i = 0; i < file->num_sections; i++) {
-        DltConfigFileSection *s = &file->sections[i];
+        MctConfigFileSection *s = &file->sections[i];
 
-        if (strncmp(s->name, name, DLT_CONFIG_FILE_ENTRY_MAX_LEN) == 0)
+        if (strncmp(s->name, name, MCT_CONFIG_FILE_ENTRY_MAX_LEN) == 0)
             return -1;
     }
 
@@ -87,16 +87,16 @@ static int mct_config_file_is_section_name(DltConfigFile *file, char *name)
  *
  * Store section in internal data structure
  *
- * @param file  DltConfigFile
+ * @param file  MctConfigFile
  * @param name  Name of section
  * @return 0 on success, else -1
  */
-static int mct_config_file_set_section(DltConfigFile *file, char *name)
+static int mct_config_file_set_section(MctConfigFile *file, char *name)
 {
     int section = file->num_sections;
 
     /* check if adding another section would exceed max number of sections */
-    if (section >= DLT_CONFIG_FILE_SECTIONS_MAX) {
+    if (section >= MCT_CONFIG_FILE_SECTIONS_MAX) {
         mct_log(LOG_WARNING, "Cannot store more sections\n");
         return -1; /* reached max number of sections */
     }
@@ -107,17 +107,17 @@ static int mct_config_file_set_section(DltConfigFile *file, char *name)
         return -1;
     }
 
-    DltConfigFileSection *s = &file->sections[section];
+    MctConfigFileSection *s = &file->sections[section];
 
     /* alloc data for entries */
-    s->name = calloc(sizeof(char), DLT_CONFIG_FILE_ENTRY_MAX_LEN + 1);
+    s->name = calloc(sizeof(char), MCT_CONFIG_FILE_ENTRY_MAX_LEN + 1);
 
     if (s->name == NULL) {
         mct_log(LOG_ERR, "Cannot allocate memory for internal data structure\n");
         return -1;
     }
 
-    s->keys = calloc(sizeof(char), DLT_CONFIG_FILE_ENTRY_MAX_LEN * DLT_CONFIG_FILE_KEYS_MAX + 1);
+    s->keys = calloc(sizeof(char), MCT_CONFIG_FILE_ENTRY_MAX_LEN * MCT_CONFIG_FILE_KEYS_MAX + 1);
 
     if (s->keys == NULL) {
         free(s->name);
@@ -126,7 +126,7 @@ static int mct_config_file_set_section(DltConfigFile *file, char *name)
         return -1;
     }
 
-    strncpy(file->sections[section].name, name, DLT_CONFIG_FILE_ENTRY_MAX_LEN);
+    strncpy(file->sections[section].name, name, MCT_CONFIG_FILE_ENTRY_MAX_LEN);
     file->num_sections += 1;
     return 0;
 }
@@ -136,32 +136,32 @@ static int mct_config_file_set_section(DltConfigFile *file, char *name)
  *
  * Store data pair of a section
  *
- * @param file DltConfigFile
+ * @param file MctConfigFile
  * @param str1 string used for key
  * @param str2 string used for value
  * @return 0 on success, else -1
  */
-static int mct_config_file_set_section_data(DltConfigFile *file, char *str1, char *str2)
+static int mct_config_file_set_section_data(MctConfigFile *file, char *str1, char *str2)
 {
-    DltConfigKeyData **tmp = NULL;
+    MctConfigKeyData **tmp = NULL;
 
     if ((file == NULL) || (str1 == NULL) || (str2 == NULL))
         return -1;
 
-    DltConfigFileSection *s = &file->sections[file->num_sections - 1];
+    MctConfigFileSection *s = &file->sections[file->num_sections - 1];
     int key_number = s->num_entries;
 
-    if (key_number + 1 >= DLT_CONFIG_FILE_KEYS_MAX) {
+    if (key_number + 1 >= MCT_CONFIG_FILE_KEYS_MAX) {
         mct_log(LOG_WARNING, "Cannot store more keys in section\n");
         return -1; /* reached max number of keys per section */
     }
 
     /* copy data into structure */
-    strncpy(&s->keys[key_number * DLT_CONFIG_FILE_ENTRY_MAX_LEN], str1, DLT_CONFIG_FILE_ENTRY_MAX_LEN);
+    strncpy(&s->keys[key_number * MCT_CONFIG_FILE_ENTRY_MAX_LEN], str1, MCT_CONFIG_FILE_ENTRY_MAX_LEN);
 
     if (s->list == NULL) {
         /* creating a list if it doesnt exists */
-        s->list = malloc(sizeof(DltConfigKeyData));
+        s->list = malloc(sizeof(MctConfigKeyData));
 
         if (s->list == NULL) {
             mct_log(LOG_WARNING, "Could not allocate initial memory to list \n");
@@ -177,7 +177,7 @@ static int mct_config_file_set_section_data(DltConfigFile *file, char *str1, cha
             tmp = &(*tmp)->next;
 
         /* Adding new entry to the list */
-        *tmp = malloc(sizeof(DltConfigKeyData));
+        *tmp = malloc(sizeof(MctConfigKeyData));
 
         if (*tmp == NULL) {
             mct_log(LOG_WARNING, "Could not allocate memory to list \n");
@@ -229,7 +229,7 @@ static int mct_config_file_get_section_name_from_string(char *line, char *name)
     if ((line == NULL) || (name == NULL))
         return -1;
 
-    for (i = 0; i < DLT_CONFIG_FILE_ENTRY_MAX_LEN; i++) {
+    for (i = 0; i < MCT_CONFIG_FILE_ENTRY_MAX_LEN; i++) {
         if ((line[i] == '[') || isspace(line[i]))
             continue;
         else if ((line[i] == ']') || (line[i] == '\n') || (line[i] == '\0'))
@@ -263,8 +263,8 @@ static int mct_config_file_get_key_value(char *line, char *str1, char *str2)
     ptr = strtok_r(line, delimiter, &save_ptr);
 
     if (ptr != NULL) { /* get key */
-        strncpy(str1, ptr, DLT_CONFIG_FILE_ENTRY_MAX_LEN - 1);
-        str1[DLT_CONFIG_FILE_ENTRY_MAX_LEN - 1] = '\0';
+        strncpy(str1, ptr, MCT_CONFIG_FILE_ENTRY_MAX_LEN - 1);
+        str1[MCT_CONFIG_FILE_ENTRY_MAX_LEN - 1] = '\0';
     } else {
         return -1;
     }
@@ -272,8 +272,8 @@ static int mct_config_file_get_key_value(char *line, char *str1, char *str2)
     ptr = strtok_r(NULL, delimiter, &save_ptr);
 
     if (ptr != NULL) {
-        strncpy(str2, ptr, DLT_CONFIG_FILE_ENTRY_MAX_LEN - 1);
-        str2[DLT_CONFIG_FILE_ENTRY_MAX_LEN - 1] = '\0';
+        strncpy(str2, ptr, MCT_CONFIG_FILE_ENTRY_MAX_LEN - 1);
+        str2[MCT_CONFIG_FILE_ENTRY_MAX_LEN - 1] = '\0';
     } else {
         return -1;
     }
@@ -297,8 +297,8 @@ static int mct_config_file_read_line(char *line, char *str1, char *str2)
         return -1;
 
     /* reset values to zero */
-    memset(str1, 0, DLT_CONFIG_FILE_ENTRY_MAX_LEN);
-    memset(str2, 0, DLT_CONFIG_FILE_ENTRY_MAX_LEN);
+    memset(str1, 0, MCT_CONFIG_FILE_ENTRY_MAX_LEN);
+    memset(str2, 0, MCT_CONFIG_FILE_ENTRY_MAX_LEN);
 
     /* check if line contains a section */
     if ((mct_config_file_line_has_section(line)) == 0) {
@@ -306,14 +306,14 @@ static int mct_config_file_read_line(char *line, char *str1, char *str2)
         if (mct_config_file_get_section_name_from_string(line, str1) != 0)
             return -1;
 
-        return DLT_CONFIG_FILE_NEW_SECTION;
+        return MCT_CONFIG_FILE_NEW_SECTION;
     }
 
     /* copy strings as key value pair into str1, str2 */
     if (mct_config_file_get_key_value(line, str1, str2) != 0)
         return -1;
 
-    return DLT_CONFIG_FILE_NEW_DATA;
+    return MCT_CONFIG_FILE_NEW_DATA;
 }
 
 /**
@@ -321,20 +321,20 @@ static int mct_config_file_read_line(char *line, char *str1, char *str2)
  *
  * Read configuration file line by line and fill internal structures
  *
- * @param file DltConfigFile
+ * @param file MctConfigFile
  * @param hdl  FILE handle of opened configuration file
  */
-static void mct_config_file_read_file(DltConfigFile *file, FILE *hdl)
+static void mct_config_file_read_file(MctConfigFile *file, FILE *hdl)
 {
     int ret = 0;
-    char line[DLT_CONFIG_FILE_LINE_MAX_LEN] = { '\0' };
-    char str1[DLT_CONFIG_FILE_ENTRY_MAX_LEN] = { '\0' };
-    char str2[DLT_CONFIG_FILE_ENTRY_MAX_LEN] = { '\0' };
+    char line[MCT_CONFIG_FILE_LINE_MAX_LEN] = { '\0' };
+    char str1[MCT_CONFIG_FILE_ENTRY_MAX_LEN] = { '\0' };
+    char str2[MCT_CONFIG_FILE_ENTRY_MAX_LEN] = { '\0' };
     int line_number = 0;
     int is_section_valid = -1; /* to check if section name is given twice or invalid */
 
     /* read configuration file line by line */
-    while (fgets(line, DLT_CONFIG_FILE_LINE_MAX_LEN, hdl) != NULL) {
+    while (fgets(line, MCT_CONFIG_FILE_LINE_MAX_LEN, hdl) != NULL) {
         line_number++;
 
         /* ignore empty and comment lines */
@@ -348,14 +348,14 @@ static void mct_config_file_read_file(DltConfigFile *file, FILE *hdl)
         ret = mct_config_file_read_line(line, str1, str2);
 
         switch (ret) {
-        case DLT_CONFIG_FILE_NEW_SECTION:     /* store str1 as new section */
+        case MCT_CONFIG_FILE_NEW_SECTION:     /* store str1 as new section */
             is_section_valid = -1;
 
             if ((ret = mct_config_file_set_section(file, str1)) == 0)
                 is_section_valid = 0;
 
             break;
-        case DLT_CONFIG_FILE_NEW_DATA:     /* store str1 and str2 as new data for section */
+        case MCT_CONFIG_FILE_NEW_DATA:     /* store str1 and str2 as new data for section */
 
             if (is_section_valid == 0)
                 ret = mct_config_file_set_section_data(file, str1, str2);
@@ -373,11 +373,11 @@ static void mct_config_file_read_file(DltConfigFile *file, FILE *hdl)
  *
  * Find a section
  *
- * @param file      DltConfigFile
+ * @param file      MctConfigFile
  * @param section   Name of section
  * @return number of section on success, else -1
  */
-static int mct_config_file_find_section(const DltConfigFile *file,
+static int mct_config_file_find_section(const MctConfigFile *file,
                                         const char *section)
 {
     int i = 0;
@@ -388,9 +388,9 @@ static int mct_config_file_find_section(const DltConfigFile *file,
     }
 
     for (i = 0; i < file->num_sections; i++) {
-        DltConfigFileSection *s = &file->sections[i];
+        MctConfigFileSection *s = &file->sections[i];
 
-        if (strncmp(s->name, section, DLT_CONFIG_FILE_ENTRY_MAX_LEN) == 0)
+        if (strncmp(s->name, section, MCT_CONFIG_FILE_ENTRY_MAX_LEN) == 0)
             return i;
     }
 
@@ -398,24 +398,24 @@ static int mct_config_file_find_section(const DltConfigFile *file,
 }
 
 /************************** interface implementation ***************************/
-DltConfigFile *mct_config_file_init(char *file_name)
+MctConfigFile *mct_config_file_init(char *file_name)
 {
-    DltConfigFile *file;
+    MctConfigFile *file;
     FILE *hdl = NULL;
 
-    if ((file_name == NULL) || (strlen(file_name) >= DLT_PATH_MAX)) {
+    if ((file_name == NULL) || (strlen(file_name) >= MCT_PATH_MAX)) {
         mct_log(LOG_ERR, "Given configuration file invalid\n");
         return NULL;
     }
 
-    file = calloc(sizeof(DltConfigFile), 1);
+    file = calloc(sizeof(MctConfigFile), 1);
 
     if (file == NULL) {
         mct_log(LOG_ERR, "Setup internal data structure to parse config file failed\n");
         return NULL;
     }
 
-    file->sections = calloc(sizeof(DltConfigFileSection), DLT_CONFIG_FILE_SECTIONS_MAX);
+    file->sections = calloc(sizeof(MctConfigFileSection), MCT_CONFIG_FILE_SECTIONS_MAX);
 
     /* open file */
     if ((hdl = fopen(file_name, "r")) == NULL) {
@@ -432,7 +432,7 @@ DltConfigFile *mct_config_file_init(char *file_name)
     return file;
 }
 
-void mct_config_file_release(DltConfigFile *file)
+void mct_config_file_release(MctConfigFile *file)
 {
     int i = 0;
 
@@ -440,15 +440,15 @@ void mct_config_file_release(DltConfigFile *file)
         int max = file->num_sections;
 
         for (i = 0; i < max; i++) {
-            DltConfigFileSection *s = &file->sections[i];
-            DltConfigKeyData *node = file->sections[i].list;
+            MctConfigFileSection *s = &file->sections[i];
+            MctConfigKeyData *node = file->sections[i].list;
             free(s->name);
 
             if (s->keys != NULL)
                 free(s->keys);
 
             while (node) {
-                DltConfigKeyData *tmp = node;
+                MctConfigKeyData *tmp = node;
                 node = node->next;
                 free(tmp->key);
                 free(tmp->data);
@@ -461,19 +461,19 @@ void mct_config_file_release(DltConfigFile *file)
     }
 }
 
-int mct_config_file_get_section_name(const DltConfigFile *file,
+int mct_config_file_get_section_name(const MctConfigFile *file,
                                      int num,
                                      char *name)
 {
     if ((file == NULL) || (name == NULL) || (num < 0) || (num >= file->num_sections))
         return -1;
 
-    strncpy(name, (file->sections + num)->name, DLT_CONFIG_FILE_ENTRY_MAX_LEN);
+    strncpy(name, (file->sections + num)->name, MCT_CONFIG_FILE_ENTRY_MAX_LEN);
 
     return 0;
 }
 
-int mct_config_file_get_num_sections(const DltConfigFile *file, int *num)
+int mct_config_file_get_num_sections(const MctConfigFile *file, int *num)
 {
     if ((file == NULL) || (file->num_sections < 0))
         return -1;
@@ -487,19 +487,19 @@ int mct_config_file_get_num_sections(const DltConfigFile *file, int *num)
     return 0;
 }
 
-int mct_config_file_get_value(const DltConfigFile *file,
+int mct_config_file_get_value(const MctConfigFile *file,
                               const char *section,
                               const char *key, char *value)
 {
-    DltConfigFileSection *s = NULL;
-    DltConfigKeyData **tmp = NULL;
+    MctConfigFileSection *s = NULL;
+    MctConfigKeyData **tmp = NULL;
     int num_section = 0;
 
     if ((file == NULL) || (section == NULL) || (key == NULL) || (value == NULL))
         return -1;
 
     /* clean value */
-    memset(value, 0, DLT_CONFIG_FILE_ENTRY_MAX_LEN);
+    memset(value, 0, MCT_CONFIG_FILE_ENTRY_MAX_LEN);
 
     num_section = mct_config_file_find_section(file, section);
 
@@ -511,8 +511,8 @@ int mct_config_file_get_value(const DltConfigFile *file,
     tmp = &s->list;
 
     while (*(tmp) != NULL) {
-        if (strncmp((*tmp)->key, key, DLT_CONFIG_FILE_ENTRY_MAX_LEN) == 0) {
-            strncpy(value, (*tmp)->data, DLT_CONFIG_FILE_ENTRY_MAX_LEN);
+        if (strncmp((*tmp)->key, key, MCT_CONFIG_FILE_ENTRY_MAX_LEN) == 0) {
+            strncpy(value, (*tmp)->data, MCT_CONFIG_FILE_ENTRY_MAX_LEN);
             return 0;
         }
         else { /* not found yet see list for more */
@@ -524,7 +524,7 @@ int mct_config_file_get_value(const DltConfigFile *file,
     return -1;
 }
 
-int mct_config_file_check_section_name_exists(const DltConfigFile *file,
+int mct_config_file_check_section_name_exists(const MctConfigFile *file,
                                              const char *name)
 {
     int ret = 0;

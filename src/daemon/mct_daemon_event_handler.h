@@ -4,37 +4,30 @@
 #include "mct_daemon_event_handler_types.h"
 #include "mct-daemon.h"
 
-#ifndef DLT_DAEMON_EVENT_HANDLER_H
-#define DLT_DAEMON_EVENT_HANDLER_H
+#ifndef MCT_DAEMON_EVENT_HANDLER_H
+#define MCT_DAEMON_EVENT_HANDLER_H
 
-int mct_daemon_prepare_event_handling(DltEventHandler *);
-int mct_daemon_handle_event(DltEventHandler *, DltDaemon *, DltDaemonLocal *);
+int mct_daemon_prepare_event_handling(MctEventHandler *);
+int mct_daemon_handle_event(MctEventHandler *, MctDaemon *, MctDaemonLocal *);
 
-DltConnection *mct_event_handler_find_connection_by_id(DltEventHandler *,
-                                                       DltConnectionId);
-DltConnection *mct_event_handler_find_connection(DltEventHandler *,
+MctConnection *mct_event_handler_find_connection_by_id(MctEventHandler *,
+                                                       MctConnectionId);
+MctConnection *mct_event_handler_find_connection(MctEventHandler *,
                                                  int);
 
-void mct_event_handler_cleanup_connections(DltEventHandler *);
+void mct_event_handler_cleanup_connections(MctEventHandler *);
 
-int mct_event_handler_register_connection(DltEventHandler *,
-                                          DltDaemonLocal *,
-                                          DltConnection *,
+int mct_event_handler_register_connection(MctEventHandler *,
+                                          MctDaemonLocal *,
+                                          MctConnection *,
                                           int);
 
-int mct_event_handler_unregister_connection(DltEventHandler *,
-                                            DltDaemonLocal *,
+int mct_event_handler_unregister_connection(MctEventHandler *,
+                                            MctDaemonLocal *,
                                             int);
 
-int mct_connection_check_activate(DltEventHandler *,
-                                  DltConnection *,
-                                  DltMessageFilter *,
+int mct_connection_check_activate(MctEventHandler *,
+                                  MctConnection *,
+                                  MctMessageFilter *,
                                   int);
-#ifdef DLT_UNIT_TESTS
-int mct_daemon_remove_connection(DltEventHandler *ev,
-                                 DltConnection *to_remove);
-
-void mct_daemon_add_connection(DltEventHandler *ev,
-                               DltConnection *connection);
-#endif
-#endif /* DLT_DAEMON_EVENT_HANDLER_H */
+#endif /* MCT_DAEMON_EVENT_HANDLER_H */

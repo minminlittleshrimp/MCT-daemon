@@ -18,14 +18,14 @@
 #include "mct_daemon_filter.h"
 
 /**
- * \def DLT_EV_TIMEOUT_MSEC
+ * \def MCT_EV_TIMEOUT_MSEC
  * The maximum amount of time to wait for a poll event.
  * Set to 1 second to avoid unnecessary wake ups.
  */
-#define DLT_EV_TIMEOUT_MSEC 1000
-#define DLT_EV_BASE_FD      16
+#define MCT_EV_TIMEOUT_MSEC 1000
+#define MCT_EV_BASE_FD      16
 
-#define DLT_EV_MASK_REJECTED (POLLERR | POLLNVAL)
+#define MCT_EV_MASK_REJECTED (POLLERR | POLLNVAL)
 
 /** @brief Initialize a pollfd structure
  *
@@ -48,27 +48,27 @@ static void init_poll_fd(struct pollfd *pfd)
  *
  * @return 0 on success, -1 otherwise.
  */
-int mct_daemon_prepare_event_handling(DltEventHandler *ev)
+int mct_daemon_prepare_event_handling(MctEventHandler *ev)
 {
     int i = 0;
 
     if (ev == NULL) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    ev->pfd = calloc(DLT_EV_BASE_FD, sizeof(struct pollfd));
+    ev->pfd = calloc(MCT_EV_BASE_FD, sizeof(struct pollfd));
 
     if (ev->pfd == NULL) {
         mct_log(LOG_CRIT, "Creation of poll instance failed!\n");
         return -1;
     }
 
-    for (i = 0; i < DLT_EV_BASE_FD; i++) {
+    for (i = 0; i < MCT_EV_BASE_FD; i++) {
         init_poll_fd(&ev->pfd[i]);
     }
 
     ev->nfds = 0;
-    ev->max_nfds = DLT_EV_BASE_FD;
+    ev->max_nfds = MCT_EV_BASE_FD;
 
     return 0;
 }
@@ -82,7 +82,7 @@ int mct_daemon_prepare_event_handling(DltEventHandler *ev)
  * @param fd The file descriptor to add
  * @param mask The mask of event to be watched
  */
-static void mct_event_handler_enable_fd(DltEventHandler *ev, int fd, int mask)
+static void mct_event_handler_enable_fd(MctEventHandler *ev, int fd, int mask)
 {
     if (ev->max_nfds <= ev->nfds) {
         int i = ev->nfds;
@@ -116,7 +116,7 @@ static void mct_event_handler_enable_fd(DltEventHandler *ev, int fd, int mask)
  * @param ev The event handler structure containing the list
  * @param fd The file descriptor to be removed
  */
-static void mct_event_handler_disable_fd(DltEventHandler *ev, int fd)
+static void mct_event_handler_disable_fd(MctEventHandler *ev, int fd)
 {
     unsigned int i = 0;
     unsigned int j = 0;
@@ -156,19 +156,19 @@ static void mct_event_handler_disable_fd(DltEventHandler *ev, int fd)
  *
  * @return 0 on success, -1 otherwise. May be interrupted.
  */
-int mct_daemon_handle_event(DltEventHandler *pEvent,
-                            DltDaemon *daemon,
-                            DltDaemonLocal *daemon_local)
+int mct_daemon_handle_event(MctEventHandler *pEvent,
+                            MctDaemon *daemon,
+                            MctDaemonLocal *daemon_local)
 {
     int ret = 0;
     unsigned int i = 0;
-    int (*callback)(DltDaemon *, DltDaemonLocal *, DltReceiver *, int) = NULL;
+    int (*callback)(MctDaemon *, MctDaemonLocal *, MctReceiver *, int) = NULL;
 
     if ((pEvent == NULL) || (daemon == NULL) || (daemon_local == NULL)) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    ret = poll(pEvent->pfd, pEvent->nfds, DLT_EV_TIMEOUT_MSEC);
+    ret = poll(pEvent->pfd, pEvent->nfds, MCT_EV_TIMEOUT_MSEC);
 
     if (ret <= 0) {
         /* We are not interested in EINTR has it comes
@@ -187,8 +187,8 @@ int mct_daemon_handle_event(DltEventHandler *pEvent,
 
     for (i = 0; i < pEvent->nfds; i++) {
         int fd = 0;
-        DltConnection *con = NULL;
-        DltConnectionType type = DLT_CONNECTION_TYPE_MAX;
+        MctConnection *con = NULL;
+        MctConnectionType type = MCT_CONNECTION_TYPE_MAX;
 
         if (pEvent->pfd[i].revents == 0) {
             continue;
@@ -205,10 +205,10 @@ int mct_daemon_handle_event(DltEventHandler *pEvent,
         }
 
         /* First of all handle error events */
-        if (pEvent->pfd[i].revents & DLT_EV_MASK_REJECTED) {
+        if (pEvent->pfd[i].revents & MCT_EV_MASK_REJECTED) {
             /* An error occurred, we need to clean-up the concerned event
              */
-            if (type == DLT_CONNECTION_CLIENT_MSG_TCP) {
+            if (type == MCT_CONNECTION_CLIENT_MSG_TCP) {
                 /* To transition to BUFFER state if this is final TCP client connection,
                  * call dedicated function. this function also calls
                  * mct_event_handler_unregister_connection() inside the function.
@@ -257,9 +257,9 @@ int mct_daemon_handle_event(DltEventHandler *pEvent,
  *
  * @return The found connection pointer, NULL otherwise.
  */
-DltConnection *mct_event_handler_find_connection(DltEventHandler *ev, int fd)
+MctConnection *mct_event_handler_find_connection(MctEventHandler *ev, int fd)
 {
-    DltConnection *temp = ev->connections;
+    MctConnection *temp = ev->connections;
 
     while (temp != NULL) {
         if ((temp->receiver != NULL) && (temp->receiver->fd == fd)) {
@@ -282,15 +282,15 @@ DltConnection *mct_event_handler_find_connection(DltEventHandler *ev, int fd)
  *
  * @return 0 on success, -1 if the connection is not found.
  */
-DLT_STATIC int mct_daemon_remove_connection(DltEventHandler *ev,
-                                            DltConnection *to_remove)
+static int mct_daemon_remove_connection(MctEventHandler *ev,
+                                            MctConnection *to_remove)
 {
     if ((ev == NULL) || (to_remove == NULL)) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    DltConnection *curr = ev->connections;
-    DltConnection *prev = curr;
+    MctConnection *curr = ev->connections;
+    MctConnection *prev = curr;
 
     /* Find the address where to_remove value is registered */
     while (curr && (curr != to_remove)) {
@@ -320,7 +320,7 @@ DLT_STATIC int mct_daemon_remove_connection(DltEventHandler *ev,
  *
  * @param ev Pointer to the event handler structure.
  */
-void mct_event_handler_cleanup_connections(DltEventHandler *ev)
+void mct_event_handler_cleanup_connections(MctEventHandler *ev)
 {
     unsigned int i = 0;
 
@@ -347,11 +347,11 @@ void mct_event_handler_cleanup_connections(DltEventHandler *ev)
  * @param ev The event handler structure where the connection list is.
  * @param connection The connection to be added.
  */
-DLT_STATIC void mct_daemon_add_connection(DltEventHandler *ev,
-                                          DltConnection *connection)
+static void mct_daemon_add_connection(MctEventHandler *ev,
+                                          MctConnection *connection)
 {
 
-    DltConnection **temp = &ev->connections;
+    MctConnection **temp = &ev->connections;
 
     while (*temp != NULL)
         temp = &(*temp)->next;
@@ -373,9 +373,9 @@ DLT_STATIC void mct_daemon_add_connection(DltEventHandler *ev,
  *
  * @return 0 on success, -1 otherwise
  */
-int mct_connection_check_activate(DltEventHandler *evhdl,
-                                  DltConnection *con,
-                                  DltMessageFilter *filter,
+int mct_connection_check_activate(MctEventHandler *evhdl,
+                                  MctConnection *con,
+                                  MctMessageFilter *filter,
                                   int activation_type)
 {
     if (!evhdl || !con || !con->receiver || !filter) {
@@ -391,7 +391,7 @@ int mct_connection_check_activate(DltEventHandler *evhdl,
                 mct_vlog(LOG_INFO, "Deactivate connection type: %u\n", con->type);
                 mct_event_handler_disable_fd(evhdl, con->receiver->fd);
 
-                if (con->type == DLT_CONNECTION_CLIENT_CONNECT) {
+                if (con->type == MCT_CONNECTION_CLIENT_CONNECT) {
                     con->receiver->fd = -1;
                 }
 
@@ -422,7 +422,7 @@ int mct_connection_check_activate(DltEventHandler *evhdl,
  * As we add the connection to the list of connection, we take its ownership.
  * That's the only place where the connection pointer is stored.
  * The connection is then used to create a new event trigger.
- * If the connection is of type DLT_CONNECTION_CLIENT_MSG_TCP, we increase
+ * If the connection is of type MCT_CONNECTION_CLIENT_MSG_TCP, we increase
  * the daemon_local->client_connections counter. TODO: Move this counter inside
  * the event handler structure.
  *
@@ -433,9 +433,9 @@ int mct_connection_check_activate(DltEventHandler *evhdl,
  *
  * @return 0 on success, -1 otherwise.
  */
-int mct_event_handler_register_connection(DltEventHandler *evhdl,
-                                          DltDaemonLocal *daemon_local,
-                                          DltConnection *connection,
+int mct_event_handler_register_connection(MctEventHandler *evhdl,
+                                          MctDaemonLocal *daemon_local,
+                                          MctConnection *connection,
                                           int mask)
 {
     if (!evhdl || !connection || !connection->receiver) {
@@ -445,8 +445,8 @@ int mct_event_handler_register_connection(DltEventHandler *evhdl,
 
     mct_daemon_add_connection(evhdl, connection);
 
-    if ((connection->type == DLT_CONNECTION_CLIENT_MSG_TCP) ||
-        (connection->type == DLT_CONNECTION_CLIENT_MSG_SERIAL)) {
+    if ((connection->type == MCT_CONNECTION_CLIENT_MSG_TCP) ||
+        (connection->type == MCT_CONNECTION_CLIENT_MSG_SERIAL)) {
         daemon_local->client_connections++;
     }
 
@@ -464,7 +464,7 @@ int mct_event_handler_register_connection(DltEventHandler *evhdl,
  *
  * We first look for the connection to be unregistered, delete the event
  * corresponding and then destroy the connection.
- * If the connection is of type DLT_CONNECTION_CLIENT_MSG_TCP, we decrease
+ * If the connection is of type MCT_CONNECTION_CLIENT_MSG_TCP, we decrease
  * the daemon_local->client_connections counter. TODO: Move this counter inside
  * the event handler structure.
  *
@@ -474,26 +474,26 @@ int mct_event_handler_register_connection(DltEventHandler *evhdl,
  *
  * @return 0 on success, -1 otherwise.
  */
-int mct_event_handler_unregister_connection(DltEventHandler *evhdl,
-                                            DltDaemonLocal *daemon_local,
+int mct_event_handler_unregister_connection(MctEventHandler *evhdl,
+                                            MctDaemonLocal *daemon_local,
                                             int fd)
 {
     if ((evhdl == NULL) || (daemon_local == NULL)) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* Look for the pointer in the client list.
      * There shall be only one event handler with the same fd.
      */
-    DltConnection *temp = mct_event_handler_find_connection(evhdl, fd);
+    MctConnection *temp = mct_event_handler_find_connection(evhdl, fd);
 
     if (!temp) {
         mct_log(LOG_ERR, "Connection not found for unregistration.\n");
         return -1;
     }
 
-    if ((temp->type == DLT_CONNECTION_CLIENT_MSG_TCP) ||
-        (temp->type == DLT_CONNECTION_CLIENT_MSG_SERIAL)) {
+    if ((temp->type == MCT_CONNECTION_CLIENT_MSG_TCP) ||
+        (temp->type == MCT_CONNECTION_CLIENT_MSG_SERIAL)) {
         daemon_local->client_connections--;
 
         if (daemon_local->client_connections < 0) {

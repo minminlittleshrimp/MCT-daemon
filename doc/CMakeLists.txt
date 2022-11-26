@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2011-2015, BMW AG
 #
-# This file is part of GENIVI Project DLT - Diagnostic Log and Trace.
+# This file is part of GENIVI Project MCT - Diagnostic Log and Trace.
 #
 # This Source Code Form is subject to the terms of the
 # Mozilla Public License (MPL), v. 2.0.
@@ -73,7 +73,7 @@ if(WITH_DOC)
         COMMAND mkdir -p ${PROJECT_BINARY_DIR}/doc/manuals
         COMMAND mkdir -p ${PROJECT_BINARY_DIR}/doc/manuals/images
         COMMAND cp -r ${PROJECT_SOURCE_DIR}/doc/images/* ${PROJECT_BINARY_DIR}/doc/manuals/images
-        COMMAND ${ASCIIDOC_TOOL} -a TOC1 -o ${PROJECT_BINARY_DIR}/doc/manuals/dlt_design_specification.html ${PROJECT_SOURCE_DIR}/doc/dlt_design_specification.md
+        COMMAND ${ASCIIDOC_TOOL} -a TOC1 -o ${PROJECT_BINARY_DIR}/doc/manuals/mct_design_specification.html ${PROJECT_SOURCE_DIR}/doc/mct_design_specification.md
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/doc
     )
 

@@ -1,92 +1,92 @@
-#ifndef _DLT_DAEMON_FILTER_INTERNAL_H
-#define _DLT_DAEMON_FILTER_INTERNAL_H
+#ifndef _MCT_DAEMON_FILTER_INTERNAL_H
+#define _MCT_DAEMON_FILTER_INTERNAL_H
 
-DLT_STATIC DltReturnValue enable_all(DltServiceIdFlag *flags);
+static MctReturnValue enable_all(MctServiceIdFlag *flags);
 
-DLT_STATIC DltReturnValue init_flags(DltServiceIdFlag *flags);
+static MctReturnValue init_flags(MctServiceIdFlag *flags);
 
-DLT_STATIC DltReturnValue set_bit(DltServiceIdFlag *flags, int id);
+static MctReturnValue set_bit(MctServiceIdFlag *flags, int id);
 
-DLT_STATIC DltReturnValue bit(DltServiceIdFlag *flags, int id);
+static MctReturnValue bit(MctServiceIdFlag *flags, int id);
 
-DLT_STATIC DltReturnValue mct_daemon_filter_name(DltMessageFilter *mf,
-                                                 DltFilterConfiguration *config,
+static MctReturnValue mct_daemon_filter_name(MctMessageFilter *mf,
+                                                 MctFilterConfiguration *config,
                                                  char *value);
 
-DLT_STATIC DltReturnValue mct_daemon_filter_level(DltMessageFilter *mf,
-                                                  DltFilterConfiguration *config,
+static MctReturnValue mct_daemon_filter_level(MctMessageFilter *mf,
+                                                  MctFilterConfiguration *config,
                                                   char *value);
 
-DLT_STATIC DltReturnValue mct_daemon_filter_control_mask(DltMessageFilter *mf,
-                                                         DltFilterConfiguration *config,
+static MctReturnValue mct_daemon_filter_control_mask(MctMessageFilter *mf,
+                                                         MctFilterConfiguration *config,
                                                          char *value);
 
-DLT_STATIC DltReturnValue mct_daemon_filter_client_mask(DltMessageFilter *mf,
-                                                        DltFilterConfiguration *config,
+static MctReturnValue mct_daemon_filter_client_mask(MctMessageFilter *mf,
+                                                        MctFilterConfiguration *config,
                                                         char *value);
 
-DLT_STATIC DltReturnValue mct_daemon_filter_injections(DltMessageFilter *mf,
-                                                       DltFilterConfiguration *config,
+static MctReturnValue mct_daemon_filter_injections(MctMessageFilter *mf,
+                                                       MctFilterConfiguration *config,
                                                        char *value);
 
-DLT_STATIC DltReturnValue mct_daemon_set_injection_service_ids(int **ids,
+static MctReturnValue mct_daemon_set_injection_service_ids(int **ids,
                                                                int *num,
                                                                char *value);
 
-DLT_STATIC DltInjectionConfig *mct_daemon_filter_find_injection_by_name(
-    DltInjectionConfig *injections,
+static MctInjectionConfig *mct_daemon_filter_find_injection_by_name(
+    MctInjectionConfig *injections,
     char *name);
 
-DLT_STATIC DltReturnValue mct_daemon_injection_name(DltMessageFilter *mf,
-                                                    DltInjectionConfig *config,
+static MctReturnValue mct_daemon_injection_name(MctMessageFilter *mf,
+                                                    MctInjectionConfig *config,
                                                     char *value);
 
-DLT_STATIC DltReturnValue mct_daemon_injection_apid(DltMessageFilter *mf,
-                                                    DltInjectionConfig *config,
+static MctReturnValue mct_daemon_injection_apid(MctMessageFilter *mf,
+                                                    MctInjectionConfig *config,
                                                     char *value);
 
-DLT_STATIC DltReturnValue mct_daemon_injection_ctid(DltMessageFilter *mf,
-                                                    DltInjectionConfig *config,
+static MctReturnValue mct_daemon_injection_ctid(MctMessageFilter *mf,
+                                                    MctInjectionConfig *config,
                                                     char *value);
 
-DLT_STATIC DltReturnValue mct_daemon_injection_ecu_id(DltMessageFilter *mf,
-                                                      DltInjectionConfig *config,
+static MctReturnValue mct_daemon_injection_ecu_id(MctMessageFilter *mf,
+                                                      MctInjectionConfig *config,
                                                       char *value);
 
-DLT_STATIC DltReturnValue mct_daemon_injection_service_id(DltMessageFilter *mf,
-                                                          DltInjectionConfig *config,
+static MctReturnValue mct_daemon_injection_service_id(MctMessageFilter *mf,
+                                                          MctInjectionConfig *config,
                                                           char *value);
 
-DLT_STATIC DltReturnValue mct_daemon_get_name(DltMessageFilter *mf, char *val);
+static MctReturnValue mct_daemon_get_name(MctMessageFilter *mf, char *val);
 
-DLT_STATIC DltReturnValue mct_daemon_get_default_level(DltMessageFilter *mf, char *val);
+static MctReturnValue mct_daemon_get_default_level(MctMessageFilter *mf, char *val);
 
-DLT_STATIC DltReturnValue mct_daemon_get_backend(DltMessageFilter *mf, char *val);
+static MctReturnValue mct_daemon_get_backend(MctMessageFilter *mf, char *val);
 
-DLT_STATIC DltReturnValue mct_daemon_setup_filter_section(DltMessageFilter *mf,
-                                                          DltConfigFile *config,
+static MctReturnValue mct_daemon_setup_filter_section(MctMessageFilter *mf,
+                                                          MctConfigFile *config,
                                                           char *sec_name);
 
-DLT_STATIC DltReturnValue mct_daemon_setup_filter_properties(DltMessageFilter *mf,
-                                                             DltConfigFile *config,
+static MctReturnValue mct_daemon_setup_filter_properties(MctMessageFilter *mf,
+                                                             MctConfigFile *config,
                                                              char *sec_name);
 
-DLT_STATIC DltReturnValue mct_daemon_setup_injection_config(DltMessageFilter *mf,
-                                                            DltConfigFile *config,
+static MctReturnValue mct_daemon_setup_injection_config(MctMessageFilter *mf,
+                                                            MctConfigFile *config,
                                                             char *sec_name);
 
-void mct_daemon_free_filter_configuration(DltFilterConfiguration *conf);
+void mct_daemon_free_filter_configuration(MctFilterConfiguration *conf);
 
-DLT_STATIC DltReturnValue mct_daemon_check_filter_level(DltFilterConfiguration *conf,
-                                                        DltFilterConfiguration *configs);
+static MctReturnValue mct_daemon_check_filter_level(MctFilterConfiguration *conf,
+                                                        MctFilterConfiguration *configs);
 
-DLT_STATIC DltReturnValue mct_daemon_insert_filter(DltFilterConfiguration *conf,
-                                                   DltFilterConfiguration **configs);
+static MctReturnValue mct_daemon_insert_filter(MctFilterConfiguration *conf,
+                                                   MctFilterConfiguration **configs);
 
-DLT_STATIC DltFilterConfiguration *mct_daemon_add_closed_filter(char *name);
+static MctFilterConfiguration *mct_daemon_add_closed_filter(char *name);
 
-DLT_STATIC DltReturnValue mct_daemon_check_filter_level_range(DltMessageFilter *mf);
+static MctReturnValue mct_daemon_check_filter_level_range(MctMessageFilter *mf);
 
-DLT_STATIC DltReturnValue mct_daemon_set_default_level(DltMessageFilter *mf);
+static MctReturnValue mct_daemon_set_default_level(MctMessageFilter *mf);
 
 #endif

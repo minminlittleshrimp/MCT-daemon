@@ -23,7 +23,7 @@ int mct_daemon_serial_send(int sock,
     /* Optional: Send serial header, if requested */
     if (serialheader) {
         if (0 > write(sock, mctSerialHeader, sizeof(mctSerialHeader))) {
-            return DLT_DAEMON_ERROR_SEND_FAILED;
+            return MCT_DAEMON_ERROR_SEND_FAILED;
         }
     }
 
@@ -31,15 +31,15 @@ int mct_daemon_serial_send(int sock,
 
     if (data1 && (size1 > 0)) {
         if (0 > write(sock, data1, size1)) {
-            return DLT_DAEMON_ERROR_SEND_FAILED;
+            return MCT_DAEMON_ERROR_SEND_FAILED;
         }
     }
 
     if (data2 && (size2 > 0)) {
         if (0 > write(sock, data2, size2)) {
-            return DLT_DAEMON_ERROR_SEND_FAILED;
+            return MCT_DAEMON_ERROR_SEND_FAILED;
         }
     }
 
-    return DLT_DAEMON_ERROR_OK;
+    return MCT_DAEMON_ERROR_OK;
 }

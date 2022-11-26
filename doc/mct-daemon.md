@@ -8,7 +8,8 @@
 
 # DESCRIPTION
 
-The MCT Daemon acts as a central data transferring space where logs from Publisher will be kept temporarily or permanently based on requests from Subcriber.
+This MCT Daemon will act as a central tracer by storing logs from log-writer and
+later buffer these logs in the need of the log-reader.
 
 ## OPTIONS
 
@@ -45,7 +46,11 @@ Non zero is returned in case of failure.
 
 # AUTHOR
 
-Luu Quang Minh, Hoang Quang Chanh, Nguyen Nhu Thuan
+Luu Quang Minh (leader)
+
+Hoang Quang Chanh
+
+Nguyen Nhu Thuan
 
 # COPYRIGHT
 

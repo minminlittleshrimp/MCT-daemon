@@ -1,5 +1,5 @@
-#ifndef DLT_DAEMON_SOCKET_H
-#define DLT_DAEMON_SOCKET_H
+#ifndef MCT_DAEMON_SOCKET_H
+#define MCT_DAEMON_SOCKET_H
 
 #include <limits.h>
 #include <semaphore.h>
@@ -23,8 +23,8 @@ int mct_daemon_socket_send(int sock,
  * @param sock
  * @param data_buffer
  * @param message_size
- * @return on sucess: DLT_DAEMON_ERROR_OK, on error: DLT_DAEMON_ERROR_SEND_FAILED
+ * @return on sucess: MCT_DAEMON_ERROR_OK, on error: MCT_DAEMON_ERROR_SEND_FAILED
  */
 int mct_daemon_socket_sendreliable(int sock, void *data_buffer, int message_size);
 
-#endif /* DLT_DAEMON_SOCKET_H */
+#endif /* MCT_DAEMON_SOCKET_H */

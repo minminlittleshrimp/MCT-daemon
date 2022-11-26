@@ -1,16 +1,14 @@
-% DLT-RECEIVE(1)
-
 # NAME
 
-**dlt-receive** - Console based client for DLT Logging
+**mct-log-reader** - Console based message reader for MCT Logging
 
 # SYNOPSIS
 
-**dlt-receive** \[**-h**\] \[**-a**\] \[**-x**\] \[**-m**\] \[**-s**\] \[**-o** filename\] \[**-c** limit\] \[**-v**\] \[**-y**\] \[**-b** baudrate\] \[**-e** ecuid\] \[**-f** filterfile\] \[**-j** filterfile\] \[**-p** port\] hostname/serial_device_name
+**mct-log-reader** \[**-h**\] \[**-a**\] \[**-x**\] \[**-m**\] \[**-s**\] \[**-o** filename\] \[**-c** limit\] \[**-v**\] \[**-y**\] \[**-b** baudrate\] \[**-e** ecuid\] \[**-p** port\] hostname/serial_device_name
 
 # DESCRIPTION
 
-Receive DLT messages from DLT daemon and print or store the messages.
+Receive MCT messages from MCT daemon and print or store the messages.
 
 ## OPTIONS
 
@@ -20,23 +18,23 @@ Receive DLT messages from DLT daemon and print or store the messages.
 
 -a
 
-: Print DLT file; payload as ASCII.
+: Print MCT file; payload as ASCII.
 
 -x
 
-:   Print DLT file; payload as hex.
+:   Print MCT file; payload as hex.
 
 -m
 
-:   Print DLT file; payload as hex and ASCII.
+:   Print MCT file; payload as hex and ASCII.
 
 -s
 
-:   Print DLT file; only headers.
+:   Print MCT file; only headers.
 
 -o
 
-:   Output messages in new DLT file.
+:   Output messages in new MCT file.
 
 -c
 
@@ -64,88 +62,46 @@ Receive DLT messages from DLT daemon and print or store the messages.
 
 -e
 
-:   Set ECU ID (Default: RECV).
-
--f
-
-:   Enable filtering of messages. Takes a space separated filter file (see [Space separated filter file](#Space-separated-filter-file)).
-
--j
-
-:   Enable extended filtering of messages. Takes a json filter file ([Json filter file](#Json-filter-file)).
+:   Set central ID (Default: RECV).
 
 -p
 
-:   Port for UDP and TCP communication (Default: 3490).
+:   Port TCP communication (Default: 3490).
 # EXAMPLES
 
-Print received message headers received from a dlt-daemon running on localhost::
-    **dlt-receive -s localhost**
+Print message headers received from a mct-daemon running on localhost::
+    **mct-log-reader -s localhost**
 
-Print received message headers received from a serila interface::
-    **dlt-receive -s -y /dev/ttySO**
+Print message headers received from a serial interface::
+    **mct-log-reader -s -y /dev/ttySO**
 
-Store received message headers from a dlt-daemon to a log file called log.dlt and filter them for e.g. Application ID ABCD and Context ID EFGH (Write:ABCD EFGH as single line to a file called filter.txt)::
-    **dlt-receive -s -o log.dlt -f filter.txt localhost**
-
-Store incoming messages in file(s) and restrict file sizes to 1 megabyte. If limit is reached, log.dlt will be renamed into log.0.dlt, log.1.dlt, ... No files will be overwritten in this mode::
-    **dlt-receive -o log.dlt -c 1M localhost**
+Store incoming messages in file(s) and restrict file sizes to 1 megabyte. If limit is reached, log.mct will be renamed into log.0.mct, log.1.mct, ... No files will be overwritten in this mode::
+    **mct-log-reader -o log.mct -c 1M localhost**
 
 ## Space separated filter file
-File that defines multiple filters. Can be used as argument for `-f` option. With this it's only possible to filter messages depending on their Application ID and/or Context ID. The syntax is: first AppID and optional a CtxID behind it, with a space in between. Each line defines a filter and the maximum number of filters is 30.
-
-Example:
-```
-DLTD INTM
-DLT INT
-TEST
-```
+Testing and implementing.
 
 ## Json filter file
 Only available, when builded with cmake option `WITH_EXTENDED_FILTERING`.
 
-File that defines multiple filters. Can be used as argument for `-j` option. With this it's also possible to filter messages depending on their Application ID, Context ID, log level and payload size. The following example shows the syntax. Names of the filters can be customized, but not more than 15 characters long. The maximum number of filters is also 30.
-
-Example:
-```
-{
-"filter1": {
-    "AppId": "LOG",
-    "ContextId": "TEST",
-    "LogLevel": "3"
-    },
-"filter2": {
-    "AppId": "app",
-    "LogLevel": "4"
-    },
-"filter3": {
-    "AppId": "app2",
-    "ContextId": "con2",
-    "PayloadMin": "20",
-    "PayloadMax": "50"
-    }
-}
-```
+Testing and implementing.
 # EXIT STATUS
 
 Non zero is returned in case of failure.
 
 # NOTES
 
-Be aware that dlt-receive will never delete any files. Instead, it creates a new file.
+Be aware that mct-log-reader will never delete any files. Instead, it creates a new file.
 
 # AUTHOR
 
-Alexander Wenzel (alexander.aw.wenzel (at) bmw (dot) de)
+Luu Quang Minh, Hoang Quang Chanh, Nguyen Nhu Thuan
 
 # COPYRIGHT
 
-Copyright (C) 2015 BMW AG. License MPL-2.0: Mozilla Public License version 2.0 <http://mozilla.org/MPL/2.0/>.
 
 # BUGS
 
-See Github issue: <https://github.com/GENIVI/dlt-daemon/issues>
+See Github issue: <>
 
-# SEE ALSO
-
-**dlt-daemon(1)**
+**mct-daemon**

@@ -36,7 +36,7 @@ unsigned int mct_offline_trace_storage_dir_info(char *path, char *file_name, cha
         len = strlen(file_name);
 
         if ((strncmp(files[i]->d_name, file_name, len) == 0) &&
-            (files[i]->d_name[len] == DLT_OFFLINETRACE_FILENAME_INDEX_DELI[0])) {
+            (files[i]->d_name[len] == MCT_OFFLINETRACE_FILENAME_INDEX_DELI[0])) {
             num++;
 
             if ((tmp_old == NULL) || (strlen(tmp_old) >= strlen(files[i]->d_name))) {
@@ -92,16 +92,16 @@ void mct_offline_trace_file_name(char *log_file_name, size_t length,
     /* create log file name */
     memset(log_file_name, 0, length * sizeof(char));
     strncat(log_file_name, name, length - strlen(log_file_name) - 1);
-    strncat(log_file_name, DLT_OFFLINETRACE_FILENAME_INDEX_DELI,
+    strncat(log_file_name, MCT_OFFLINETRACE_FILENAME_INDEX_DELI,
             length - strlen(log_file_name) - 1);
     strncat(log_file_name, file_index, length - strlen(log_file_name) - 1);
-    strncat(log_file_name, DLT_OFFLINETRACE_FILENAME_EXT,
+    strncat(log_file_name, MCT_OFFLINETRACE_FILENAME_EXT,
             length - strlen(log_file_name) - 1);
 }
 
 unsigned int mct_offline_trace_get_idx_of_log_file(char *file)
 {
-    const char d[2] = DLT_OFFLINETRACE_FILENAME_INDEX_DELI;
+    const char d[2] = MCT_OFFLINETRACE_FILENAME_INDEX_DELI;
     char *token;
     unsigned int idx = 0;
 
@@ -121,7 +121,7 @@ unsigned int mct_offline_trace_get_idx_of_log_file(char *file)
 }
 
 
-DltReturnValue mct_offline_trace_create_new_file(DltOfflineTrace *trace)
+MctReturnValue mct_offline_trace_create_new_file(MctOfflineTrace *trace)
 {
     time_t t;
     struct tm tmp;
@@ -140,13 +140,13 @@ DltReturnValue mct_offline_trace_create_new_file(DltOfflineTrace *trace)
         strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", &tmp);
 
         ret = snprintf(trace->filename, sizeof(trace->filename), "%s%s%s%s",
-                       DLT_OFFLINETRACE_FILENAME_BASE,
-                       DLT_OFFLINETRACE_FILENAME_TIMESTAMP_DELI, timestamp,
-                       DLT_OFFLINETRACE_FILENAME_EXT);
+                       MCT_OFFLINETRACE_FILENAME_BASE,
+                       MCT_OFFLINETRACE_FILENAME_TIMESTAMP_DELI, timestamp,
+                       MCT_OFFLINETRACE_FILENAME_EXT);
 
         if ((ret < 0) || ((size_t)ret >= sizeof(trace->filename))) {
             printf("mct_offlinetrace filename cannot be concatenated\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
         ret = snprintf(file_path, sizeof(file_path), "%s/%s",
@@ -154,7 +154,7 @@ DltReturnValue mct_offline_trace_create_new_file(DltOfflineTrace *trace)
 
         if ((ret < 0) || ((size_t)ret >= sizeof(file_path))) {
             printf("mct_offlinetrace file path cannot be concatenated\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
     else {
@@ -162,34 +162,34 @@ DltReturnValue mct_offline_trace_create_new_file(DltOfflineTrace *trace)
         char oldest[NAME_MAX + 1] = { 0 };
         /* targeting newest file, ignoring number of files in dir returned */
         mct_offline_trace_storage_dir_info(trace->directory,
-                                           DLT_OFFLINETRACE_FILENAME_BASE, newest, oldest);
+                                           MCT_OFFLINETRACE_FILENAME_BASE, newest, oldest);
         idx = mct_offline_trace_get_idx_of_log_file(newest) + 1;
 
         mct_offline_trace_file_name(trace->filename, sizeof(trace->filename),
-                                    DLT_OFFLINETRACE_FILENAME_BASE, idx);
+                                    MCT_OFFLINETRACE_FILENAME_BASE, idx);
         ret = snprintf(file_path, sizeof(file_path), "%s/%s",
                        trace->directory, trace->filename);
 
         if ((ret < 0) || (ret >= NAME_MAX)) {
             printf("filename cannot be concatenated\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
-    /* open DLT output file */
+    /* open MCT output file */
     trace->ohandle = open(file_path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR |
                           S_IRGRP | S_IROTH); /* mode: wb */
 
     if (trace->ohandle == -1) {
         /* trace file cannot be opened */
         printf("Offline trace file %s cannot be created\n", file_path);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     } /* if */
 
-    return DLT_RETURN_OK; /* OK */
+    return MCT_RETURN_OK; /* OK */
 }
 
-ssize_t mct_offline_trace_get_total_size(DltOfflineTrace *trace)
+ssize_t mct_offline_trace_get_total_size(MctOfflineTrace *trace)
 {
     struct dirent *dp;
     char filename[PATH_MAX + 1];
@@ -203,7 +203,7 @@ ssize_t mct_offline_trace_get_total_size(DltOfflineTrace *trace)
         return -1;
 
     while ((dp = readdir(dir)) != NULL)
-        if (strstr(dp->d_name, DLT_OFFLINETRACE_FILENAME_BASE)) {
+        if (strstr(dp->d_name, MCT_OFFLINETRACE_FILENAME_BASE)) {
             int res = snprintf(filename, sizeof(filename), "%s/%s", trace->directory, dp->d_name);
 
             /* if the total length of the string is greater than the buffer, silently forget it. */
@@ -228,7 +228,7 @@ ssize_t mct_offline_trace_get_total_size(DltOfflineTrace *trace)
     return size;
 }
 
-int mct_offline_trace_delete_oldest_file(DltOfflineTrace *trace)
+int mct_offline_trace_delete_oldest_file(MctOfflineTrace *trace)
 {
     struct dirent *dp;
     char filename[PATH_MAX + 1];
@@ -244,7 +244,7 @@ int mct_offline_trace_delete_oldest_file(DltOfflineTrace *trace)
     DIR *dir = opendir(trace->directory);
 
     while ((dp = readdir(dir)) != NULL)
-        if (strstr(dp->d_name, DLT_OFFLINETRACE_FILENAME_BASE)) {
+        if (strstr(dp->d_name, MCT_OFFLINETRACE_FILENAME_BASE)) {
             int res = snprintf(filename, sizeof(filename), "%s/%s", trace->directory, dp->d_name);
 
             /* if the total length of the string is greater than the buffer, silently forget it. */
@@ -283,7 +283,7 @@ int mct_offline_trace_delete_oldest_file(DltOfflineTrace *trace)
     return size_oldest;
 }
 
-DltReturnValue mct_offline_trace_check_size(DltOfflineTrace *trace)
+MctReturnValue mct_offline_trace_check_size(MctOfflineTrace *trace)
 {
 
     struct stat status;
@@ -291,14 +291,14 @@ DltReturnValue mct_offline_trace_check_size(DltOfflineTrace *trace)
     /* check for existence of offline trace directory */
     if (stat(trace->directory, &status) == -1) {
         mct_vlog(LOG_ERR, "Offline trace directory: %s doesn't exist \n", trace->directory);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* check for accesibilty of offline trace directory */
     else if (access(trace->directory, W_OK) != 0)
     {
         mct_vlog(LOG_ERR, "Offline trace directory: %s doesn't have the write access \n", trace->directory);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     ssize_t s = 0;
@@ -307,15 +307,15 @@ DltReturnValue mct_offline_trace_check_size(DltOfflineTrace *trace)
     while ((s = mct_offline_trace_get_total_size(trace)) > (trace->maxSize - trace->fileSize))
         /* remove oldest files as long as new file will not fit in completely into complete offline trace */
         if (mct_offline_trace_delete_oldest_file(trace) < 0)
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
 
     if (s == -1)
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
-    return DLT_RETURN_OK; /* OK */
+    return MCT_RETURN_OK; /* OK */
 }
 
-DltReturnValue mct_offline_trace_init(DltOfflineTrace *trace,
+MctReturnValue mct_offline_trace_init(MctOfflineTrace *trace,
                                       const char *directory,
                                       int fileSize,
                                       int maxSize,
@@ -334,7 +334,7 @@ DltReturnValue mct_offline_trace_init(DltOfflineTrace *trace,
     return mct_offline_trace_create_new_file(trace);
 }
 
-DltReturnValue mct_offline_trace_write(DltOfflineTrace *trace,
+MctReturnValue mct_offline_trace_write(MctOfflineTrace *trace,
                                        unsigned char *data1,
                                        int size1,
                                        unsigned char *data2,
@@ -344,7 +344,7 @@ DltReturnValue mct_offline_trace_write(DltOfflineTrace *trace,
 {
 
     if (trace->ohandle <= 0)
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
     /* check file size here */
     if ((lseek(trace->ohandle, 0, SEEK_CUR) + size1 + size2 + size3) >= trace->fileSize) {
@@ -363,35 +363,35 @@ DltReturnValue mct_offline_trace_write(DltOfflineTrace *trace,
     if (data1 && (trace->ohandle >= 0)) {
         if (write(trace->ohandle, data1, size1) != size1) {
             printf("Offline trace write failed!\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     if (data2 && (trace->ohandle >= 0)) {
         if (write(trace->ohandle, data2, size2) != size2) {
             printf("Offline trace write failed!\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     if (data3 && (trace->ohandle >= 0)) {
         if (write(trace->ohandle, data3, size3) != size3) {
             printf("Offline trace write failed!\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
-    return DLT_RETURN_OK; /* OK */
+    return MCT_RETURN_OK; /* OK */
 }
 
-DltReturnValue mct_offline_trace_free(DltOfflineTrace *trace)
+MctReturnValue mct_offline_trace_free(MctOfflineTrace *trace)
 {
 
     if (trace->ohandle <= 0)
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
     /* close last used log file */
     close(trace->ohandle);
 
-    return DLT_RETURN_OK; /* OK */
+    return MCT_RETURN_OK; /* OK */
 }

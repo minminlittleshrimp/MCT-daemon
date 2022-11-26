@@ -14,7 +14,7 @@
  * @brief Callback for security level changed event
  *
  * @param level     new security level
- * @param ptr1      pointer to DltDaemonLocal
+ * @param ptr1      pointer to MctDaemonLocal
  * @param ptr2      pointer to verbose flag
  */
 void mct_daemon_filter_backend_level_changed(unsigned int level,
@@ -28,8 +28,8 @@ void mct_daemon_filter_backend_level_changed(unsigned int level,
 
     PRINT_FUNCTION_VERBOSE(*((int *)ptr2));
 
-    DltDaemonLocal *daemon_local = (DltDaemonLocal *)ptr1;
-    DltFilterConfiguration *curr = daemon_local->pFilter.current;
+    MctDaemonLocal *daemon_local = (MctDaemonLocal *)ptr1;
+    MctFilterConfiguration *curr = daemon_local->pFilter.current;
 
     /* Nothing need to be done if the received level is included in
      * the current level range */
@@ -49,7 +49,7 @@ void mct_daemon_filter_backend_level_changed(unsigned int level,
 /**
  * @brief Callback for backend connection established event
  *
- * @param ptr1 pointer to DltDaemonLocal
+ * @param ptr1 pointer to MctDaemonLocal
  * @param ptr2 pointer to verbose flag
  */
 void mct_daemon_filter_backend_connected(void *ptr1, void *ptr2)
@@ -71,7 +71,7 @@ void mct_daemon_filter_backend_connected(void *ptr1, void *ptr2)
 /**
  * @brief Callback for backend connection lost event
  *
- * @param ptr1 pointer to DltDaemonLocal
+ * @param ptr1 pointer to MctDaemonLocal
  * @param ptr2 pointer to verbose flag
  */
 void mct_daemon_filter_backend_disconnected(void *ptr1, void *ptr2)
@@ -86,7 +86,7 @@ void mct_daemon_filter_backend_disconnected(void *ptr1, void *ptr2)
     /* when connection to ALD is lost, the default level need to be set again
      * for this we need to access the filter pointer */
 
-    DltDaemonLocal *daemon_local = (DltDaemonLocal *)ptr1;
+    MctDaemonLocal *daemon_local = (MctDaemonLocal *)ptr1;
     unsigned int default_filter_level = (unsigned int)
         daemon_local->pFilter.default_level;
     mct_daemon_filter_backend_level_changed(default_filter_level,
@@ -101,7 +101,7 @@ static const ald_plugin_callbacks_t ald_plugin_callbacks = {
     .cmd_received_clbk = NULL /* not interested in receiving commands */
 };
 
-int mct_daemon_filter_backend_init(DltDaemonLocal *daemon_local,
+int mct_daemon_filter_backend_init(MctDaemonLocal *daemon_local,
                                    int curr_filter_level,
                                    int verbose)
 {
@@ -125,7 +125,7 @@ int mct_daemon_filter_backend_init(DltDaemonLocal *daemon_local,
                                 &daemon_local->pEvent,
                                 fd,
                                 POLLIN,
-                                DLT_CONNECTION_FILTER);
+                                MCT_CONNECTION_FILTER);
 
     if (ret != 0) {
         mct_log(LOG_ERR, "Filter backend connection creation failed\n");
@@ -135,7 +135,7 @@ int mct_daemon_filter_backend_init(DltDaemonLocal *daemon_local,
     return 0;
 }
 
-int mct_daemon_filter_backend_deinit(DltDaemonLocal *daemon_local, int verbose)
+int mct_daemon_filter_backend_deinit(MctDaemonLocal *daemon_local, int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -146,7 +146,7 @@ int mct_daemon_filter_backend_deinit(DltDaemonLocal *daemon_local, int verbose)
     return ald_plugin_deinit(daemon_local, &verbose);
 }
 
-int mct_daemon_filter_backend_dispatch(DltDaemonLocal *daemon_local,
+int mct_daemon_filter_backend_dispatch(MctDaemonLocal *daemon_local,
                                        int *verbose)
 {
     if ((daemon_local == NULL) || (verbose == NULL)) {

@@ -23,7 +23,7 @@
 typedef struct
 {
     char *name;
-    int (*handler)(DltMessageFilter *mf, char *val);
+    int (*handler)(MctMessageFilter *mf, char *val);
     int is_opt;
 } general_opts;
 
@@ -32,7 +32,7 @@ typedef struct
 typedef struct
 {
     char *name;
-    int (*handler)(DltMessageFilter *mf, DltFilterConfiguration *config, char *value);
+    int (*handler)(MctMessageFilter *mf, MctFilterConfiguration *config, char *value);
 } filter_opts;
 
 /* Injection section options */
@@ -40,53 +40,53 @@ typedef struct
 typedef struct
 {
     char *name;
-    int (*handler)(DltMessageFilter *mf, DltInjectionConfig *config, char *value);
+    int (*handler)(MctMessageFilter *mf, MctInjectionConfig *config, char *value);
 } injection_opts;
 
 /**
  * @brief Set Control Message bit mask to 1
  *
- * @param flags DltServiceIdFlags
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @param flags MctServiceIdFlags
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue enable_all(DltServiceIdFlag *flags)
+static MctReturnValue enable_all(MctServiceIdFlag *flags)
 {
     if (flags == NULL) {
         mct_vlog(LOG_ERR, "%s: invalid arguments\n", __func__);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    memset(flags, 0xff, sizeof(DltServiceIdFlag));
+    memset(flags, 0xff, sizeof(MctServiceIdFlag));
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
  * @brief Init Control Message bit mask
  *
- * @param flags DltServiceIdFlags
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @param flags MctServiceIdFlags
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue init_flags(DltServiceIdFlag *flags)
+static MctReturnValue init_flags(MctServiceIdFlag *flags)
 {
     if (flags == NULL) {
         mct_vlog(LOG_ERR, "%s: invalid arguments\n", __func__);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    memset(flags, 0, sizeof(DltServiceIdFlag));
+    memset(flags, 0, sizeof(MctServiceIdFlag));
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
  * @brief Set bit in Control Message bit mask
  *
- * @param flags DltServiceIdFlags
+ * @param flags MctServiceIdFlags
  * @param id    set bit for given id
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue set_bit(DltServiceIdFlag *flags, int id)
+static MctReturnValue set_bit(MctServiceIdFlag *flags, int id)
 {
     int is_upper;
     int byte_pos;
@@ -95,16 +95,16 @@ DLT_STATIC DltReturnValue set_bit(DltServiceIdFlag *flags, int id)
 
     if (flags == NULL) {
         mct_vlog(LOG_ERR, "%s: invalid arguments\n", __func__);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    if ((id <= DLT_SERVICE_ID) || (id >= DLT_USER_SERVICE_ID_LAST_ENTRY) ||
-        ((id >= DLT_SERVICE_ID_LAST_ENTRY) && (id <= DLT_USER_SERVICE_ID))) {
+    if ((id <= MCT_SERVICE_ID) || (id >= MCT_USER_SERVICE_ID_LAST_ENTRY) ||
+        ((id >= MCT_SERVICE_ID_LAST_ENTRY) && (id <= MCT_USER_SERVICE_ID))) {
         mct_vlog(LOG_WARNING, "Given ID = %d is invalid\n", id);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    is_upper = id & DLT_USER_SERVICE_ID;
+    is_upper = id & MCT_USER_SERVICE_ID;
     tmp = id & 0xFF;
 
     byte_pos = tmp >> 3; /*  tmp / 8 */
@@ -116,17 +116,17 @@ DLT_STATIC DltReturnValue set_bit(DltServiceIdFlag *flags, int id)
         SET_BIT(flags->lower[byte_pos], bit_pos);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
  * @brief Get bit in Control Message bit mask
  *
- * @param flags DltServiceIdFlags
+ * @param flags MctServiceIdFlags
  * @param id    set bit for given id
- * @return 0,1 on success, DLT error code otherwise
+ * @return 0,1 on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue bit(DltServiceIdFlag *flags, int id)
+static MctReturnValue bit(MctServiceIdFlag *flags, int id)
 {
     int is_upper;
     int byte_pos;
@@ -135,16 +135,16 @@ DLT_STATIC DltReturnValue bit(DltServiceIdFlag *flags, int id)
 
     if (flags == NULL) {
         mct_vlog(LOG_ERR, "%s: invalid arguments\n", __func__);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    if ((id <= DLT_SERVICE_ID) || (id >= DLT_USER_SERVICE_ID_LAST_ENTRY) ||
-        ((id >= DLT_SERVICE_ID_LAST_ENTRY) && (id <= DLT_USER_SERVICE_ID))) {
+    if ((id <= MCT_SERVICE_ID) || (id >= MCT_USER_SERVICE_ID_LAST_ENTRY) ||
+        ((id >= MCT_SERVICE_ID_LAST_ENTRY) && (id <= MCT_USER_SERVICE_ID))) {
         mct_vlog(LOG_WARNING, "Given ID = %d is invalid\n", id);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    is_upper = id & DLT_USER_SERVICE_ID;
+    is_upper = id & MCT_USER_SERVICE_ID;
     tmp = id & 0xFF;
 
     byte_pos = tmp >> 3; /*  tmp / 8 */
@@ -163,21 +163,21 @@ DLT_STATIC DltReturnValue bit(DltServiceIdFlag *flags, int id)
  * In case the name is not unique, print a warning to the user
  *
  * @param mf        MessageFilter pointer
- * @param config    DltFilterConfiguration pointer
+ * @param config    MctFilterConfiguration pointer
  * @param value     Value given in configuration file
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_filter_name(DltMessageFilter *mf,
-                                                 DltFilterConfiguration *config,
+static MctReturnValue mct_daemon_filter_name(MctMessageFilter *mf,
+                                                 MctFilterConfiguration *config,
                                                  char *value)
 {
-    DltFilterConfiguration *conf = NULL;
+    MctFilterConfiguration *conf = NULL;
 
     if ((mf == NULL) || (config == NULL) || (value == NULL)) {
         mct_vlog(LOG_ERR,
                  "Cannot check section name. Invalid parameter in %s\n", __func__);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     conf = mf->configs;
@@ -187,7 +187,7 @@ DLT_STATIC DltReturnValue mct_daemon_filter_name(DltMessageFilter *mf,
             if (strncmp(conf->name, value, strlen(value)) == 0) {
                 mct_vlog(LOG_WARNING,
                          "Section name '%s' already in use\n", value);
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
         }
 
@@ -198,10 +198,10 @@ DLT_STATIC DltReturnValue mct_daemon_filter_name(DltMessageFilter *mf,
 
     if (config->name == NULL) {
         mct_log(LOG_ERR, "Cannot duplicate string\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
@@ -211,13 +211,13 @@ DLT_STATIC DltReturnValue mct_daemon_filter_name(DltMessageFilter *mf,
  * level.
  *
  * @param mf        MessageFilter pointer
- * @param config    DltFilterConfiguration pointer
+ * @param config    MctFilterConfiguration pointer
  * @param value     Value given in configuration file
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_filter_level(DltMessageFilter *mf,
-                                                  DltFilterConfiguration *config,
+static MctReturnValue mct_daemon_filter_level(MctMessageFilter *mf,
+                                                  MctFilterConfiguration *config,
                                                   char *value)
 {
     char *max_ptr = NULL;
@@ -226,7 +226,7 @@ DLT_STATIC DltReturnValue mct_daemon_filter_level(DltMessageFilter *mf,
     if ((mf == NULL) || (config == NULL) || (value == NULL)) {
         mct_vlog(LOG_ERR,
                  "Cannot check section name. Invalid parameter in %s\n", __func__);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* level should be the upper value of the range */
@@ -234,18 +234,18 @@ DLT_STATIC DltReturnValue mct_daemon_filter_level(DltMessageFilter *mf,
 
     if (max_ptr == value) {
         mct_vlog(LOG_WARNING, "Level %s is not a number\n", value);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    if (max > DLT_FILTER_LEVEL_MAX) {
+    if (max > MCT_FILTER_LEVEL_MAX) {
         mct_vlog(LOG_WARNING, "Level %ld is invalid\n", max);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* set level (level_min will be set afterwards) */
     config->level_max = (unsigned int)max;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
@@ -255,13 +255,13 @@ DLT_STATIC DltReturnValue mct_daemon_filter_level(DltMessageFilter *mf,
  * to create a mask of allowed control messages.
  *
  * @param mf        MessageFilter pointer
- * @param config    DltFilterConfiguration pointer
+ * @param config    MctFilterConfiguration pointer
  * @param value     Value given in configuration file
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_filter_control_mask(DltMessageFilter *mf,
-                                                         DltFilterConfiguration *config,
+static MctReturnValue mct_daemon_filter_control_mask(MctMessageFilter *mf,
+                                                         MctFilterConfiguration *config,
                                                          char *value)
 {
     char *token = NULL;
@@ -270,7 +270,7 @@ DLT_STATIC DltReturnValue mct_daemon_filter_control_mask(DltMessageFilter *mf,
     if ((mf == NULL) || (config == NULL) || (value == NULL)) {
         mct_vlog(LOG_ERR,
                  "Cannot check section name. Invalid parameter in %s\n", __func__);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* initialize mask */
@@ -279,12 +279,12 @@ DLT_STATIC DltReturnValue mct_daemon_filter_control_mask(DltMessageFilter *mf,
     /* check wildcard */
     if (value[0] == '*') {
         enable_all(&config->ctrl_mask);
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     /* check for no client specifier */
-    if (strncasecmp(value, DLT_FILTER_CLIENT_NONE, strlen(value)) == 0) {
-        return DLT_RETURN_OK;
+    if (strncasecmp(value, MCT_FILTER_CLIENT_NONE, strlen(value)) == 0) {
+        return MCT_RETURN_OK;
     }
 
     /* list of allowed control messages given */
@@ -294,8 +294,8 @@ DLT_STATIC DltReturnValue mct_daemon_filter_control_mask(DltMessageFilter *mf,
         int base = 16;
         long id = strtol(token, NULL, base);
 
-        if ((id <= DLT_SERVICE_ID) || (id >= DLT_USER_SERVICE_ID_LAST_ENTRY) ||
-            ((id >= DLT_SERVICE_ID_LAST_ENTRY) && (id <= DLT_USER_SERVICE_ID))) {
+        if ((id <= MCT_SERVICE_ID) || (id >= MCT_USER_SERVICE_ID_LAST_ENTRY) ||
+            ((id >= MCT_SERVICE_ID_LAST_ENTRY) && (id <= MCT_USER_SERVICE_ID))) {
             mct_vlog(LOG_WARNING, "Ignore invalid service ID: %s\n", token);
         } else {
             set_bit(&config->ctrl_mask, id);
@@ -304,7 +304,7 @@ DLT_STATIC DltReturnValue mct_daemon_filter_control_mask(DltMessageFilter *mf,
         token = strtok_r(NULL, ",", &save_ptr);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
@@ -314,16 +314,16 @@ DLT_STATIC DltReturnValue mct_daemon_filter_control_mask(DltMessageFilter *mf,
  * of it.
  * E.g Serial, TCP will become a mask for connection defined in
  * mct_daemon_connection_types.h:
- * (DLT_CON_MASK_CLIENT_MSG_SERIAL | DLT_CON_MASK_CLIENT_MSG_TCP)
+ * (MCT_CON_MASK_CLIENT_MSG_SERIAL | MCT_CON_MASK_CLIENT_MSG_TCP)
  *
  * @param mf        MessageFilter pointer
- * @param config    DltFilterConfiguration pointer
+ * @param config    MctFilterConfiguration pointer
  * @param value     Value given in configuration file
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_filter_client_mask(DltMessageFilter *mf,
-                                                        DltFilterConfiguration *config,
+static MctReturnValue mct_daemon_filter_client_mask(MctMessageFilter *mf,
+                                                        MctFilterConfiguration *config,
                                                         char *value)
 {
     char *token = NULL;
@@ -332,22 +332,22 @@ DLT_STATIC DltReturnValue mct_daemon_filter_client_mask(DltMessageFilter *mf,
     if ((mf == NULL) || (config == NULL) || (value == NULL)) {
         mct_vlog(LOG_ERR,
                  "Cannot check section name. Invalid parameter in %s\n", __func__);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* initialize mask */
-    config->client_mask = DLT_FILTER_CLIENT_CONNECTION_DEFAULT_MASK;
+    config->client_mask = MCT_FILTER_CLIENT_CONNECTION_DEFAULT_MASK;
 
     /* check wildcard */
     if (value[0] == '*') {
-        config->client_mask = DLT_CON_MASK_ALL;
-        return DLT_RETURN_OK;
+        config->client_mask = MCT_CON_MASK_ALL;
+        return MCT_RETURN_OK;
     }
 
     /* check for no client specifier */
-    if (strncasecmp(value, DLT_FILTER_CLIENT_NONE, strlen(value)) == 0) {
+    if (strncasecmp(value, MCT_FILTER_CLIENT_NONE, strlen(value)) == 0) {
         /* return default mask */
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     /* list of allowed clients given */
@@ -355,14 +355,14 @@ DLT_STATIC DltReturnValue mct_daemon_filter_client_mask(DltMessageFilter *mf,
 
     while (token != NULL) {
         if (strncasecmp(token, "Serial", strlen(token)) == 0) {
-            config->client_mask |= DLT_CON_MASK_CLIENT_MSG_SERIAL;
+            config->client_mask |= MCT_CON_MASK_CLIENT_MSG_SERIAL;
         } else if (strncasecmp(token, "TCP", strlen(token)) == 0) {
-            config->client_mask |= DLT_CON_MASK_CLIENT_CONNECT;
-            config->client_mask |= DLT_CON_MASK_CLIENT_MSG_TCP;
+            config->client_mask |= MCT_CON_MASK_CLIENT_CONNECT;
+            config->client_mask |= MCT_CON_MASK_CLIENT_MSG_TCP;
         } else if (strncasecmp(token, "Logstorage", strlen(token)) == 0) {
-            config->client_mask |= DLT_CON_MASK_CLIENT_MSG_OFFLINE_LOGSTORAGE;
+            config->client_mask |= MCT_CON_MASK_CLIENT_MSG_OFFLINE_LOGSTORAGE;
         } else if (strncasecmp(token, "Trace", strlen(token)) == 0) {
-            config->client_mask |= DLT_CON_MASK_CLIENT_MSG_OFFLINE_TRACE;
+            config->client_mask |= MCT_CON_MASK_CLIENT_MSG_OFFLINE_TRACE;
         } else {
             mct_vlog(LOG_INFO, "Ignoring unknown client type: %s\n", token);
         }
@@ -370,20 +370,20 @@ DLT_STATIC DltReturnValue mct_daemon_filter_client_mask(DltMessageFilter *mf,
         token = strtok_r(NULL, ",", &rest);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
  * @brief Set injections per filter
  *
  * @param mf        MessageFilter pointer
- * @param config    DltFilterConfiguration pointer
+ * @param config    MctFilterConfiguration pointer
  * @param value     Value given in configuration file
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_filter_injections(DltMessageFilter *mf,
-                                                       DltFilterConfiguration *config,
+static MctReturnValue mct_daemon_filter_injections(MctMessageFilter *mf,
+                                                       MctFilterConfiguration *config,
                                                        char *value)
 {
     int i;
@@ -393,13 +393,13 @@ DLT_STATIC DltReturnValue mct_daemon_filter_injections(DltMessageFilter *mf,
     if ((mf == NULL) || (config == NULL) || (value == NULL)) {
         mct_vlog(LOG_ERR,
                  "Cannot check section name. Invalid parameter in %s\n", __func__);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /*value is a komma separated list of injections or '*' or NONE */
     if (strncmp(value, "*", strlen("*")) == 0) {
         config->num_injections = -1;
-    } else if (strncasecmp(value, DLT_FILTER_CLIENT_NONE, strlen(value)) == 0) {
+    } else if (strncasecmp(value, MCT_FILTER_CLIENT_NONE, strlen(value)) == 0) {
         config->num_injections = 0;
     } else { /* at least one specific injection is given */
         config->num_injections = 1;
@@ -416,7 +416,7 @@ DLT_STATIC DltReturnValue mct_daemon_filter_injections(DltMessageFilter *mf,
         if (config->injections == NULL) {
             mct_log(LOG_CRIT,
                     "Memory allocation for injection configuration failed!\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
         i = 0;
@@ -430,10 +430,10 @@ DLT_STATIC DltReturnValue mct_daemon_filter_injections(DltMessageFilter *mf,
         }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DLT_STATIC filter_opts filter[] = {
+static filter_opts filter[] = {
     {.name = "Name", .handler = mct_daemon_filter_name},
     {.name = "Level", .handler = mct_daemon_filter_level},
     {.name = "Clients", .handler = mct_daemon_filter_client_mask},
@@ -447,7 +447,7 @@ DLT_STATIC filter_opts filter[] = {
  *
  * @param conf      Filter Configuration
  */
-void mct_daemon_free_filter_configuration(DltFilterConfiguration *conf)
+void mct_daemon_free_filter_configuration(MctFilterConfiguration *conf)
 {
     int i = 0;
 
@@ -477,21 +477,21 @@ void mct_daemon_free_filter_configuration(DltFilterConfiguration *conf)
  * @param conf      Filter Configuration which has to be inserted
  * @param configs   Filter Configurations
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_check_filter_level(DltFilterConfiguration *conf,
-                                                        DltFilterConfiguration *configs)
+static MctReturnValue mct_daemon_check_filter_level(MctFilterConfiguration *conf,
+                                                        MctFilterConfiguration *configs)
 {
     if ((conf == NULL) || (configs == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (conf->level_max == configs->level_max) {
         mct_vlog(LOG_WARNING, "Level %d already defined\n", conf->level_max);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
@@ -502,29 +502,29 @@ DLT_STATIC DltReturnValue mct_daemon_check_filter_level(DltFilterConfiguration *
  * @param conf      Filter Configuration which has to be inserted
  * @param configs   Filter Configurations
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_insert_filter(DltFilterConfiguration *conf,
-                                                   DltFilterConfiguration **configs)
+static MctReturnValue mct_daemon_insert_filter(MctFilterConfiguration *conf,
+                                                   MctFilterConfiguration **configs)
 {
     if (conf == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (*configs == NULL) {
         *configs = conf;
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     } else {
         if (conf->level_max < (*configs)->level_max) {
             /* insert at the beginning */
             conf->next = *configs;
             (*configs)->level_min = conf->level_max + 1;
             *configs = conf;
-            return DLT_RETURN_OK;
+            return MCT_RETURN_OK;
         } else {
             while ((*configs)->next != NULL) {
-                if (mct_daemon_check_filter_level(conf, *configs) == DLT_RETURN_ERROR) {
-                    return DLT_RETURN_ERROR;
+                if (mct_daemon_check_filter_level(conf, *configs) == MCT_RETURN_ERROR) {
+                    return MCT_RETURN_ERROR;
                 }
 
                 if (conf->level_max < (*configs)->next->level_max) {
@@ -533,24 +533,24 @@ DLT_STATIC DltReturnValue mct_daemon_insert_filter(DltFilterConfiguration *conf,
                     conf->next = (*configs)->next;
                     (*configs)->next->level_min = conf->level_max + 1;
                     (*configs)->next = conf;
-                    return DLT_RETURN_OK;
+                    return MCT_RETURN_OK;
                 } else {
                     configs = &(*configs)->next;
                 }
             }
 
             /* insert at the end */
-            if (mct_daemon_check_filter_level(conf, *configs) == DLT_RETURN_ERROR) {
-                return DLT_RETURN_ERROR;
+            if (mct_daemon_check_filter_level(conf, *configs) == MCT_RETURN_ERROR) {
+                return MCT_RETURN_ERROR;
             }
 
             conf->level_min = (*configs)->level_max + 1;
             (*configs)->next = conf;
-            return DLT_RETURN_OK;
+            return MCT_RETURN_OK;
         }
     }
 
-    return DLT_RETURN_ERROR;
+    return MCT_RETURN_ERROR;
 }
 
 /**
@@ -563,49 +563,49 @@ DLT_STATIC DltReturnValue mct_daemon_insert_filter(DltFilterConfiguration *conf,
  * @param config    Config file handle
  * @param sec_name  Name of the section to setup this filter configuration
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_setup_filter_section(DltMessageFilter *mf,
-                                                          DltConfigFile *config,
+static MctReturnValue mct_daemon_setup_filter_section(MctMessageFilter *mf,
+                                                          MctConfigFile *config,
                                                           char *sec_name)
 {
     int i = 0;
-    char value[DLT_CONFIG_FILE_ENTRY_MAX_LEN + 1] = {'\0'};
-    DltFilterConfiguration tmp = {0};
-    DltFilterConfiguration *conf = NULL;
+    char value[MCT_CONFIG_FILE_ENTRY_MAX_LEN + 1] = {'\0'};
+    MctFilterConfiguration tmp = {0};
+    MctFilterConfiguration *conf = NULL;
 
     if ((mf == NULL) || (config == NULL) || (sec_name == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     while (filter[i].name) {
         if (mct_config_file_get_value(config,
                                       sec_name,
                                       filter[i].name,
-                                      value) != DLT_RETURN_OK) {
-            return DLT_RETURN_ERROR;
+                                      value) != MCT_RETURN_OK) {
+            return MCT_RETURN_ERROR;
         }
 
         if (filter[i].handler) {
-            if (filter[i].handler(mf, &tmp, value) != DLT_RETURN_OK) {
+            if (filter[i].handler(mf, &tmp, value) != MCT_RETURN_OK) {
                 mct_vlog(LOG_ERR,
                          "Failed to set injection parameter: %s\n", filter[i].name);
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
         } else {
             mct_vlog(LOG_CRIT,
                      "No handler for option '%s' found\n", filter[i].name);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
         i++;
     }
 
-    conf = calloc(1, sizeof(DltFilterConfiguration));
+    conf = calloc(1, sizeof(MctFilterConfiguration));
 
     if (!conf) {
         mct_vlog(LOG_ERR, "%s: Configs could not be allocated\n", __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* set filter */
@@ -613,7 +613,7 @@ DLT_STATIC DltReturnValue mct_daemon_setup_filter_section(DltMessageFilter *mf,
         conf->name = strdup(tmp.name);
     }
 
-    conf->level_min = DLT_FILTER_LEVEL_MIN;
+    conf->level_min = MCT_FILTER_LEVEL_MIN;
     conf->level_max = tmp.level_max;
     conf->client_mask = tmp.client_mask;
     conf->ctrl_mask = tmp.ctrl_mask;
@@ -626,7 +626,7 @@ DLT_STATIC DltReturnValue mct_daemon_setup_filter_section(DltMessageFilter *mf,
 
         if (!conf->injections) {
             mct_vlog(LOG_ERR, "Injections could not be allocated\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
@@ -635,17 +635,17 @@ DLT_STATIC DltReturnValue mct_daemon_setup_filter_section(DltMessageFilter *mf,
     }
 
     /* set level_min and set conf in the right place */
-    if (mct_daemon_insert_filter(conf, &(mf->configs)) != DLT_RETURN_OK) {
+    if (mct_daemon_insert_filter(conf, &(mf->configs)) != MCT_RETURN_OK) {
         mct_daemon_free_filter_configuration(&tmp);
         mct_daemon_free_filter_configuration(conf);
         free(conf);
         conf = NULL;
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     mct_daemon_free_filter_configuration(&tmp);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
@@ -661,20 +661,20 @@ DLT_STATIC DltReturnValue mct_daemon_setup_filter_section(DltMessageFilter *mf,
  * @param num        Number of service identifier
  * @param value      String taken from configuration file
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_set_injection_service_ids(int **ids,
+static MctReturnValue mct_daemon_set_injection_service_ids(int **ids,
                                                                int *num,
                                                                char *value)
 {
     if ((ids == NULL) || (num == NULL) || (value == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* value is a komma separated list of injections or '*' or NONE */
     if (strncmp(value, "*", strlen("*")) == 0) {
         *num = -1;
-    } else if (strncasecmp(value, DLT_FILTER_CLIENT_NONE, strlen(value)) == 0) {
+    } else if (strncasecmp(value, MCT_FILTER_CLIENT_NONE, strlen(value)) == 0) {
         *num = 0;
     } else { /* at least one specific service id is given */
         int i;
@@ -695,7 +695,7 @@ DLT_STATIC DltReturnValue mct_daemon_set_injection_service_ids(int **ids,
 
         if (*ids == NULL) {
             mct_log(LOG_CRIT, "Failed to allocate memory for service IDs\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
         char *token = NULL;
@@ -711,7 +711,7 @@ DLT_STATIC DltReturnValue mct_daemon_set_injection_service_ids(int **ids,
         }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
@@ -725,8 +725,8 @@ DLT_STATIC DltReturnValue mct_daemon_set_injection_service_ids(int **ids,
  *
  * @return Corressponding injection on success, NULL otherwise.
  */
-DLT_STATIC DltInjectionConfig *mct_daemon_filter_find_injection_by_name(
-    DltInjectionConfig *injections,
+static MctInjectionConfig *mct_daemon_filter_find_injection_by_name(
+    MctInjectionConfig *injections,
     char *name)
 {
     int i;
@@ -735,7 +735,7 @@ DLT_STATIC DltInjectionConfig *mct_daemon_filter_find_injection_by_name(
         return NULL;
     }
 
-    for (i = 0; i < DLT_FILTER_INJECTION_CONFIG_MAX; i++) {
+    for (i = 0; i < MCT_FILTER_INJECTION_CONFIG_MAX; i++) {
         if (injections[i].name == NULL) {
             return NULL;
         }
@@ -749,101 +749,101 @@ DLT_STATIC DltInjectionConfig *mct_daemon_filter_find_injection_by_name(
     return NULL;
 }
 
-DLT_STATIC DltReturnValue mct_daemon_injection_name(DltMessageFilter *mf,
-                                                    DltInjectionConfig *config,
+static MctReturnValue mct_daemon_injection_name(MctMessageFilter *mf,
+                                                    MctInjectionConfig *config,
                                                     char *value)
 {
     if ((mf == NULL) || (config == NULL) || (value == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (mct_daemon_filter_find_injection_by_name(mf->injections,
                                                  value) != NULL) {
         mct_vlog(LOG_ERR,
                  "Injection configuration name '%s'already in use\n", value);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     config->name = strdup(value);
 
     if (config->name == NULL) {
         mct_log(LOG_CRIT, "Cannot duplicate string\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DLT_STATIC DltReturnValue mct_daemon_injection_apid(DltMessageFilter *mf,
-                                                    DltInjectionConfig *config,
+static MctReturnValue mct_daemon_injection_apid(MctMessageFilter *mf,
+                                                    MctInjectionConfig *config,
                                                     char *value)
 {
     if ((mf == NULL) || (config == NULL) || (value == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     config->apid = strdup(value);
 
     if (config->apid == NULL) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DLT_STATIC DltReturnValue mct_daemon_injection_ctid(DltMessageFilter *mf,
-                                                    DltInjectionConfig *config,
+static MctReturnValue mct_daemon_injection_ctid(MctMessageFilter *mf,
+                                                    MctInjectionConfig *config,
                                                     char *value)
 {
     if ((mf == NULL) || (config == NULL) || (value == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     config->ctid = strdup(value);
 
     if (config->ctid == NULL) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DLT_STATIC DltReturnValue mct_daemon_injection_ecu_id(DltMessageFilter *mf,
-                                                      DltInjectionConfig *config,
+static MctReturnValue mct_daemon_injection_ecu_id(MctMessageFilter *mf,
+                                                      MctInjectionConfig *config,
                                                       char *value)
 {
     if ((mf == NULL) || (config == NULL) || (value == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     config->ecuid = strdup(value);
 
     if (config->ecuid == NULL) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DLT_STATIC DltReturnValue mct_daemon_injection_service_id(DltMessageFilter *mf,
-                                                          DltInjectionConfig *config,
+static MctReturnValue mct_daemon_injection_service_id(MctMessageFilter *mf,
+                                                          MctInjectionConfig *config,
                                                           char *value)
 {
     if ((mf == NULL) || (config == NULL) || (value == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (mct_daemon_set_injection_service_ids(&config->service_ids,
                                              &config->num_sevice_ids,
                                              value) == -1) {
         mct_log(LOG_ERR, "Cannot set injection service ID\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DLT_STATIC injection_opts injection[] = {
+static injection_opts injection[] = {
     {.name = "Name", .handler = mct_daemon_injection_name},
     {.name = "LogAppName", .handler = mct_daemon_injection_apid},
     {.name = "ContextName", .handler = mct_daemon_injection_ctid},
@@ -862,24 +862,24 @@ DLT_STATIC injection_opts injection[] = {
  * @param config    Configuration file handle
  * @param sec_name   Section name
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_setup_injection_config(DltMessageFilter *mf,
-                                                            DltConfigFile *config,
+static MctReturnValue mct_daemon_setup_injection_config(MctMessageFilter *mf,
+                                                            MctConfigFile *config,
                                                             char *sec_name)
 {
     int i = 0;
-    DltInjectionConfig *tmp = NULL;
-    char value[DLT_CONFIG_FILE_ENTRY_MAX_LEN + 1] = {'\0'};
+    MctInjectionConfig *tmp = NULL;
+    char value[MCT_CONFIG_FILE_ENTRY_MAX_LEN + 1] = {'\0'};
 
     if ((mf == NULL) || (config == NULL) || (sec_name == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* find next free injection message configuration slot */
-    if (mf->num_injections == DLT_FILTER_INJECTION_CONFIG_MAX) {
+    if (mf->num_injections == MCT_FILTER_INJECTION_CONFIG_MAX) {
         mct_log(LOG_ERR, "Maximum number of supported injections reached\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* set current injection configuration */
@@ -889,20 +889,20 @@ DLT_STATIC DltReturnValue mct_daemon_setup_injection_config(DltMessageFilter *mf
         if (mct_config_file_get_value(config,
                                       sec_name,
                                       injection[i].name,
-                                      value) != DLT_RETURN_OK) {
+                                      value) != MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "Failed to read parameter: %s\n", injection[i].name);
         }
 
         if (injection[i].handler) {
-            if (injection[i].handler(mf, tmp, value) != DLT_RETURN_OK) {
+            if (injection[i].handler(mf, tmp, value) != MCT_RETURN_OK) {
                 mct_vlog(LOG_ERR,
                          "Failed to set injection parameter: %s\n", injection[i].name);
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
         } else {
             mct_vlog(LOG_CRIT,
                      "No handler for option '%s' found\n", injection[i].name);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
         i++;
@@ -910,85 +910,85 @@ DLT_STATIC DltReturnValue mct_daemon_setup_injection_config(DltMessageFilter *mf
 
     mf->num_injections++; /* next injection */
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DLT_STATIC DltReturnValue mct_daemon_get_name(DltMessageFilter *mf, char *val)
+static MctReturnValue mct_daemon_get_name(MctMessageFilter *mf, char *val)
 {
     if ((mf == NULL) || (val == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     mf->name = strdup(val);
 
     if (mf->name == NULL) {
         mct_log(LOG_CRIT, "Cannot allocate memory for configuration name\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DLT_STATIC DltReturnValue mct_daemon_get_default_level(DltMessageFilter *mf, char *val)
+static MctReturnValue mct_daemon_get_default_level(MctMessageFilter *mf, char *val)
 {
     char *endptr;
     unsigned int tmp;
 
     if ((mf == NULL) || (val == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     tmp = strtoul(val, &endptr, 10);
 
     if (endptr == val) {
         mct_log(LOG_WARNING, "Default Level is not a number\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    if (tmp > DLT_FILTER_LEVEL_MAX) {
+    if (tmp > MCT_FILTER_LEVEL_MAX) {
         mct_log(LOG_WARNING, "Default Level is invalid\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* set default level */
     mf->default_level = tmp;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DLT_STATIC DltReturnValue mct_daemon_get_backend(DltMessageFilter *mf, char *val)
+static MctReturnValue mct_daemon_get_backend(MctMessageFilter *mf, char *val)
 {
     if ((mf == NULL) || (val == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     mf->backend = strdup(val);
 
     if (mf->backend == NULL) {
         mct_log(LOG_ERR, "Cannot duplicate string for backend name\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DLT_STATIC general_opts general[] = {
+static general_opts general[] = {
     {.name = "Name", .handler = mct_daemon_get_name, .is_opt = 1},
     {.name = "DefaultLevel", .handler = mct_daemon_get_default_level, .is_opt = 0},
     {.name = "Backend", .handler = mct_daemon_get_backend, .is_opt = 1},
     {NULL, NULL, 0}
 };
 
-DLT_STATIC DltReturnValue mct_daemon_setup_filter_properties(DltMessageFilter *mf,
-                                                             DltConfigFile *config,
+static MctReturnValue mct_daemon_setup_filter_properties(MctMessageFilter *mf,
+                                                             MctConfigFile *config,
                                                              char *sec_name)
 {
-    char value[DLT_CONFIG_FILE_ENTRY_MAX_LEN + 1] = {'\0'};
+    char value[MCT_CONFIG_FILE_ENTRY_MAX_LEN + 1] = {'\0'};
     int i = 0;
-    DltReturnValue ret = DLT_RETURN_OK;
+    MctReturnValue ret = MCT_RETURN_OK;
 
     if ((mf == NULL) || (config == NULL) || (sec_name == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     while (general[i].name) {
@@ -997,13 +997,13 @@ DLT_STATIC DltReturnValue mct_daemon_setup_filter_properties(DltMessageFilter *m
                                         general[i].name,
                                         value);
 
-        if ((ret != DLT_RETURN_OK) && general[i].is_opt) {
+        if ((ret != MCT_RETURN_OK) && general[i].is_opt) {
             mct_vlog(LOG_INFO,
                      "Optional parameter '%s' not specified\n", general[i].name);
             i++;
-            ret = DLT_RETURN_OK; /* its OK to have no optional parameter */
+            ret = MCT_RETURN_OK; /* its OK to have no optional parameter */
             continue;
-        } else if (ret != DLT_RETURN_OK) {
+        } else if (ret != MCT_RETURN_OK) {
             mct_vlog(LOG_ERR,
                      "Missing configuration for '%s'\n", general[i].name);
             break;
@@ -1014,11 +1014,11 @@ DLT_STATIC DltReturnValue mct_daemon_setup_filter_properties(DltMessageFilter *m
         } else {
             mct_vlog(LOG_CRIT,
                      "No handler for option '%s' found\n", general[i].name);
-            ret = DLT_RETURN_ERROR;
+            ret = MCT_RETURN_ERROR;
             break;
         }
 
-        if (ret != DLT_RETURN_OK) {
+        if (ret != MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "Configuration for '%s' is invalid: %s\n",
                      general[i].name, value);
         }
@@ -1033,17 +1033,17 @@ DLT_STATIC DltReturnValue mct_daemon_setup_filter_properties(DltMessageFilter *m
  * add or update the most closed filter
  *
  * @param name      name of the filter
- * @return DltFilterConfiguration
+ * @return MctFilterConfiguration
  */
-DLT_STATIC DltFilterConfiguration *mct_daemon_add_closed_filter(char *name)
+static MctFilterConfiguration *mct_daemon_add_closed_filter(char *name)
 {
-    DltFilterConfiguration *conf = NULL;
+    MctFilterConfiguration *conf = NULL;
 
     if (name == NULL) {
         return NULL;
     }
 
-    conf = calloc(1, sizeof(DltFilterConfiguration));
+    conf = calloc(1, sizeof(MctFilterConfiguration));
 
     if (conf == NULL) {
         mct_vlog(LOG_ERR, "%s: Configs could not be allocated\n", __func__);
@@ -1051,10 +1051,10 @@ DLT_STATIC DltFilterConfiguration *mct_daemon_add_closed_filter(char *name)
     }
 
     conf->name = strdup(name);
-    conf->level_min = DLT_FILTER_LEVEL_MIN;
-    conf->level_max = DLT_FILTER_LEVEL_MAX;
+    conf->level_min = MCT_FILTER_LEVEL_MIN;
+    conf->level_max = MCT_FILTER_LEVEL_MAX;
     init_flags(&conf->ctrl_mask);
-    conf->client_mask = DLT_FILTER_CLIENT_CONNECTION_DEFAULT_MASK;
+    conf->client_mask = MCT_FILTER_CLIENT_CONNECTION_DEFAULT_MASK;
     conf->num_injections = 0;
 
     return conf;
@@ -1065,14 +1065,14 @@ DLT_STATIC DltFilterConfiguration *mct_daemon_add_closed_filter(char *name)
  *
  * @param mf    Message filter
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_check_filter_level_range(DltMessageFilter *mf)
+static MctReturnValue mct_daemon_check_filter_level_range(MctMessageFilter *mf)
 {
-    DltFilterConfiguration *conf = NULL;
+    MctFilterConfiguration *conf = NULL;
 
     if (mf == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (mf->configs == NULL) {
@@ -1084,20 +1084,20 @@ DLT_STATIC DltReturnValue mct_daemon_check_filter_level_range(DltMessageFilter *
 
         if (mf->configs == NULL) {
             mct_log(LOG_ERR, "Cannot prepare filter\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     } else {
         conf = mf->configs;
 
         while (conf) {
             if (conf->next == NULL) {
-                /* check if it has DLT_FILTER_LEVEL_MAX
+                /* check if it has MCT_FILTER_LEVEL_MAX
                  * as upper value of the level range */
-                if (conf->level_max < DLT_FILTER_LEVEL_MAX) {
+                if (conf->level_max < MCT_FILTER_LEVEL_MAX) {
                     mct_vlog(LOG_WARNING,
                              "Make %s level defined until %d\n",
-                             conf->name, DLT_FILTER_LEVEL_MAX);
-                    conf->level_max = DLT_FILTER_LEVEL_MAX;
+                             conf->name, MCT_FILTER_LEVEL_MAX);
+                    conf->level_max = MCT_FILTER_LEVEL_MAX;
                 }
             }
 
@@ -1105,7 +1105,7 @@ DLT_STATIC DltReturnValue mct_daemon_check_filter_level_range(DltMessageFilter *
         }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /**
@@ -1113,14 +1113,14 @@ DLT_STATIC DltReturnValue mct_daemon_check_filter_level_range(DltMessageFilter *
  *
  * @param mf    Message filter
  *
- * @return DLT_RETURN_OK on success, DLT error code otherwise
+ * @return MCT_RETURN_OK on success, MCT error code otherwise
  */
-DLT_STATIC DltReturnValue mct_daemon_set_default_level(DltMessageFilter *mf)
+static MctReturnValue mct_daemon_set_default_level(MctMessageFilter *mf)
 {
-    DltFilterConfiguration *conf = NULL;
+    MctFilterConfiguration *conf = NULL;
 
     if (mf == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     conf = mf->configs;
@@ -1128,7 +1128,7 @@ DLT_STATIC DltReturnValue mct_daemon_set_default_level(DltMessageFilter *mf)
     while (conf) {
         if (conf->level_max >= mf->default_level) {
             mf->current = conf;
-            return DLT_RETURN_OK;
+            return MCT_RETURN_OK;
         }
 
         conf = conf->next;
@@ -1139,24 +1139,24 @@ DLT_STATIC DltReturnValue mct_daemon_set_default_level(DltMessageFilter *mf)
     mct_vlog(LOG_ERR,
              "Default level %d is not acceptable\n", mf->default_level);
 
-    return DLT_RETURN_ERROR;
+    return MCT_RETURN_ERROR;
 }
 
-DltReturnValue mct_daemon_prepare_message_filter(DltDaemonLocal *daemon_local,
+MctReturnValue mct_daemon_prepare_message_filter(MctDaemonLocal *daemon_local,
                                                  int verbose)
 {
-    DltMessageFilter *mf;
+    MctMessageFilter *mf;
     char *filter_config = daemon_local->flags.msgFilterConfFile;
-    DltConfigFile *config = NULL;
-    DltFilterConfiguration *tmp = NULL;
+    MctConfigFile *config = NULL;
+    MctFilterConfiguration *tmp = NULL;
     int sec = 0;
     int num_sec = 0;
-    DltReturnValue ret = DLT_RETURN_OK;
+    MctReturnValue ret = MCT_RETURN_OK;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
     if (daemon_local == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (daemon_local->flags.injectionMode == 0) {
@@ -1174,36 +1174,36 @@ DltReturnValue mct_daemon_prepare_message_filter(DltDaemonLocal *daemon_local,
 
     if (config == NULL) {
         mct_log(LOG_CRIT, "Failed to open filter configuration file\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     mct_config_file_get_num_sections(config, &num_sec);
 
     while (sec < num_sec) {
-        char sec_name[DLT_CONFIG_FILE_ENTRY_MAX_LEN + 1] = {'\0'};
+        char sec_name[MCT_CONFIG_FILE_ENTRY_MAX_LEN + 1] = {'\0'};
 
-        if (mct_config_file_get_section_name(config, sec, sec_name) == DLT_RETURN_ERROR) {
+        if (mct_config_file_get_section_name(config, sec, sec_name) == MCT_RETURN_ERROR) {
             mct_log(LOG_CRIT, "Failed to read section name\n");
-            ret = DLT_RETURN_ERROR;
+            ret = MCT_RETURN_ERROR;
             break;
         }
 
         if (strstr(sec_name, GENERAL_BASE_NAME) != NULL) {
-            if (mct_daemon_setup_filter_properties(mf, config, sec_name) == DLT_RETURN_ERROR) {
+            if (mct_daemon_setup_filter_properties(mf, config, sec_name) == MCT_RETURN_ERROR) {
                 mct_vlog(LOG_CRIT, "Filter configuration [%s] is invalid\n", sec_name);
-                ret = DLT_RETURN_ERROR;
+                ret = MCT_RETURN_ERROR;
                 break;
             }
         } else if (strstr(sec_name, FILTER_BASE_NAME) != NULL) {
-            if (mct_daemon_setup_filter_section(mf, config, sec_name) == DLT_RETURN_ERROR) {
+            if (mct_daemon_setup_filter_section(mf, config, sec_name) == MCT_RETURN_ERROR) {
                 mct_vlog(LOG_CRIT, "Filter configuration [%s] is invalid\n", sec_name);
-                ret = DLT_RETURN_ERROR;
+                ret = MCT_RETURN_ERROR;
                 break;
             }
         } else if (strstr(sec_name, INJECTION_BASE_NAME) != NULL) {
-            if (mct_daemon_setup_injection_config(mf, config, sec_name) == DLT_RETURN_ERROR) {
+            if (mct_daemon_setup_injection_config(mf, config, sec_name) == MCT_RETURN_ERROR) {
                 mct_vlog(LOG_CRIT, "Filter configuration [%s] is invalid\n", sec_name);
-                ret = DLT_RETURN_ERROR;
+                ret = MCT_RETURN_ERROR;
                 break;
             }
         } else { /* unknown section */
@@ -1213,17 +1213,17 @@ DltReturnValue mct_daemon_prepare_message_filter(DltDaemonLocal *daemon_local,
         sec++;
     }
 
-    if (ret != DLT_RETURN_ERROR) {
+    if (ret != MCT_RETURN_ERROR) {
         /* check if levels are all covered and in correct restriction order */
-        if (mct_daemon_check_filter_level_range(mf) == DLT_RETURN_ERROR) {
+        if (mct_daemon_check_filter_level_range(mf) == MCT_RETURN_ERROR) {
             mct_log(LOG_CRIT, "Filter level is not covered completely\n");
-            ret = DLT_RETURN_ERROR;
+            ret = MCT_RETURN_ERROR;
         }
 
         /* set default level */
-        if (mct_daemon_set_default_level(mf) == DLT_RETURN_ERROR) {
+        if (mct_daemon_set_default_level(mf) == MCT_RETURN_ERROR) {
             mct_log(LOG_CRIT, "Could not set default level\n");
-            ret = DLT_RETURN_ERROR;
+            ret = MCT_RETURN_ERROR;
         }
     } else {
         /* free */
@@ -1247,12 +1247,12 @@ DltReturnValue mct_daemon_prepare_message_filter(DltDaemonLocal *daemon_local,
     }
 
     /* initialize backend if available */
-    if ((ret == DLT_RETURN_OK) && (mf->backend != NULL)) {
+    if ((ret == MCT_RETURN_OK) && (mf->backend != NULL)) {
         if (mct_daemon_filter_backend_init(daemon_local,
                                            mf->default_level,
                                            verbose) != 0) {
             mct_log(LOG_CRIT, "Filter backend initialization failed\n");
-            ret = DLT_RETURN_ERROR;
+            ret = MCT_RETURN_ERROR;
         }
     }
 
@@ -1261,12 +1261,12 @@ DltReturnValue mct_daemon_prepare_message_filter(DltDaemonLocal *daemon_local,
     return ret;
 }
 
-void mct_daemon_cleanup_message_filter(DltDaemonLocal *daemon_local,
+void mct_daemon_cleanup_message_filter(MctDaemonLocal *daemon_local,
                                        int verbose)
 {
     int i = 0;
-    DltMessageFilter *mf = NULL;
-    DltFilterConfiguration *conf = NULL;
+    MctMessageFilter *mf = NULL;
+    MctFilterConfiguration *conf = NULL;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
@@ -1286,7 +1286,7 @@ void mct_daemon_cleanup_message_filter(DltDaemonLocal *daemon_local,
     }
 
     /* free injection configurations */
-    for (i = 0; i < DLT_FILTER_INJECTION_CONFIG_MAX; i++) {
+    for (i = 0; i < MCT_FILTER_INJECTION_CONFIG_MAX; i++) {
         /* return when injection was not initialized */
         if (mf->injections[i].name != NULL) {
             free(mf->injections[i].name);
@@ -1322,62 +1322,62 @@ void mct_daemon_cleanup_message_filter(DltDaemonLocal *daemon_local,
     mf->current = NULL;
 }
 
-int mct_daemon_filter_is_connection_allowed(DltMessageFilter *filter,
-                                            DltConnectionType type)
+int mct_daemon_filter_is_connection_allowed(MctMessageFilter *filter,
+                                            MctConnectionType type)
 {
     if (filter == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    DltFilterConfiguration *curr = filter->current;
+    MctFilterConfiguration *curr = filter->current;
 
-    return curr->client_mask & DLT_CONNECTION_TO_MASK(type);
+    return curr->client_mask & MCT_CONNECTION_TO_MASK(type);
 }
 
-int mct_daemon_filter_is_control_allowed(DltMessageFilter *filter,
+int mct_daemon_filter_is_control_allowed(MctMessageFilter *filter,
                                          int message_id)
 {
     if (filter == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     return bit(&(filter->current->ctrl_mask), message_id);
 }
 
-DltReturnValue mct_daemon_filter_is_injection_allowed(DltMessageFilter *filter,
+MctReturnValue mct_daemon_filter_is_injection_allowed(MctMessageFilter *filter,
                                                       char *apid,
                                                       char *ctid,
                                                       char *ecuid,
                                                       int service_id)
 {
-    DltFilterConfiguration *curr = NULL;
+    MctFilterConfiguration *curr = NULL;
     int i = 0;
     int j = 0;
 
     if ((filter == NULL) || (apid == NULL) || (ctid == NULL) || (ecuid == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     curr = filter->current;
 
     /* check first, if all or no injection is allowed */
     if (curr->num_injections == 0) { /* no injection allowed */
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     } else if (curr->num_injections == -1) { /* all allowed */
-        return DLT_RETURN_TRUE;
+        return MCT_RETURN_TRUE;
     }
 
     /* Only a certain list of injection messages is allowed. This list is a
      * whitelist. That means, as soon as machting entry is found, true will
      * be returned. */
     for (i = 0; i < curr->num_injections; i++) {
-        DltInjectionConfig *icfg = mct_daemon_filter_find_injection_by_name(
+        MctInjectionConfig *icfg = mct_daemon_filter_find_injection_by_name(
                 filter->injections,
                 curr->injections[i]);
 
         if (icfg == NULL) {
             mct_log(LOG_ERR, "Injection configuration entry not found!\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
         /* check application identifier, context identifier, node identifier
@@ -1399,34 +1399,34 @@ DltReturnValue mct_daemon_filter_is_injection_allowed(DltMessageFilter *filter,
             /* if one of the stored ids is the same, the injection message
              * is valid */
             if (icfg->service_ids[j] == service_id) {
-                return DLT_RETURN_TRUE;
+                return MCT_RETURN_TRUE;
             }
         }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_daemon_filter_change_filter_level(DltDaemonLocal *daemon_local,
+MctReturnValue mct_daemon_filter_change_filter_level(MctDaemonLocal *daemon_local,
                                                      unsigned int level,
                                                      int verbose)
 {
-    DltMessageFilter *mf = NULL;
-    DltFilterConfiguration *conf = NULL;
-    DltDaemonFlags *flags = NULL;
-    DltBindAddress_t *head = NULL;
+    MctMessageFilter *mf = NULL;
+    MctFilterConfiguration *conf = NULL;
+    MctDaemonFlags *flags = NULL;
+    MctBindAddress_t *head = NULL;
     int fd = -1;
 
     PRINT_FUNCTION_VERBOSE(verbose);
 
     if (daemon_local == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    if (level > DLT_FILTER_LEVEL_MAX) {
+    if (level > MCT_FILTER_LEVEL_MAX) {
         mct_vlog(LOG_ERR,
                  "Invalid arguments %s: %p, %u\n", __func__, daemon_local, level);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     mf = &daemon_local->pFilter;
@@ -1444,11 +1444,11 @@ DltReturnValue mct_daemon_filter_change_filter_level(DltDaemonLocal *daemon_loca
     /* if conf is NULL, the current level happens to be not updated */
     if (!conf) {
         mct_vlog(LOG_ERR, "Level %d is not acceptable\n", level);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    DltConnection *temp = mct_connection_get_next(daemon_local->pEvent.connections,
-                                                  DLT_CON_MASK_CLIENT_CONNECT);
+    MctConnection *temp = mct_connection_get_next(daemon_local->pEvent.connections,
+                                                  MCT_CON_MASK_CLIENT_CONNECT);
     flags = &daemon_local->flags;
     head = flags->ipNodes;
 
@@ -1459,23 +1459,23 @@ DltReturnValue mct_daemon_filter_change_filter_level(DltDaemonLocal *daemon_loca
         mct_log(LOG_INFO, "Connection not found! creating one if allowed\n");
 
         if (mct_daemon_filter_is_connection_allowed(&daemon_local->pFilter,
-                                                    DLT_CONNECTION_CLIENT_CONNECT) > 0) {
+                                                    MCT_CONNECTION_CLIENT_CONNECT) > 0) {
             if (head == NULL) { /* no IP set in BindAddress option, will use "0.0.0.0" as default */
                 if (mct_daemon_socket_open(&fd, daemon_local->flags.port,
-                                           "0.0.0.0") == DLT_RETURN_OK) {
+                                           "0.0.0.0") == MCT_RETURN_OK) {
                     if (mct_connection_create(daemon_local,
                                               &daemon_local->pEvent,
                                               fd,
                                               POLLIN,
-                                              DLT_CONNECTION_CLIENT_CONNECT) != DLT_RETURN_OK) {
+                                              MCT_CONNECTION_CLIENT_CONNECT) != MCT_RETURN_OK) {
                         mct_log(LOG_ERR, "Could not create connection for main socket.\n");
                         /* Exit mct-daemon since it cannot serve its purpose if the main socket
                          * is not available
                          */
                         mct_daemon_exit_trigger();
-                        return DLT_RETURN_ERROR;
+                        return MCT_RETURN_ERROR;
                     } else {
-                        return DLT_RETURN_OK;
+                        return MCT_RETURN_OK;
                     }
                 } else {
                     mct_log(LOG_ERR, "Could not initialize main socket.\n");
@@ -1483,26 +1483,26 @@ DltReturnValue mct_daemon_filter_change_filter_level(DltDaemonLocal *daemon_loca
                      * is not available
                      */
                     mct_daemon_exit_trigger();
-                    return DLT_RETURN_ERROR;
+                    return MCT_RETURN_ERROR;
                 }
             } else {
                 while (head != NULL) { /* open socket for each IP in the bindAddress list */
                     if (mct_daemon_socket_open(&fd, daemon_local->flags.port,
-                                               head->ip) == DLT_RETURN_OK) {
+                                               head->ip) == MCT_RETURN_OK) {
                         if (mct_connection_create(daemon_local,
                                                   &daemon_local->pEvent,
                                                   fd,
                                                   POLLIN,
-                                                  DLT_CONNECTION_CLIENT_CONNECT) !=
-                            DLT_RETURN_OK) {
+                                                  MCT_CONNECTION_CLIENT_CONNECT) !=
+                            MCT_RETURN_OK) {
                             mct_log(LOG_ERR, "Could not create connection for main socket.\n");
                             /* Exit mct-daemon since it cannot serve its purpose if the main socket
                              * is not available
                              */
                             mct_daemon_exit_trigger();
-                            return DLT_RETURN_ERROR;
+                            return MCT_RETURN_ERROR;
                         } else {
-                            return DLT_RETURN_OK;
+                            return MCT_RETURN_OK;
                         }
                     } else {
                         mct_log(LOG_ERR, "Could not initialize main socket.\n");
@@ -1510,7 +1510,7 @@ DltReturnValue mct_daemon_filter_change_filter_level(DltDaemonLocal *daemon_loca
                          * is not available
                          */
                         mct_daemon_exit_trigger();
-                        return DLT_RETURN_ERROR;
+                        return MCT_RETURN_ERROR;
                     }
 
                     head = head->next;
@@ -1522,7 +1522,7 @@ DltReturnValue mct_daemon_filter_change_filter_level(DltDaemonLocal *daemon_loca
          * is allowed and update receiver->fd accordingly
          */
         if (mct_daemon_filter_is_connection_allowed(&daemon_local->pFilter,
-                                                    DLT_CON_MASK_CLIENT_CONNECT) > 0) {
+                                                    MCT_CON_MASK_CLIENT_CONNECT) > 0) {
             if (temp->receiver->fd == -1) {
                 if (head == NULL) { /* no IP set in BindAddress option, will use "0.0.0.0" as default */
                     if (mct_daemon_socket_open(&fd, daemon_local->flags.port, "0.0.0.0")) {
@@ -1531,7 +1531,7 @@ DltReturnValue mct_daemon_filter_change_filter_level(DltDaemonLocal *daemon_loca
                          * is not available
                          */
                         mct_daemon_exit_trigger();
-                        return DLT_RETURN_ERROR;
+                        return MCT_RETURN_ERROR;
                     } else {
                         /* Assigning the new fd to the corresponding connection */
                         temp->receiver->fd = fd;
@@ -1544,7 +1544,7 @@ DltReturnValue mct_daemon_filter_change_filter_level(DltDaemonLocal *daemon_loca
                              * is not available
                              */
                             mct_daemon_exit_trigger();
-                            return DLT_RETURN_ERROR;
+                            return MCT_RETURN_ERROR;
                         } else {
                             /* Assigning the new fd to the corresponding connection */
                             temp->receiver->fd = fd;
@@ -1568,10 +1568,10 @@ DltReturnValue mct_daemon_filter_change_filter_level(DltDaemonLocal *daemon_loca
                                          ACTIVATE);
 }
 
-DltReturnValue mct_daemon_filter_process_filter_control_messages(
-    DltDaemon *daemon,
-    DltDaemonLocal *daemon_local,
-    DltReceiver *receiver,
+MctReturnValue mct_daemon_filter_process_filter_control_messages(
+    MctDaemon *daemon,
+    MctDaemonLocal *daemon_local,
+    MctReceiver *receiver,
     int verbose)
 {
     PRINT_FUNCTION_VERBOSE(verbose);
@@ -1581,7 +1581,7 @@ DltReturnValue mct_daemon_filter_process_filter_control_messages(
 
     if (daemon_local == NULL) {
         mct_vlog(LOG_ERR, "Invalid function parameters in %s\n", __func__);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (daemon_local->pFilter.backend != NULL) {
@@ -1589,5 +1589,5 @@ DltReturnValue mct_daemon_filter_process_filter_control_messages(
         return mct_daemon_filter_backend_dispatch(daemon_local, &verbose);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }

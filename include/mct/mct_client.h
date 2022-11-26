@@ -1,8 +1,8 @@
-#ifndef DLT_CLIENT_H
-#   define DLT_CLIENT_H
+#ifndef MCT_CLIENT_H
+#   define MCT_CLIENT_H
 
 /**
- * \defgroup clientapi DLT Client API
+ * \defgroup clientapi MCT Client API
  * \addtogroup clientapi
  \{
  */
@@ -13,16 +13,16 @@
 
 typedef enum
 {
-    DLT_CLIENT_MODE_UNDEFINED = -1,
-    DLT_CLIENT_MODE_TCP,
-    DLT_CLIENT_MODE_SERIAL,
-    DLT_CLIENT_MODE_UNIX,
-    DLT_CLIENT_MODE_UDP_MULTICAST
-} DltClientMode;
+    MCT_CLIENT_MODE_UNDEFINED = -1,
+    MCT_CLIENT_MODE_TCP,
+    MCT_CLIENT_MODE_SERIAL,
+    MCT_CLIENT_MODE_UNIX,
+    MCT_CLIENT_MODE_UDP_MULTICAST
+} MctClientMode;
 
 typedef struct
 {
-    DltReceiver receiver;  /**< receiver pointer to mct receiver structure */
+    MctReceiver receiver;  /**< receiver pointer to mct receiver structure */
     int sock;              /**< sock Connection handle/socket */
     char *servIP;          /**< servIP IP adress/Hostname of interface */
     char *hostip;          /**< hostip IP address of UDP host receiver interface */
@@ -31,16 +31,16 @@ typedef struct
     char *socketPath;      /**< socketPath Unix socket path */
     char ecuid[4];         /**< ECUiD */
     speed_t baudrate;      /**< baudrate Baudrate of serial interface, as speed_t */
-    DltClientMode mode;    /**< mode DltClientMode */
-    int send_serial_header;    /**< (Boolean) Send DLT messages with serial header */
+    MctClientMode mode;    /**< mode MctClientMode */
+    int send_serial_header;    /**< (Boolean) Send MCT messages with serial header */
     int resync_serial_header;  /**< (Boolean) Resync to serial header on all connection */
-} DltClient;
+} MctClient;
 
 #   ifdef __cplusplus
 extern "C" {
 #   endif
 
-void mct_client_register_message_callback(int (*registerd_callback)(DltMessage *message, void *data));
+void mct_client_register_message_callback(int (*registerd_callback)(MctMessage *message, void *data));
 void mct_client_register_fetch_next_message_callback(bool (*registerd_callback)(void *data));
 
 /**
@@ -50,45 +50,45 @@ void mct_client_register_fetch_next_message_callback(bool (*registerd_callback)(
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_client_init_port(DltClient *client, int port, int verbose);
+int mct_client_init_port(MctClient *client, int port, int verbose);
 
 /**
  * Initialising mct client structure
  * @param client pointer to mct client structure
  * @param verbose if set to true verbose information is printed out.
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_init(DltClient *client, int verbose);
+MctReturnValue mct_client_init(MctClient *client, int verbose);
 /**
  * Connect to mct daemon using the information from the mct client structure
  * @param client pointer to mct client structure
  * @param verbose if set to true verbose information is printed out.
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_connect(DltClient *client, int verbose);
+MctReturnValue mct_client_connect(MctClient *client, int verbose);
 /**
  * Cleanup mct client structure
  * @param client pointer to mct client structure
  * @param verbose if set to true verbose information is printed out.
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_cleanup(DltClient *client, int verbose);
+MctReturnValue mct_client_cleanup(MctClient *client, int verbose);
 /**
  * Main Loop of mct client application
  * @param client pointer to mct client structure
  * @param data pointer to data to be provided to the main loop
  * @param verbose if set to true verbose information is printed out.
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_main_loop(DltClient *client, void *data, int verbose);
+MctReturnValue mct_client_main_loop(MctClient *client, void *data, int verbose);
 
 /**
  * Send a message to the daemon through the socket.
  * @param client pointer to mct client structure.
- * @param msg The message to be send in DLT format.
- * @return Value from DltReturnValue enum.
+ * @param msg The message to be send in MCT format.
+ * @return Value from MctReturnValue enum.
  */
-DltReturnValue mct_client_send_message_to_socket(DltClient *client, DltMessage *msg);
+MctReturnValue mct_client_send_message_to_socket(MctClient *client, MctMessage *msg);
 
 /**
  * Send ancontrol message to the mct daemon
@@ -97,9 +97,9 @@ DltReturnValue mct_client_send_message_to_socket(DltClient *client, DltMessage *
  * @param ctid context id
  * @param payload Buffer filled with control message data
  * @param size Size of control message data
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_ctrl_msg(DltClient *client, char *apid, char *ctid, uint8_t *payload, uint32_t size);
+MctReturnValue mct_client_send_ctrl_msg(MctClient *client, char *apid, char *ctid, uint8_t *payload, uint32_t size);
 /**
  * Send an injection message to the mct daemon
  * @param client pointer to mct client structure
@@ -108,9 +108,9 @@ DltReturnValue mct_client_send_ctrl_msg(DltClient *client, char *apid, char *cti
  * @param serviceID service id
  * @param buffer Buffer filled with injection message data
  * @param size Size of injection data within buffer
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_inject_msg(DltClient *client,
+MctReturnValue mct_client_send_inject_msg(MctClient *client,
                                           char *apid,
                                           char *ctid,
                                           uint32_t serviceID,
@@ -122,27 +122,27 @@ DltReturnValue mct_client_send_inject_msg(DltClient *client,
  * @param apid application id
  * @param ctid context id
  * @param logLevel Log Level
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_log_level(DltClient *client, char *apid, char *ctid, uint8_t logLevel);
+MctReturnValue mct_client_send_log_level(MctClient *client, char *apid, char *ctid, uint8_t logLevel);
 /**
  * Send an request to get log info message to the mct daemon
  * @param client pointer to mct client structure
  * @return negative value if there was an error
  */
-int mct_client_get_log_info(DltClient *client);
+int mct_client_get_log_info(MctClient *client);
 /**
  * Send an request to get default log level to the mct daemon
  * @param client pointer to mct client structure
  * @return negative value if there was an error
  */
-DltReturnValue mct_client_get_default_log_level(DltClient *client);
+MctReturnValue mct_client_get_default_log_level(MctClient *client);
 /**
  * Send an request to get software version to the mct daemon
  * @param client pointer to mct client structure
  * @return negative value if there was an error
  */
-int mct_client_get_software_version(DltClient *client);
+int mct_client_get_software_version(MctClient *client);
 /**
  * Initialise get log info structure
  * @return void
@@ -159,64 +159,64 @@ void mct_getloginfo_free(void);
  * @param apid application id
  * @param ctid context id
  * @param traceStatus Default Trace Status
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_trace_status(DltClient *client, char *apid, char *ctid, uint8_t traceStatus);
+MctReturnValue mct_client_send_trace_status(MctClient *client, char *apid, char *ctid, uint8_t traceStatus);
 /**
  * Send the default log level to the mct daemon
  * @param client pointer to mct client structure
  * @param defaultLogLevel Default Log Level
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_default_log_level(DltClient *client, uint8_t defaultLogLevel);
+MctReturnValue mct_client_send_default_log_level(MctClient *client, uint8_t defaultLogLevel);
 /**
  * Send the log level to all contexts registered with mct daemon
  * @param client pointer to mct client structure
  * @param LogLevel Log Level to be set
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_all_log_level(DltClient *client, uint8_t LogLevel);
+MctReturnValue mct_client_send_all_log_level(MctClient *client, uint8_t LogLevel);
 /**
  * Send the default trace status to the mct daemon
  * @param client pointer to mct client structure
  * @param defaultTraceStatus Default Trace Status
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_default_trace_status(DltClient *client, uint8_t defaultTraceStatus);
+MctReturnValue mct_client_send_default_trace_status(MctClient *client, uint8_t defaultTraceStatus);
 /**
  * Send the trace status to all contexts registered with mct daemon
  * @param client pointer to mct client structure
  * @param traceStatus trace status to be set
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_all_trace_status(DltClient *client, uint8_t traceStatus);
+MctReturnValue mct_client_send_all_trace_status(MctClient *client, uint8_t traceStatus);
 /**
  * Send the timing pakets status to the mct daemon
  * @param client pointer to mct client structure
  * @param timingPakets Timing pakets enabled
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_timing_pakets(DltClient *client, uint8_t timingPakets);
+MctReturnValue mct_client_send_timing_pakets(MctClient *client, uint8_t timingPakets);
 /**
  * Send the store config command to the mct daemon
  * @param client pointer to mct client structure
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_store_config(DltClient *client);
+MctReturnValue mct_client_send_store_config(MctClient *client);
 /**
  * Send the reset to factory default command to the mct daemon
  * @param client pointer to mct client structure
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_send_reset_to_factory_default(DltClient *client);
+MctReturnValue mct_client_send_reset_to_factory_default(MctClient *client);
 
 /**
  * Set baudrate within mct client structure
  * @param client pointer to mct client structure
  * @param baudrate Baudrate
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_setbaudrate(DltClient *client, int baudrate);
+MctReturnValue mct_client_setbaudrate(MctClient *client, int baudrate);
 
 /**
  * Send set Blockmode command to the mct daemon
@@ -224,20 +224,20 @@ DltReturnValue mct_client_setbaudrate(DltClient *client, int baudrate);
  * @param block_mode Blockmode state (1 = BLOCKING/0 = NONBLOCKING)
  * @return negative value if there was an error
  */
-int mct_client_send_set_blockmode(DltClient *client, int block_mode);
+int mct_client_send_set_blockmode(MctClient *client, int block_mode);
 /**
  * Send get Blockmode command to the mct daemon
  * @param client pointer to mct client structure
  * @return negative value if there was an error
  */
-int mct_client_send_get_blockmode(DltClient *client);
+int mct_client_send_get_blockmode(MctClient *client);
 /**
  * Set mode within mct client structure
  * @param client pointer to mct client structure
- * @param mode DltClientMode
- * @return Value from DltReturnValue enum
+ * @param mode MctClientMode
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_set_mode(DltClient *client, DltClientMode mode);
+MctReturnValue mct_client_set_mode(MctClient *client, MctClientMode mode);
 
 /**
  * Set server ip
@@ -245,7 +245,7 @@ DltReturnValue mct_client_set_mode(DltClient *client, DltClientMode mode);
  * @param ipaddr pointer to command line argument
  * @return negative value if there was an error
  */
-int mct_client_set_server_ip(DltClient *client, char *ipaddr);
+int mct_client_set_server_ip(MctClient *client, char *ipaddr);
 
 /**
  * Set server UDP host receiver interface address
@@ -253,7 +253,7 @@ int mct_client_set_server_ip(DltClient *client, char *ipaddr);
  * @param hostip pointer to multicast group address
  * @return negative value if there was an error
  */
-int mct_client_set_host_if_address(DltClient *client, char *hostip);
+int mct_client_set_host_if_address(MctClient *client, char *hostip);
 
 /**
  * Set serial device
@@ -261,7 +261,7 @@ int mct_client_set_host_if_address(DltClient *client, char *hostip);
  * @param serial_device pointer to command line argument
  * @return negative value if there was an error
  */
-int mct_client_set_serial_device(DltClient *client, char *serial_device);
+int mct_client_set_serial_device(MctClient *client, char *serial_device);
 
 /**
  * Set socket path
@@ -269,15 +269,15 @@ int mct_client_set_serial_device(DltClient *client, char *serial_device);
  * @param socket_path pointer to socket path string
  * @return negative value if there was an error
  */
-int mct_client_set_socket_path(DltClient *client, char *socket_path);
+int mct_client_set_socket_path(MctClient *client, char *socket_path);
 
 /**
  * Parse GET_LOG_INFO response text
  * @param resp      GET_LOG_INFO response
  * @param resp_text response text represented by ASCII
- * @return Value from DltReturnValue enum
+ * @return Value from MctReturnValue enum
  */
-DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoResponse *resp,
+MctReturnValue mct_client_parse_get_log_info_resp_text(MctServiceGetLogInfoResponse *resp,
                                                        char *resp_text);
 
 /**
@@ -285,7 +285,7 @@ DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoRespo
  * @param resp response
  * @return 0 on success, -1 otherwise
  */
-int mct_client_cleanup_get_log_info(DltServiceGetLogInfoResponse *resp);
+int mct_client_cleanup_get_log_info(MctServiceGetLogInfoResponse *resp);
 #   ifdef __cplusplus
 }
 #   endif
@@ -294,4 +294,4 @@ int mct_client_cleanup_get_log_info(DltServiceGetLogInfoResponse *resp);
  \}
  */
 
-#endif /* DLT_CLIENT_H */
+#endif /* MCT_CLIENT_H */

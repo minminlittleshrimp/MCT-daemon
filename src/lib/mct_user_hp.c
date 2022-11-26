@@ -21,66 +21,66 @@
 #include "mct_user_shared_cfg.h"
 #include "mct_user_cfg.h"
 
-extern DltUser mct_user;
+extern MctUser mct_user;
 extern sem_t mct_mutex;
 static int mct_hp_ctid_cnt = 0;
 static int mct_nw_trace_hp_cfg = -1;
-DltContext context_injection_callback;
+MctContext context_injection_callback;
 
 int mct_ext_injection_macro_callback(uint32_t service_id, void *data,
                                      uint32_t length);
 
-void mct_ext_set_ringbuf_header(DltExtBuff *pDltExtBuff)
+void mct_ext_set_ringbuf_header(MctExtBuff *pMctExtBuff)
 {
-    DltExtBuffHeader *pBufHeader;
+    MctExtBuffHeader *pBufHeader;
 
-    if (pDltExtBuff == NULL) {
+    if (pMctExtBuff == NULL) {
         return;
     }
 
     /* initialize ring buffer */
-    pBufHeader = (DltExtBuffHeader *)pDltExtBuff->addr;
+    pBufHeader = (MctExtBuffHeader *)pMctExtBuff->addr;
     pBufHeader->write_count = 0;
-    pBufHeader->size = pDltExtBuff->size;
+    pBufHeader->size = pMctExtBuff->size;
 
     /* initialize common log header */
     memcpy(pBufHeader->ecuid, mct_user.ecuID, sizeof(pBufHeader->ecuid));
-    pBufHeader->htyp = DLT_HTYP_PROTOCOL_VERSION1;
+    pBufHeader->htyp = MCT_HTYP_PROTOCOL_VERSION1;
 
     /* send ecu id */
     if (mct_user.with_ecu_id) {
-        pBufHeader->htyp |= DLT_HTYP_WEID;
+        pBufHeader->htyp |= MCT_HTYP_WEID;
     }
 
     /* send timestamp */
     if (mct_user.with_timestamp) {
-        pBufHeader->htyp |= DLT_HTYP_WTMS;
+        pBufHeader->htyp |= MCT_HTYP_WTMS;
     }
 
     /* send session id */
     if (mct_user.with_session_id) {
-        pBufHeader->htyp |= DLT_HTYP_WSID;
+        pBufHeader->htyp |= MCT_HTYP_WSID;
     }
 
     if (mct_user.verbose_mode) {
         /* In verbose mode, send extended header */
-        pBufHeader->htyp |= DLT_HTYP_UEH;
+        pBufHeader->htyp |= MCT_HTYP_UEH;
     } else {
         /* In non-verbose, send extended header if desired */
         if (mct_user.use_extended_header_for_non_verbose) {
-            pBufHeader->htyp |= DLT_HTYP_UEH;
+            pBufHeader->htyp |= MCT_HTYP_UEH;
         }
     }
 
 #if (BYTE_ORDER == BIG_ENDIAN)
-    pBufHeader->htyp |= DLT_HTYP_MSBF;
+    pBufHeader->htyp |= MCT_HTYP_MSBF;
 #endif
-    pBufHeader->msin = DLT_EXT_LOG_HEADER_MSIN;
-    pBufHeader->noar = DLT_EXT_LOG_HEADER_NOAR;
+    pBufHeader->msin = MCT_EXT_LOG_HEADER_MSIN;
+    pBufHeader->noar = MCT_EXT_LOG_HEADER_NOAR;
     memcpy(pBufHeader->apid, mct_user.appID, sizeof(pBufHeader->apid));
-    memcpy(pBufHeader->ctid, pDltExtBuff->ctid, sizeof(pBufHeader->ctid));
-    pBufHeader->type_info_header = DLT_TYPE_INFO_STRG | DLT_SCOD_ASCII;
-    pBufHeader->type_info_payload = DLT_TYPE_INFO_RAWD;
+    memcpy(pBufHeader->ctid, pMctExtBuff->ctid, sizeof(pBufHeader->ctid));
+    pBufHeader->type_info_header = MCT_TYPE_INFO_STRG | MCT_SCOD_ASCII;
+    pBufHeader->type_info_payload = MCT_TYPE_INFO_RAWD;
 
     return;
 }
@@ -113,25 +113,25 @@ int mct_ext_parse_filename(char *filename, char *ctid, char *apid, int *pid,
     int ret = 0;
     char *rp;
     uint8_t count;
-    char apid_old[DLT_ID_SIZE + 1];
-    char ctid_old[DLT_ID_SIZE + 1];
-    char pid_ascii[DLT_EXT_PID_MAX_LEN + 1];
-    char bknum_ascii[DLT_EXT_BKNUM_LEN + 1];
+    char apid_old[MCT_ID_SIZE + 1];
+    char ctid_old[MCT_ID_SIZE + 1];
+    char pid_ascii[MCT_EXT_PID_MAX_LEN + 1];
+    char bknum_ascii[MCT_EXT_BKNUM_LEN + 1];
     int bknum_detect = 0;
 
     /* mct_ctid_apid_pid_bknum.xxx */
     /* skip to ctid */
-    rp = filename + sizeof(DLT_EXT_CTID_LOG_FILE_PREFIX) - 1
-        + sizeof(DLT_EXT_CTID_LOG_FILE_DELIMITER) - 1;
+    rp = filename + sizeof(MCT_EXT_CTID_LOG_FILE_PREFIX) - 1
+        + sizeof(MCT_EXT_CTID_LOG_FILE_DELIMITER) - 1;
 
     /* get ctid */
-    for (count = 0; count < DLT_ID_SIZE + 1; count++) {
+    for (count = 0; count < MCT_ID_SIZE + 1; count++) {
         if (*rp == 0) {
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
-        ret = memcmp(rp, DLT_EXT_CTID_LOG_FILE_DELIMITER,
-                     sizeof(DLT_EXT_CTID_LOG_FILE_DELIMITER) - 1);
+        ret = memcmp(rp, MCT_EXT_CTID_LOG_FILE_DELIMITER,
+                     sizeof(MCT_EXT_CTID_LOG_FILE_DELIMITER) - 1);
 
         if (ret == 0) {
             break;
@@ -141,21 +141,21 @@ int mct_ext_parse_filename(char *filename, char *ctid, char *apid, int *pid,
         rp++;
     }
 
-    if (count == DLT_ID_SIZE + 1) {
-        return DLT_RETURN_ERROR;
+    if (count == MCT_ID_SIZE + 1) {
+        return MCT_RETURN_ERROR;
     }
 
     ctid_old[count] = 0;
-    rp += (sizeof(DLT_EXT_CTID_LOG_FILE_DELIMITER) - 1);
+    rp += (sizeof(MCT_EXT_CTID_LOG_FILE_DELIMITER) - 1);
 
     /* get apid */
-    for (count = 0; count < DLT_ID_SIZE + 1; count++) {
+    for (count = 0; count < MCT_ID_SIZE + 1; count++) {
         if (*rp == 0) {
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
-        ret = memcmp(rp, DLT_EXT_CTID_LOG_FILE_DELIMITER,
-                     sizeof(DLT_EXT_CTID_LOG_FILE_DELIMITER) - 1);
+        ret = memcmp(rp, MCT_EXT_CTID_LOG_FILE_DELIMITER,
+                     sizeof(MCT_EXT_CTID_LOG_FILE_DELIMITER) - 1);
 
         if (ret == 0) {
             break;
@@ -165,29 +165,29 @@ int mct_ext_parse_filename(char *filename, char *ctid, char *apid, int *pid,
         rp++;
     }
 
-    if (count == DLT_ID_SIZE + 1) {
-        return DLT_RETURN_ERROR;
+    if (count == MCT_ID_SIZE + 1) {
+        return MCT_RETURN_ERROR;
     }
 
     apid_old[count] = 0;
-    rp += (sizeof(DLT_EXT_CTID_LOG_FILE_DELIMITER) - 1);
+    rp += (sizeof(MCT_EXT_CTID_LOG_FILE_DELIMITER) - 1);
 
     /* check pid */
-    for (count = 0; count < DLT_EXT_PID_MAX_LEN + 1; count++) {
+    for (count = 0; count < MCT_EXT_PID_MAX_LEN + 1; count++) {
         if (*rp == 0) {
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
-        ret = memcmp(rp, DLT_EXT_CTID_LOG_PERIOD,
-                     sizeof(DLT_EXT_CTID_LOG_PERIOD) - 1);
+        ret = memcmp(rp, MCT_EXT_CTID_LOG_PERIOD,
+                     sizeof(MCT_EXT_CTID_LOG_PERIOD) - 1);
 
         if (ret == 0) {
             bknum_detect = 0; /* Rear char is not backup number */
             break;
         }
 
-        ret = memcmp(rp, DLT_EXT_CTID_LOG_FILE_BKNUM_DELI,
-                     sizeof(DLT_EXT_CTID_LOG_FILE_BKNUM_DELI) - 1);
+        ret = memcmp(rp, MCT_EXT_CTID_LOG_FILE_BKNUM_DELI,
+                     sizeof(MCT_EXT_CTID_LOG_FILE_BKNUM_DELI) - 1);
 
         if (ret == 0) {
             bknum_detect = 1; /* Rear char is backup number */
@@ -198,23 +198,23 @@ int mct_ext_parse_filename(char *filename, char *ctid, char *apid, int *pid,
         rp++;
     }
 
-    if (count == DLT_EXT_PID_MAX_LEN + 1) {
-        return DLT_RETURN_ERROR;
+    if (count == MCT_EXT_PID_MAX_LEN + 1) {
+        return MCT_RETURN_ERROR;
     }
 
     pid_ascii[count] = 0;
     *pid = atoi(pid_ascii);
-    rp += (sizeof(DLT_EXT_CTID_LOG_FILE_BKNUM_DELI) - 1);
+    rp += (sizeof(MCT_EXT_CTID_LOG_FILE_BKNUM_DELI) - 1);
 
     if (bknum_detect == 1) {
         /* get backup number */
-        for (count = 0; count < DLT_EXT_BKNUM_LEN + 1; count++) {
+        for (count = 0; count < MCT_EXT_BKNUM_LEN + 1; count++) {
             if (*rp == 0) {
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
-            ret = memcmp(rp, DLT_EXT_CTID_LOG_PERIOD,
-                         sizeof(DLT_EXT_CTID_LOG_PERIOD) - 1);
+            ret = memcmp(rp, MCT_EXT_CTID_LOG_PERIOD,
+                         sizeof(MCT_EXT_CTID_LOG_PERIOD) - 1);
 
             if (ret == 0) {
                 break;
@@ -224,8 +224,8 @@ int mct_ext_parse_filename(char *filename, char *ctid, char *apid, int *pid,
             rp++;
         }
 
-        if (count == DLT_EXT_BKNUM_LEN + 1) {
-            return DLT_RETURN_ERROR;
+        if (count == MCT_EXT_BKNUM_LEN + 1) {
+            return MCT_RETURN_ERROR;
         }
 
         bknum_ascii[count] = 0;
@@ -234,15 +234,15 @@ int mct_ext_parse_filename(char *filename, char *ctid, char *apid, int *pid,
         *bknum = -1;
     }
 
-    if ((strncmp(ctid, ctid_old, DLT_ID_SIZE) == 0)
-        && (strncmp(apid, apid_old, DLT_ID_SIZE) == 0)) {
-        return DLT_RETURN_OK;
+    if ((strncmp(ctid, ctid_old, MCT_ID_SIZE) == 0)
+        && (strncmp(apid, apid_old, MCT_ID_SIZE) == 0)) {
+        return MCT_RETURN_OK;
     }
 
-    return DLT_RETURN_ERROR;
+    return MCT_RETURN_ERROR;
 }
 
-void mct_ext_backup_ringbuf(DltExtBuff *pDltExtBuff)
+void mct_ext_backup_ringbuf(MctExtBuff *pMctExtBuff)
 {
     DIR *dir;
     struct dirent *dent;
@@ -253,26 +253,26 @@ void mct_ext_backup_ringbuf(DltExtBuff *pDltExtBuff)
     int bknum_max = -1;
     int target_detect = 0;
     int log_len;
-    char log_file_path[DLT_PATH_MAX] = {'\0'};
-    char apid[DLT_ID_SIZE + 1] = {'\0'};
-    char ctid[DLT_ID_SIZE + 1] = {'\0'};
+    char log_file_path[MCT_PATH_MAX] = {'\0'};
+    char apid[MCT_ID_SIZE + 1] = {'\0'};
+    char ctid[MCT_ID_SIZE + 1] = {'\0'};
     char target_log_extention[] = "log";
-    char rename_file[DLT_EXT_CTID_LOG_FILEPATH_LEN + 1] = {'\0'};
-    char rename_filepath[DLT_PATH_MAX] = {'\0'};
-    char old_log_filepath[DLT_PATH_MAX] = {'\0'};
+    char rename_file[MCT_EXT_CTID_LOG_FILEPATH_LEN + 1] = {'\0'};
+    char rename_filepath[MCT_PATH_MAX] = {'\0'};
+    char old_log_filepath[MCT_PATH_MAX] = {'\0'};
 
-    mct_set_id(ctid, pDltExtBuff->ctid);
+    mct_set_id(ctid, pMctExtBuff->ctid);
     mct_set_id(apid, mct_user.appID);
 
-    dir = opendir(DLT_EXT_CTID_LOG_DIRECTORY);
+    dir = opendir(MCT_EXT_CTID_LOG_DIRECTORY);
 
     if (dir == NULL) {
         return;
     }
 
     while ((dent = readdir(dir)) != NULL) {
-        snprintf(log_file_path, DLT_PATH_MAX, "%s%s",
-                 DLT_EXT_CTID_LOG_DIRECTORY, dent->d_name);
+        snprintf(log_file_path, MCT_PATH_MAX, "%s%s",
+                 MCT_EXT_CTID_LOG_DIRECTORY, dent->d_name);
 
         if ((stat(log_file_path, &sb) < 0) && (errno != ENOENT)) {
             mct_log(LOG_DEBUG, " Don't find file ERROR\n");
@@ -295,7 +295,7 @@ void mct_ext_backup_ringbuf(DltExtBuff *pDltExtBuff)
         /* check matching for target CTID and APID and get pid and backup number */
         ret = mct_ext_parse_filename(dent->d_name, ctid, apid, &pid, &bknum);
 
-        if (ret == DLT_RETURN_OK) {
+        if (ret == MCT_RETURN_OK) {
             mct_log(LOG_DEBUG, "Same Ctid and Apid, previous log file\n");
 
             if (bknum_max < bknum) {
@@ -306,17 +306,17 @@ void mct_ext_backup_ringbuf(DltExtBuff *pDltExtBuff)
                 target_detect = 1;
                 log_len = strlen(dent->d_name);
                 strncpy(rename_file, dent->d_name,
-                        DLT_EXT_CTID_LOG_FILEPATH_LEN);
+                        MCT_EXT_CTID_LOG_FILEPATH_LEN);
 
-                if (DLT_EXT_CTID_LOG_FILEPATH_LEN
+                if (MCT_EXT_CTID_LOG_FILEPATH_LEN
                     < (log_len
-                       - (sizeof(DLT_EXT_CTID_LOG_FILE_EXTENSION) - 1))) {
+                       - (sizeof(MCT_EXT_CTID_LOG_FILE_EXTENSION) - 1))) {
                     mct_log(LOG_ERR, "MAX length of filename is over\n");
                     return;
                 }
 
                 rename_file[log_len
-                            - (sizeof(DLT_EXT_CTID_LOG_FILE_EXTENSION) - 1)] = 0;
+                            - (sizeof(MCT_EXT_CTID_LOG_FILE_EXTENSION) - 1)] = 0;
             }
         }
     }
@@ -324,19 +324,19 @@ void mct_ext_backup_ringbuf(DltExtBuff *pDltExtBuff)
     closedir(dir);
 
     if (target_detect != 0) {
-        snprintf(rename_filepath, DLT_PATH_MAX, "%s%s%s",
-                 DLT_EXT_CTID_LOG_DIRECTORY, rename_file,
-                 DLT_EXT_CTID_LOG_FILE_EXTENSION);
+        snprintf(rename_filepath, MCT_PATH_MAX, "%s%s%s",
+                 MCT_EXT_CTID_LOG_DIRECTORY, rename_file,
+                 MCT_EXT_CTID_LOG_FILE_EXTENSION);
 
-        if (bknum_max == DLT_EXT_BKNUM_MAX) {
+        if (bknum_max == MCT_EXT_BKNUM_MAX) {
             mct_log(LOG_DEBUG, " Previous log filename remove!\n");
             remove(rename_filepath);
         } else {
             mct_log(LOG_DEBUG, " Previous log filename change!\n");
             bknum_max = bknum_max + 1;
-            snprintf(old_log_filepath, DLT_PATH_MAX,
-                     "%s%s_%d%s", DLT_EXT_CTID_LOG_DIRECTORY, rename_file,
-                     bknum_max, DLT_EXT_CTID_LOG_FILE_EXTENSION);
+            snprintf(old_log_filepath, MCT_PATH_MAX,
+                     "%s%s_%d%s", MCT_EXT_CTID_LOG_DIRECTORY, rename_file,
+                     bknum_max, MCT_EXT_CTID_LOG_FILE_EXTENSION);
             rename(rename_filepath, old_log_filepath);
         }
     }
@@ -348,8 +348,8 @@ void mct_ext_get_log_filepath(char *filepath_p, char *filename_p,
                               char *extention_p)
 {
     filepath_p[0] = 0;
-    strncat(filepath_p, DLT_EXT_CTID_LOG_DIRECTORY,
-            sizeof(DLT_EXT_CTID_LOG_DIRECTORY) - 1);
+    strncat(filepath_p, MCT_EXT_CTID_LOG_DIRECTORY,
+            sizeof(MCT_EXT_CTID_LOG_DIRECTORY) - 1);
     strncat(filepath_p, filename_p, strlen(filename_p));
     strncat(filepath_p, extention_p, strlen(extention_p));
     return;
@@ -357,25 +357,25 @@ void mct_ext_get_log_filepath(char *filepath_p, char *filename_p,
 
 int mct_ext_check_log_dir(void)
 {
-    int ret = DLT_RETURN_OK;
+    int ret = MCT_RETURN_OK;
     struct stat sb;
 
-    if (stat(DLT_EXT_CTID_LOG_DIRECTORY, &sb) < 0) {
-        if (stat(DLT_EXT_CTID_DLT_DIRECTORY, &sb) < 0) {
-            if (mkdir(DLT_EXT_CTID_DLT_DIRECTORY, DLT_EXT_CTID_MKDIR_MODE) < 0) {
+    if (stat(MCT_EXT_CTID_LOG_DIRECTORY, &sb) < 0) {
+        if (stat(MCT_EXT_CTID_MCT_DIRECTORY, &sb) < 0) {
+            if (mkdir(MCT_EXT_CTID_MCT_DIRECTORY, MCT_EXT_CTID_MKDIR_MODE) < 0) {
                 mct_log(LOG_ERR, "mkdir fail..\n");
-                ret = DLT_RETURN_ERROR;
+                ret = MCT_RETURN_ERROR;
             } else {
-                if (mkdir(DLT_EXT_CTID_LOG_DIRECTORY, DLT_EXT_CTID_MKDIR_MODE)
+                if (mkdir(MCT_EXT_CTID_LOG_DIRECTORY, MCT_EXT_CTID_MKDIR_MODE)
                     < 0) {
                     mct_log(LOG_ERR, "mkdir fail..\n");
-                    ret = DLT_RETURN_ERROR;
+                    ret = MCT_RETURN_ERROR;
                 }
             }
         } else {
-            if (mkdir(DLT_EXT_CTID_LOG_DIRECTORY, DLT_EXT_CTID_MKDIR_MODE) < 0) {
+            if (mkdir(MCT_EXT_CTID_LOG_DIRECTORY, MCT_EXT_CTID_MKDIR_MODE) < 0) {
                 mct_log(LOG_ERR, "mkdir fail..\n");
-                ret = DLT_RETURN_ERROR;
+                ret = MCT_RETURN_ERROR;
             }
         }
     }
@@ -383,10 +383,10 @@ int mct_ext_check_log_dir(void)
     return ret;
 }
 
-int mct_ext_make_ringbuf(DltExtBuff *pDltExtBuff)
+int mct_ext_make_ringbuf(MctExtBuff *pMctExtBuff)
 {
     int ret;
-    char log_filepath[DLT_EXT_CTID_LOG_FILEPATH_LEN + 1];
+    char log_filepath[MCT_EXT_CTID_LOG_FILEPATH_LEN + 1];
     int fd;
     int ret_val;
     const char c = '\0';
@@ -395,32 +395,32 @@ int mct_ext_make_ringbuf(DltExtBuff *pDltExtBuff)
 
     ret = mct_ext_check_log_dir();
 
-    if (ret != DLT_RETURN_OK) {
+    if (ret != MCT_RETURN_OK) {
         return ret;
     }
 
-    mct_ext_get_log_filepath(log_filepath, pDltExtBuff->log_filename,
-                             DLT_EXT_CTID_LOG_FILE_EXTENSION);
+    mct_ext_get_log_filepath(log_filepath, pMctExtBuff->log_filename,
+                             MCT_EXT_CTID_LOG_FILE_EXTENSION);
 
     /* if there are log files of same apid and same ctid, create backup log file */
-    mct_ext_backup_ringbuf(pDltExtBuff);
+    mct_ext_backup_ringbuf(pMctExtBuff);
 
-    ret = DLT_RETURN_ERROR;
+    ret = MCT_RETURN_ERROR;
     fd = open(log_filepath, O_CREAT | O_RDWR, S_IRWXU | S_IRWXO);
 
     if (fd != -1) {
-        ret_val = lseek(fd, (pDltExtBuff->size - 1), SEEK_SET);
+        ret_val = lseek(fd, (pMctExtBuff->size - 1), SEEK_SET);
 
         if (ret_val != -1) {
             write_ret = write(fd, &c, 1);
 
             if (write_ret != -1) {
-                addr = mmap(NULL, pDltExtBuff->size, PROT_READ | PROT_WRITE,
+                addr = mmap(NULL, pMctExtBuff->size, PROT_READ | PROT_WRITE,
                             MAP_SHARED, fd, 0);
 
                 if (addr != MAP_FAILED) {
-                    ret = DLT_RETURN_OK;
-                    pDltExtBuff->addr = addr;
+                    ret = MCT_RETURN_OK;
+                    pMctExtBuff->addr = addr;
                 }
             }
         }
@@ -428,17 +428,17 @@ int mct_ext_make_ringbuf(DltExtBuff *pDltExtBuff)
         close(fd);
     }
 
-    if (ret != DLT_RETURN_OK) {
+    if (ret != MCT_RETURN_OK) {
         mct_log(LOG_ERR, "log file operation failed..\n");
     }
 
     return ret;
 }
 
-void mct_ext_decide_log_filename(DltExtBuff *pDltExtBuff)
+void mct_ext_decide_log_filename(MctExtBuff *pMctExtBuff)
 {
-    char apid_str[DLT_ID_SIZE + 1];
-    char pid_str[DLT_EXT_PID_MAX_LEN + 1];
+    char apid_str[MCT_ID_SIZE + 1];
+    char pid_str[MCT_EXT_PID_MAX_LEN + 1];
 
     /* get string of user apid and pid */
     memset(apid_str, 0, sizeof(apid_str));
@@ -446,127 +446,127 @@ void mct_ext_decide_log_filename(DltExtBuff *pDltExtBuff)
     sprintf(pid_str, "%d", getpid());
 
     /* log file name decide */
-    pDltExtBuff->log_filename[0] = 0;
-    strncat(pDltExtBuff->log_filename, DLT_EXT_CTID_LOG_FILE_PREFIX,
-            sizeof(DLT_EXT_CTID_LOG_FILE_PREFIX) - 1); /* mct    */
-    strncat(pDltExtBuff->log_filename, DLT_EXT_CTID_LOG_FILE_DELIMITER,
-            sizeof(DLT_EXT_CTID_LOG_FILE_DELIMITER) - 1); /* _      */
-    strncat(pDltExtBuff->log_filename, pDltExtBuff->ctid,
-            strlen(pDltExtBuff->ctid)); /* <ctid> */
-    strncat(pDltExtBuff->log_filename, DLT_EXT_CTID_LOG_FILE_DELIMITER,
-            sizeof(DLT_EXT_CTID_LOG_FILE_DELIMITER) - 1);           /* _      */
-    strncat(pDltExtBuff->log_filename, apid_str, strlen(apid_str)); /* <apid> */
-    strncat(pDltExtBuff->log_filename, DLT_EXT_CTID_LOG_FILE_DELIMITER,
-            sizeof(DLT_EXT_CTID_LOG_FILE_DELIMITER) - 1);         /* _      */
-    strncat(pDltExtBuff->log_filename, pid_str, strlen(pid_str)); /* <pid>  */
+    pMctExtBuff->log_filename[0] = 0;
+    strncat(pMctExtBuff->log_filename, MCT_EXT_CTID_LOG_FILE_PREFIX,
+            sizeof(MCT_EXT_CTID_LOG_FILE_PREFIX) - 1); /* mct    */
+    strncat(pMctExtBuff->log_filename, MCT_EXT_CTID_LOG_FILE_DELIMITER,
+            sizeof(MCT_EXT_CTID_LOG_FILE_DELIMITER) - 1); /* _      */
+    strncat(pMctExtBuff->log_filename, pMctExtBuff->ctid,
+            strlen(pMctExtBuff->ctid)); /* <ctid> */
+    strncat(pMctExtBuff->log_filename, MCT_EXT_CTID_LOG_FILE_DELIMITER,
+            sizeof(MCT_EXT_CTID_LOG_FILE_DELIMITER) - 1);           /* _      */
+    strncat(pMctExtBuff->log_filename, apid_str, strlen(apid_str)); /* <apid> */
+    strncat(pMctExtBuff->log_filename, MCT_EXT_CTID_LOG_FILE_DELIMITER,
+            sizeof(MCT_EXT_CTID_LOG_FILE_DELIMITER) - 1);         /* _      */
+    strncat(pMctExtBuff->log_filename, pid_str, strlen(pid_str)); /* <pid>  */
     return;
 }
 
-int mct_ext_ringbuf_init(DltContext *handle, const char *contextid,
-                         DltTraceBufType trace_buf_type)
+int mct_ext_ringbuf_init(MctContext *handle, const char *contextid,
+                         MctTraceBufType trace_buf_type)
 {
-    int ret = DLT_RETURN_ERROR;
-    DltExtBuff *pDltExtBuff;
+    int ret = MCT_RETURN_ERROR;
+    MctExtBuff *pMctExtBuff;
 
     /* get ringbuffer info table and link to injection_table */
-    pDltExtBuff = malloc(sizeof(DltExtBuff));
+    pMctExtBuff = malloc(sizeof(MctExtBuff));
 
-    if (pDltExtBuff == NULL) {
+    if (pMctExtBuff == NULL) {
         return ret;
     }
 
-    mct_user.mct_ll_ts[handle->log_level_pos].DltExtBuff_ptr = pDltExtBuff;
+    mct_user.mct_ll_ts[handle->log_level_pos].MctExtBuff_ptr = pMctExtBuff;
 
     /* Store context id and filename */
-    pDltExtBuff->ctid[4] = 0;
-    mct_set_id(pDltExtBuff->ctid, contextid);
-    mct_ext_decide_log_filename(pDltExtBuff);
+    pMctExtBuff->ctid[4] = 0;
+    mct_set_id(pMctExtBuff->ctid, contextid);
+    mct_ext_decide_log_filename(pMctExtBuff);
 
     /* ring buffer size decide */
-    if (trace_buf_type == DLT_TRACE_BUF_SMALL) {
-        pDltExtBuff->size = DLT_EXT_BUF_SIZE_SMALL * mct_nw_trace_hp_cfg;
+    if (trace_buf_type == MCT_TRACE_BUF_SMALL) {
+        pMctExtBuff->size = MCT_EXT_BUF_SIZE_SMALL * mct_nw_trace_hp_cfg;
     } else {
-        pDltExtBuff->size = DLT_EXT_BUF_SIZE_LARGE * mct_nw_trace_hp_cfg;
+        pMctExtBuff->size = MCT_EXT_BUF_SIZE_LARGE * mct_nw_trace_hp_cfg;
     }
 
     /* create empty file and mmap */
-    ret = mct_ext_make_ringbuf(pDltExtBuff);
+    ret = mct_ext_make_ringbuf(pMctExtBuff);
 
-    if (ret != DLT_RETURN_OK) {
-        mct_user.mct_ll_ts[handle->log_level_pos].DltExtBuff_ptr =
-            (DltExtBuff *)NULL;
-        free(pDltExtBuff);
+    if (ret != MCT_RETURN_OK) {
+        mct_user.mct_ll_ts[handle->log_level_pos].MctExtBuff_ptr =
+            (MctExtBuff *)NULL;
+        free(pMctExtBuff);
         return ret;
     }
 
     /* set ringbuf header */
-    mct_ext_set_ringbuf_header(pDltExtBuff);
+    mct_ext_set_ringbuf_header(pMctExtBuff);
 
     return ret;
 }
 
-int mct_register_context_hp(DltContext *handle,
+int mct_register_context_hp(MctContext *handle,
                             const char *contextid,
                             const char *description,
-                            DltTraceBufType trace_buf_type)
+                            MctTraceBufType trace_buf_type)
 {
     char *env_p;
-    int ret = DLT_RETURN_ERROR;
+    int ret = MCT_RETURN_ERROR;
 
     /* get configuration at once */
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     if (mct_nw_trace_hp_cfg == -1) {
-        env_p = getenv(DLT_NW_TRACE_HP_CFG_ENV);
+        env_p = getenv(MCT_NW_TRACE_HP_CFG_ENV);
 
         if (env_p != NULL) {
             mct_nw_trace_hp_cfg = atoi(env_p);
 
-            if ((mct_nw_trace_hp_cfg > DLT_EXT_BUF_MAX_NUM)
-                || (mct_nw_trace_hp_cfg < DLT_EXT_BUF_DEFAULT_NUM)) {
+            if ((mct_nw_trace_hp_cfg > MCT_EXT_BUF_MAX_NUM)
+                || (mct_nw_trace_hp_cfg < MCT_EXT_BUF_DEFAULT_NUM)) {
                 mct_log(LOG_DEBUG, "configuration invalid value, set default.\n");
-                mct_nw_trace_hp_cfg = DLT_EXT_BUF_DEFAULT_NUM;
+                mct_nw_trace_hp_cfg = MCT_EXT_BUF_DEFAULT_NUM;
             }
         } else {
-            mct_nw_trace_hp_cfg = DLT_EXT_BUF_DEFAULT_NUM;
+            mct_nw_trace_hp_cfg = MCT_EXT_BUF_DEFAULT_NUM;
         }
     }
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
     if (mct_nw_trace_hp_cfg != 0) {
-        DLT_SEM_LOCK();
+        MCT_SEM_LOCK();
 
         /* check hp ctid limit */
-        if (mct_hp_ctid_cnt >= DLT_EXT_CTID_MAX) {
-            DLT_SEM_FREE();
+        if (mct_hp_ctid_cnt >= MCT_EXT_CTID_MAX) {
+            MCT_SEM_FREE();
             mct_log(LOG_ERR, "no more entry new hp ctid -> return.\n");
             return ret;
         }
 
         mct_hp_ctid_cnt++;
-        DLT_SEM_FREE();
+        MCT_SEM_FREE();
 
         /* check first API call */
         if (mct_hp_ctid_cnt == 1) {
             mct_log(LOG_DEBUG, "first API call\n");
             /* at first API call, regist INJECTION callback */
             mct_register_context(&context_injection_callback,
-                                 DLT_CT_EXT_CB,
-                                 "DLT Extention API Injection Callback");
+                                 MCT_CT_EXT_CB,
+                                 "MCT Extention API Injection Callback");
             mct_register_injection_callback(&context_injection_callback,
-                                            DLT_EX_INJECTION_CODE,
+                                            MCT_EX_INJECTION_CODE,
                                             mct_ext_injection_macro_callback);
         }
 
         /* register context */
         ret = mct_register_context(handle, contextid, description);
 
-        if (ret == DLT_RETURN_OK) {
+        if (ret == MCT_RETURN_OK) {
             /* make ringbuffer */
             ret = mct_ext_ringbuf_init(handle, contextid, trace_buf_type);
 
-            if (ret != DLT_RETURN_OK) {
+            if (ret != MCT_RETURN_OK) {
                 /* count down hp context */
                 mct_hp_ctid_cnt--;
             }
@@ -580,36 +580,36 @@ int mct_register_context_hp(DltContext *handle,
 }
 
 /* Callback function */
-void mct_ext_fix_hp_log(DltExtBuff *pDltExtBuff, uint8_t count)
+void mct_ext_fix_hp_log(MctExtBuff *pMctExtBuff, uint8_t count)
 {
-    int ret = DLT_RETURN_ERROR;
-    char log_filepath[DLT_EXT_CTID_LOG_FILEPATH_LEN + 1];
-    char fix_filepath[DLT_EXT_CTID_FIX_FILEPATH_LEN + 1];
+    int ret = MCT_RETURN_ERROR;
+    char log_filepath[MCT_EXT_CTID_LOG_FILEPATH_LEN + 1];
+    char fix_filepath[MCT_EXT_CTID_FIX_FILEPATH_LEN + 1];
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
     /* munmap ringbuffer */
-    munmap(pDltExtBuff->addr, pDltExtBuff->size);
+    munmap(pMctExtBuff->addr, pMctExtBuff->size);
 
     /* change extension */
-    mct_ext_get_log_filepath(log_filepath, pDltExtBuff->log_filename,
-                             DLT_EXT_CTID_LOG_FILE_EXTENSION);
-    mct_ext_get_log_filepath(fix_filepath, pDltExtBuff->log_filename,
-                             DLT_EXT_CTID_FIX_FILE_EXTENSION);
+    mct_ext_get_log_filepath(log_filepath, pMctExtBuff->log_filename,
+                             MCT_EXT_CTID_LOG_FILE_EXTENSION);
+    mct_ext_get_log_filepath(fix_filepath, pMctExtBuff->log_filename,
+                             MCT_EXT_CTID_FIX_FILE_EXTENSION);
     rename(log_filepath, fix_filepath);
 
     /* create next empty file and mmap */
-    ret = mct_ext_make_ringbuf(pDltExtBuff);
+    ret = mct_ext_make_ringbuf(pMctExtBuff);
 
-    if (ret != DLT_RETURN_OK) {
-        mct_user.mct_ll_ts[count].DltExtBuff_ptr = (DltExtBuff *)NULL;
-        free(pDltExtBuff);
-        DLT_SEM_FREE();
+    if (ret != MCT_RETURN_OK) {
+        mct_user.mct_ll_ts[count].MctExtBuff_ptr = (MctExtBuff *)NULL;
+        free(pMctExtBuff);
+        MCT_SEM_FREE();
         return;
     }
 
     /* set ringbuf header */
-    mct_ext_set_ringbuf_header(pDltExtBuff);
-    DLT_SEM_FREE();
+    mct_ext_set_ringbuf_header(pMctExtBuff);
+    MCT_SEM_FREE();
     return;
 }
 
@@ -620,35 +620,35 @@ int mct_ext_injection_macro_callback(uint32_t service_id, void *data,
     char *ctid_p;
     uint8_t count;
     uint32_t remain;
-    char target_ctid[DLT_ID_SIZE + 1];
+    char target_ctid[MCT_ID_SIZE + 1];
     uint8_t read_count;
-    DltExtBuff *pDltExtBuff;
+    MctExtBuff *pMctExtBuff;
 
     /* check service_id */
-    if (service_id != DLT_EX_INJECTION_CODE) {
+    if (service_id != MCT_EX_INJECTION_CODE) {
         mct_log(LOG_ERR, "service_id is invalid -> return.\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* check callback parameters */
     if ((data == NULL) || (length == 0)) {
         mct_log(LOG_ERR, "parameter fail -> return.\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* target ctid check */
     ctid_p = (char *)data;
     remain = length;
 
-    if (ctid_p[0] == DLT_EXT_CTID_WILDCARD) {
+    if (ctid_p[0] == MCT_EXT_CTID_WILDCARD) {
         /* wildcard */
         mct_log(LOG_DEBUG, "all ctid stop\n");
 
         for (count = 0; count < mct_user.mct_ll_ts_num_entries; count++) {
             if ((mct_user.mct_ll_ts[count].nrcallbacks == 0)
-                && (mct_user.mct_ll_ts[count].DltExtBuff_ptr != NULL)) {
-                pDltExtBuff = mct_user.mct_ll_ts[count].DltExtBuff_ptr;
-                mct_ext_fix_hp_log(pDltExtBuff, count);
+                && (mct_user.mct_ll_ts[count].MctExtBuff_ptr != NULL)) {
+                pMctExtBuff = mct_user.mct_ll_ts[count].MctExtBuff_ptr;
+                mct_ext_fix_hp_log(pMctExtBuff, count);
             }
         }
     } else {
@@ -668,24 +668,24 @@ int mct_ext_injection_macro_callback(uint32_t service_id, void *data,
                     }
                 } while (remain);
 
-                if (read_count <= DLT_ID_SIZE) {
-                    memset(target_ctid, 0, (DLT_ID_SIZE + 1));
+                if (read_count <= MCT_ID_SIZE) {
+                    memset(target_ctid, 0, (MCT_ID_SIZE + 1));
                     memcpy(target_ctid, ctid_p, read_count);
 
                     /* check target ctid running */
                     for (count = 0; count < mct_user.mct_ll_ts_num_entries;
                          count++) {
                         if ((mct_user.mct_ll_ts[count].nrcallbacks == 0)
-                            && (mct_user.mct_ll_ts[count].DltExtBuff_ptr
+                            && (mct_user.mct_ll_ts[count].MctExtBuff_ptr
                                 != NULL)) {
-                            pDltExtBuff =
-                                mct_user.mct_ll_ts[count].DltExtBuff_ptr;
-                            ret = strncmp(target_ctid, pDltExtBuff->ctid,
-                                          DLT_ID_SIZE);
+                            pMctExtBuff =
+                                mct_user.mct_ll_ts[count].MctExtBuff_ptr;
+                            ret = strncmp(target_ctid, pMctExtBuff->ctid,
+                                          MCT_ID_SIZE);
 
                             if (ret == 0) {
                                 mct_log(LOG_DEBUG, "target ctid stop\n");
-                                mct_ext_fix_hp_log(pDltExtBuff, count);
+                                mct_ext_fix_hp_log(pMctExtBuff, count);
                             }
                         }
                     }
@@ -696,41 +696,41 @@ int mct_ext_injection_macro_callback(uint32_t service_id, void *data,
         } while (remain);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 
 /* Trace functions */
-int mct_ext_parameter_check(DltContext *handle,
-                            DltNetworkTraceType nw_trace_type, uint16_t header_len, void *header,
+int mct_ext_parameter_check(MctContext *handle,
+                            MctNetworkTraceType nw_trace_type, uint16_t header_len, void *header,
                             uint16_t payload_len, void *payload)
 {
     if (handle == NULL) {
         mct_log(LOG_ERR, "handle error\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    if ((nw_trace_type != DLT_NW_TRACE_HP0)
-        && (nw_trace_type != DLT_NW_TRACE_HP1)) {
+    if ((nw_trace_type != MCT_NW_TRACE_HP0)
+        && (nw_trace_type != MCT_NW_TRACE_HP1)) {
         mct_log(LOG_ERR, "nw_trace_type error\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (header_len != 0) {
         if (header == NULL) {
             mct_log(LOG_ERR, "header error\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     if (payload_len != 0) {
         if (payload == NULL) {
             mct_log(LOG_ERR, "payload error\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 void mct_ext_write_ring_buff_set_data(void *RingBuffHead_p,
@@ -766,17 +766,17 @@ void mct_ext_write_ring_buff_set_data(void *RingBuffHead_p,
     return;
 }
 
-void mct_ext_write_ring_buff(DltExtBuff *pDltExtBuff,
-                             DltNetworkTraceType nw_trace_type,
+void mct_ext_write_ring_buff(MctExtBuff *pMctExtBuff,
+                             MctNetworkTraceType nw_trace_type,
                              uint16_t header_len,
                              void *header,
                              uint16_t payload_len,
                              void *payload)
 {
-    DltExtBuffHeader *pBufHeader;
+    MctExtBuffHeader *pBufHeader;
     void *RingBuffHead_p;
     uint32_t RingBuffSize;
-    char DltStorageheader[4] = {0x44, 0x4C, 0x54, 0x01};
+    char MctStorageheader[4] = {0x44, 0x4C, 0x54, 0x01};
     struct timeval tv;
     struct timezone tz;
     uint16_t ringbuf_log_len;
@@ -786,24 +786,24 @@ void mct_ext_write_ring_buff(DltExtBuff *pDltExtBuff,
     uint16_t write_header_len;
     uint16_t write_payload_len;
 
-    pBufHeader = (DltExtBuffHeader *)pDltExtBuff->addr;
-    RingBuffHead_p = ((void *)pBufHeader + sizeof(DltExtBuffHeader));
-    RingBuffSize = pDltExtBuff->size - sizeof(DltExtBuffHeader);
+    pBufHeader = (MctExtBuffHeader *)pMctExtBuff->addr;
+    RingBuffHead_p = ((void *)pBufHeader + sizeof(MctExtBuffHeader));
+    RingBuffSize = pMctExtBuff->size - sizeof(MctExtBuffHeader);
 
     /* get pid */
     seid = getpid();
-    seid = DLT_HTOBE_32(seid);
+    seid = MCT_HTOBE_32(seid);
 
     /* get current time */
     gettimeofday(&tv, &tz);
     tsmp = mct_uptime();
-    tsmp = DLT_HTOBE_32(tsmp);
+    tsmp = MCT_HTOBE_32(tsmp);
 
     /* check nw_trace_type */
-    if (nw_trace_type == DLT_NW_TRACE_HP0) {
-        maxlen = DLT_EXT_BUF_LOGMAX_HP0;
+    if (nw_trace_type == MCT_NW_TRACE_HP0) {
+        maxlen = MCT_EXT_BUF_LOGMAX_HP0;
     } else {
-        maxlen = DLT_EXT_BUF_LOGMAX_HP1;
+        maxlen = MCT_EXT_BUF_LOGMAX_HP1;
     }
 
     /* calculate length */
@@ -818,35 +818,35 @@ void mct_ext_write_ring_buff(DltExtBuff *pDltExtBuff,
         write_payload_len = payload_len;
     }
 
-    ringbuf_log_len = (sizeof(DltStandardHeader)
-                       + DLT_STANDARD_HEADER_EXTRA_SIZE(pBufHeader->htyp)
-                       + sizeof(DltExtendedHeader) + sizeof(uint32_t) + sizeof(header_len)
+    ringbuf_log_len = (sizeof(MctStandardHeader)
+                       + MCT_STANDARD_HEADER_EXTRA_SIZE(pBufHeader->htyp)
+                       + sizeof(MctExtendedHeader) + sizeof(uint32_t) + sizeof(header_len)
                        + write_header_len + sizeof(uint32_t) + sizeof(payload_len)
                        + write_payload_len);
     ringbuf_log_len = (((((ringbuf_log_len) >> 8) & 0xff)
                         | (((ringbuf_log_len) << 8) & 0xff00)));
 
-    /* Set DltStorageHeader */
+    /* Set MctStorageHeader */
     mct_ext_write_ring_buff_set_data(RingBuffHead_p, RingBuffSize,
-                                     &pBufHeader->write_count, DltStorageheader,
-                                     sizeof(DltStorageheader));
+                                     &pBufHeader->write_count, MctStorageheader,
+                                     sizeof(MctStorageheader));
     mct_ext_write_ring_buff_set_data(RingBuffHead_p, RingBuffSize,
                                      &pBufHeader->write_count, &tv.tv_sec, sizeof(int32_t));
     mct_ext_write_ring_buff_set_data(RingBuffHead_p, RingBuffSize,
                                      &pBufHeader->write_count, &tv.tv_usec, sizeof(int32_t));
 
-    /* Set DltStandardHeader */
+    /* Set MctStandardHeader */
     mct_ext_write_ring_buff_set_data(RingBuffHead_p, RingBuffSize,
                                      &pBufHeader->write_count, &ringbuf_log_len,
                                      sizeof(ringbuf_log_len));
 
-    /* Set DltStandardHeaderExtra */
-    if (DLT_IS_HTYP_WSID(pBufHeader->htyp)) {
+    /* Set MctStandardHeaderExtra */
+    if (MCT_IS_HTYP_WSID(pBufHeader->htyp)) {
         mct_ext_write_ring_buff_set_data(RingBuffHead_p, RingBuffSize,
                                          &pBufHeader->write_count, &seid, sizeof(seid));
     }
 
-    if (DLT_IS_HTYP_WTMS(pBufHeader->htyp)) {
+    if (MCT_IS_HTYP_WTMS(pBufHeader->htyp)) {
         mct_ext_write_ring_buff_set_data(RingBuffHead_p, RingBuffSize,
                                          &pBufHeader->write_count, &tsmp, sizeof(tsmp));
     }
@@ -866,22 +866,22 @@ void mct_ext_write_ring_buff(DltExtBuff *pDltExtBuff,
     return;
 }
 
-void mct_user_trace_network_hp(DltContext *handle,
-                               DltNetworkTraceType nw_trace_type, uint16_t header_len, void *header,
+void mct_user_trace_network_hp(MctContext *handle,
+                               MctNetworkTraceType nw_trace_type, uint16_t header_len, void *header,
                                uint16_t payload_len, void *payload)
 {
-    DltExtBuff *pDltExtBuff;
+    MctExtBuff *pMctExtBuff;
     int ret = 0;
 
-    /* DLT_TRACE_NETWORK() */
+    /* MCT_TRACE_NETWORK() */
     if (header == 0) {
         ret = mct_user_trace_network(handle, nw_trace_type, payload_len,
                                      payload, 0, 0);
     } else {
-        nw_trace_type |= DLT_NW_TRACE_ASCII_OUT;
+        nw_trace_type |= MCT_NW_TRACE_ASCII_OUT;
         ret = mct_user_trace_network(handle, nw_trace_type, header_len, header,
                                      0, 0);
-        nw_trace_type &= ~DLT_NW_TRACE_ASCII_OUT;
+        nw_trace_type &= ~MCT_NW_TRACE_ASCII_OUT;
         ret = mct_user_trace_network(handle, nw_trace_type, payload_len,
                                      payload, 0, 0);
     }
@@ -890,20 +890,20 @@ void mct_user_trace_network_hp(DltContext *handle,
         return;
     }
 
-    pDltExtBuff = mct_user.mct_ll_ts[handle->log_level_pos].DltExtBuff_ptr;
+    pMctExtBuff = mct_user.mct_ll_ts[handle->log_level_pos].MctExtBuff_ptr;
 
-    if (pDltExtBuff != NULL) {
+    if (pMctExtBuff != NULL) {
         /* check paramters */
         if (mct_ext_parameter_check(handle, nw_trace_type, header_len, header,
-                                    payload_len, payload) != DLT_RETURN_OK) {
+                                    payload_len, payload) != MCT_RETURN_OK) {
             return;
         }
 
         /* ring buffer write */
-        DLT_SEM_LOCK();
-        mct_ext_write_ring_buff(pDltExtBuff, nw_trace_type, header_len, header,
+        MCT_SEM_LOCK();
+        mct_ext_write_ring_buff(pMctExtBuff, nw_trace_type, header_len, header,
                                 payload_len, payload);
-        DLT_SEM_FREE();
+        MCT_SEM_FREE();
     }
 
     return;

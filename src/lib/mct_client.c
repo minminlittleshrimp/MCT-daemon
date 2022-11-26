@@ -31,10 +31,10 @@
 #include "mct_client.h"
 #include "mct_client_cfg.h"
 
-static int (*message_callback_function)(DltMessage *message, void *data) = NULL;
+static int (*message_callback_function)(MctMessage *message, void *data) = NULL;
 static bool (*fetch_next_message_callback_function)(void *data) = NULL;
 
-void mct_client_register_message_callback(int (*registerd_callback)(DltMessage *message, void *data))
+void mct_client_register_message_callback(int (*registerd_callback)(MctMessage *message, void *data))
 {
     message_callback_function = registerd_callback;
 }
@@ -44,9 +44,9 @@ void mct_client_register_fetch_next_message_callback(bool (*registerd_callback)(
     fetch_next_message_callback_function = registerd_callback;
 }
 
-DltReturnValue mct_client_init_port(DltClient *client, int port, int verbose)
+MctReturnValue mct_client_init_port(MctClient *client, int port, int verbose)
 {
-    if (verbose && (port != DLT_DAEMON_TCP_PORT)) {
+    if (verbose && (port != MCT_DAEMON_TCP_PORT)) {
         mct_vlog(LOG_INFO,
                  "%s: Init mct client struct with port %d\n",
                  __func__,
@@ -54,33 +54,33 @@ DltReturnValue mct_client_init_port(DltClient *client, int port, int verbose)
     }
 
     if (client == NULL) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     client->sock = -1;
     client->servIP = NULL;
     client->serialDevice = NULL;
-    client->baudrate = DLT_CLIENT_INITIAL_BAUDRATE;
+    client->baudrate = MCT_CLIENT_INITIAL_BAUDRATE;
     client->port = port;
     client->socketPath = NULL;
-    client->mode = DLT_CLIENT_MODE_TCP;
+    client->mode = MCT_CLIENT_MODE_TCP;
     client->receiver.buffer = NULL;
     client->receiver.buf = NULL;
     client->receiver.backup_buf = NULL;
     client->hostip = NULL;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_init(DltClient *client, int verbose)
+MctReturnValue mct_client_init(MctClient *client, int verbose)
 {
     char *env_daemon_port;
     int tmp_port;
-    /* the port may be specified by an environment variable, defaults to DLT_DAEMON_TCP_PORT */
-    unsigned short servPort = DLT_DAEMON_TCP_PORT;
+    /* the port may be specified by an environment variable, defaults to MCT_DAEMON_TCP_PORT */
+    unsigned short servPort = MCT_DAEMON_TCP_PORT;
 
     /* the port may be specified by an environment variable */
-    env_daemon_port = getenv(DLT_CLIENT_ENV_DAEMON_TCP_PORT);
+    env_daemon_port = getenv(MCT_CLIENT_ENV_DAEMON_TCP_PORT);
 
     if (env_daemon_port != NULL) {
         tmp_port = atoi(env_daemon_port);
@@ -90,7 +90,7 @@ DltReturnValue mct_client_init(DltClient *client, int verbose)
                      "%s: Specified port is out of possible range: %d.\n",
                      __func__,
                      tmp_port);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         } else {
             servPort = (unsigned short)tmp_port;
         }
@@ -106,7 +106,7 @@ DltReturnValue mct_client_init(DltClient *client, int verbose)
     return mct_client_init_port(client, servPort, verbose);
 }
 
-DltReturnValue mct_client_connect(DltClient *client, int verbose)
+MctReturnValue mct_client_connect(MctClient *client, int verbose)
 {
     const int yes = 1;
     int connect_errno = 0;
@@ -115,7 +115,7 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
     struct sockaddr_un addr;
     int rv;
     struct ip_mreq mreq;
-    DltReceiverType receiver_type = DLT_RECEIVE_FD;
+    MctReceiverType receiver_type = MCT_RECEIVE_FD;
 
     struct pollfd pfds[1];
     int ret;
@@ -126,11 +126,11 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
     hints.ai_socktype = SOCK_STREAM;
 
     if (client == 0) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     switch (client->mode) {
-        case DLT_CLIENT_MODE_TCP:
+        case MCT_CLIENT_MODE_TCP:
             snprintf(portnumbuffer, 32, "%d", client->port);
 
             if ((rv = getaddrinfo(client->servIP, portnumbuffer, &hints, &servinfo)) != 0) {
@@ -138,7 +138,7 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          "%s: getaddrinfo: %s\n",
                          __func__,
                          gai_strerror(rv));
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             for (p = servinfo; p != NULL; p = p->ai_next) {
@@ -220,20 +220,20 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          "%s: ERROR: failed to connect! %s\n",
                          __func__,
                          strerror(connect_errno));
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             if (verbose) {
                 mct_vlog(LOG_INFO,
-                         "%s: Connected to DLT daemon (%s)\n",
+                         "%s: Connected to MCT daemon (%s)\n",
                          __func__,
                          client->servIP);
             }
 
-            receiver_type = DLT_RECEIVE_SOCKET;
+            receiver_type = MCT_RECEIVE_SOCKET;
 
             break;
-        case DLT_CLIENT_MODE_SERIAL:
+        case MCT_CLIENT_MODE_SERIAL:
             /* open serial connection */
             client->sock = open(client->serialDevice, O_RDWR);
 
@@ -242,23 +242,23 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          "%s: ERROR: Failed to open device %s\n",
                          __func__,
                          client->serialDevice);
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             if (isatty(client->sock)) {
 #if !defined (__WIN32__)
 
-                if (mct_setup_serial(client->sock, client->baudrate) < DLT_RETURN_OK) {
+                if (mct_setup_serial(client->sock, client->baudrate) < MCT_RETURN_OK) {
                     mct_vlog(LOG_ERR,
                              "%s: ERROR: Failed to configure serial device %s (%s) \n",
                              __func__,
                              client->serialDevice,
                              strerror(errno));
-                    return DLT_RETURN_ERROR;
+                    return MCT_RETURN_ERROR;
                 }
 
 #else
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
 #endif
             } else {
                 mct_vlog(LOG_ERR,
@@ -267,7 +267,7 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          client->serialDevice,
                          strerror(errno));
 
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             if (verbose) {
@@ -277,16 +277,16 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          client->serialDevice);
             }
 
-            receiver_type = DLT_RECEIVE_FD;
+            receiver_type = MCT_RECEIVE_FD;
 
             break;
-        case DLT_CLIENT_MODE_UNIX:
+        case MCT_CLIENT_MODE_UNIX:
             if ((client->sock = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
                 mct_vlog(LOG_ERR,
                          "%s: ERROR: (unix) socket error: %s\n",
                          __func__,
                          strerror(errno));
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             memset(&addr, 0, sizeof(addr));
@@ -300,7 +300,7 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          "%s: ERROR: (unix) connect error: %s\n",
                          __func__,
                          strerror(errno));
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             if (client->sock < 0) {
@@ -308,20 +308,20 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          "%s: ERROR: Failed to open device %s\n",
                          __func__,
                          client->socketPath);
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
-            receiver_type = DLT_RECEIVE_SOCKET;
+            receiver_type = MCT_RECEIVE_SOCKET;
 
             break;
-        case DLT_CLIENT_MODE_UDP_MULTICAST:
+        case MCT_CLIENT_MODE_UDP_MULTICAST:
 
             if ((client->sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
                 mct_vlog(LOG_ERR,
                          "%s: ERROR: socket error: %s\n",
                          __func__,
                          strerror(errno));
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             /* allow multiple sockets to use the same PORT number */
@@ -330,7 +330,7 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          "%s: ERROR: Reusing address failed: %s\n",
                          __func__,
                          strerror(errno));
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             memset(&client->receiver.addr, 0, sizeof(client->receiver.addr));
@@ -345,7 +345,7 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          "%s: ERROR: bind failed: %s\n",
                          __func__,
                          strerror(errno));
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             mreq.imr_interface.s_addr = htonl(INADDR_ANY);
@@ -358,7 +358,7 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                 mct_vlog(LOG_ERR,
                          "%s: ERROR: server address not set\n",
                          __func__);
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             mreq.imr_multiaddr.s_addr = inet_addr(client->servIP);
@@ -368,7 +368,7 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          "%s: ERROR: server address not not valid %s\n",
                          __func__,
                          client->servIP);
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             if (setsockopt(client->sock, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq,
@@ -377,10 +377,10 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                          "%s: ERROR: setsockopt add membership failed: %s\n",
                          __func__,
                          strerror(errno));
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
-            receiver_type = DLT_RECEIVE_UDP_SOCKET;
+            receiver_type = MCT_RECEIVE_UDP_SOCKET;
 
             break;
         default:
@@ -389,37 +389,37 @@ DltReturnValue mct_client_connect(DltClient *client, int verbose)
                      __func__,
                      client->mode);
 
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
     }
 
     if (mct_receiver_init(&(client->receiver), client->sock, receiver_type,
-                          DLT_RECEIVE_BUFSIZE) != DLT_RETURN_OK) {
+                          MCT_RECEIVE_BUFSIZE) != MCT_RETURN_OK) {
         mct_vlog(LOG_ERR, "%s: ERROR initializing receiver\n", __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_cleanup(DltClient *client, int verbose)
+MctReturnValue mct_client_cleanup(MctClient *client, int verbose)
 {
-    int ret = DLT_RETURN_OK;
+    int ret = MCT_RETURN_OK;
 
     if (verbose) {
         mct_vlog(LOG_INFO, "%s: Cleanup mct client\n", __func__);
     }
 
     if (client == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (client->sock != -1) {
         close(client->sock);
     }
 
-    if (mct_receiver_free(&(client->receiver)) != DLT_RETURN_OK) {
+    if (mct_receiver_free(&(client->receiver)) != MCT_RETURN_OK) {
         mct_vlog(LOG_WARNING, "%s: Failed to free receiver\n", __func__);
-        ret = DLT_RETURN_ERROR;
+        ret = MCT_RETURN_ERROR;
     }
 
     if (client->serialDevice) {
@@ -445,17 +445,17 @@ DltReturnValue mct_client_cleanup(DltClient *client, int verbose)
     return ret;
 }
 
-DltReturnValue mct_client_main_loop(DltClient *client, void *data, int verbose)
+MctReturnValue mct_client_main_loop(MctClient *client, void *data, int verbose)
 {
-    DltMessage msg;
+    MctMessage msg;
     int ret;
 
     if (client == 0) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    if (mct_message_init(&msg, verbose) == DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+    if (mct_message_init(&msg, verbose) == MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
     bool fetch_next_message = true;
@@ -465,17 +465,17 @@ DltReturnValue mct_client_main_loop(DltClient *client, void *data, int verbose)
 
         if (ret <= 0) {
             /* No more data to be received */
-            if (mct_message_free(&msg, verbose) == DLT_RETURN_ERROR) {
-                return DLT_RETURN_ERROR;
+            if (mct_message_free(&msg, verbose) == MCT_RETURN_ERROR) {
+                return MCT_RETURN_ERROR;
             }
 
-            return DLT_RETURN_TRUE;
+            return MCT_RETURN_TRUE;
         }
 
         while (mct_message_read(&msg, (unsigned char *)(client->receiver.buf),
                                 client->receiver.bytesRcvd,
                                 client->resync_serial_header,
-                                verbose) == DLT_MESSAGE_ERROR_OK) {
+                                verbose) == MCT_MESSAGE_ERROR_OK) {
             /* Call callback function */
             if (message_callback_function) {
                 (*message_callback_function)(&msg, data);
@@ -483,47 +483,47 @@ DltReturnValue mct_client_main_loop(DltClient *client, void *data, int verbose)
 
             if (msg.found_serialheader) {
                 if (mct_receiver_remove(&(client->receiver),
-                                        msg.headersize + msg.datasize - sizeof(DltStorageHeader) +
+                                        msg.headersize + msg.datasize - sizeof(MctStorageHeader) +
                                         sizeof(mctSerialHeader)) ==
-                    DLT_RETURN_ERROR) {
+                    MCT_RETURN_ERROR) {
                     /* Return value ignored */
                     mct_message_free(&msg, verbose);
-                    return DLT_RETURN_ERROR;
+                    return MCT_RETURN_ERROR;
                 }
             } else if (mct_receiver_remove(&(client->receiver),
                                            msg.headersize + msg.datasize -
-                                           sizeof(DltStorageHeader)) ==
-                       DLT_RETURN_ERROR) {
+                                           sizeof(MctStorageHeader)) ==
+                       MCT_RETURN_ERROR) {
                 /* Return value ignored */
                 mct_message_free(&msg, verbose);
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
         }
 
-        if (mct_receiver_move_to_begin(&(client->receiver)) == DLT_RETURN_ERROR) {
+        if (mct_receiver_move_to_begin(&(client->receiver)) == MCT_RETURN_ERROR) {
             /* Return value ignored */
             mct_message_free(&msg, verbose);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
         if (fetch_next_message_callback_function)
           fetch_next_message = (*fetch_next_message_callback_function)(data);
     }
 
-    if (mct_message_free(&msg, verbose) == DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+    if (mct_message_free(&msg, verbose) == MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_message_to_socket(DltClient *client, DltMessage *msg)
+MctReturnValue mct_client_send_message_to_socket(MctClient *client, MctMessage *msg)
 {
     int ret = 0;
 
     if ((client == NULL) || (client->sock < 0)
         || (msg == NULL) || (msg->databuffer == NULL)) {
         mct_vlog(LOG_ERR, "%s: Invalid parameters\n", __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (client->send_serial_header) {
@@ -535,20 +535,20 @@ DltReturnValue mct_client_send_message_to_socket(DltClient *client, DltMessage *
                      "%s: Sending serial header failed: %s\n",
                      __func__,
                      strerror(errno));
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     ret = send(client->sock,
-               (const char *)(msg->headerbuffer + sizeof(DltStorageHeader)),
-               msg->headersize - sizeof(DltStorageHeader), 0);
+               (const char *)(msg->headerbuffer + sizeof(MctStorageHeader)),
+               msg->headersize - sizeof(MctStorageHeader), 0);
 
     if (ret < 0) {
         mct_vlog(LOG_ERR,
                  "%s: Sending message header failed: %s\n",
                  __func__,
                  strerror(errno));
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     ret = send(client->sock, (const char *)msg->databuffer, msg->datasize, 0);
@@ -558,19 +558,19 @@ DltReturnValue mct_client_send_message_to_socket(DltClient *client, DltMessage *
                  "%s: Sending message failed: %s\n",
                  __func__,
                  strerror(errno));
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_ctrl_msg(DltClient *client,
+MctReturnValue mct_client_send_ctrl_msg(MctClient *client,
                                         char *apid,
                                         char *ctid,
                                         uint8_t *payload,
                                         uint32_t size)
 {
-    DltMessage msg;
+    MctMessage msg;
     int ret;
 
     int32_t len;
@@ -578,12 +578,12 @@ DltReturnValue mct_client_send_ctrl_msg(DltClient *client,
     uint32_t id;
 
     if ((client == 0) || (client->sock < 0) || (apid == 0) || (ctid == 0)) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* initialise new message */
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
     /* prepare payload of data */
@@ -601,27 +601,27 @@ DltReturnValue mct_client_send_ctrl_msg(DltClient *client,
 
     if (msg.databuffer == 0) {
         mct_message_free(&msg, 0);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* copy data */
     memcpy(msg.databuffer, payload, size);
 
     /* prepare storage header */
-    msg.storageheader = (DltStorageHeader *)msg.headerbuffer;
+    msg.storageheader = (MctStorageHeader *)msg.headerbuffer;
 
-    if (mct_set_storageheader(msg.storageheader, "") == DLT_RETURN_ERROR) {
+    if (mct_set_storageheader(msg.storageheader, "") == MCT_RETURN_ERROR) {
         mct_message_free(&msg, 0);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* prepare standard header */
-    msg.standardheader = (DltStandardHeader *)(msg.headerbuffer + sizeof(DltStorageHeader));
-    msg.standardheader->htyp = DLT_HTYP_WEID | DLT_HTYP_WTMS | DLT_HTYP_UEH |
-        DLT_HTYP_PROTOCOL_VERSION1;
+    msg.standardheader = (MctStandardHeader *)(msg.headerbuffer + sizeof(MctStorageHeader));
+    msg.standardheader->htyp = MCT_HTYP_WEID | MCT_HTYP_WTMS | MCT_HTYP_UEH |
+        MCT_HTYP_PROTOCOL_VERSION1;
 
 #if (BYTE_ORDER == BIG_ENDIAN)
-    msg.standardheader->htyp = (msg.standardheader->htyp | DLT_HTYP_MSBF);
+    msg.standardheader->htyp = (msg.standardheader->htyp | MCT_HTYP_MSBF);
 #endif
 
     msg.standardheader->mcnt = 0;
@@ -632,32 +632,32 @@ DltReturnValue mct_client_send_ctrl_msg(DltClient *client,
     msg.headerextra.tmsp = mct_uptime();
 
     /* Copy header extra parameters to headerbuffer */
-    if (mct_message_set_extraparameters(&msg, 0) == DLT_RETURN_ERROR) {
+    if (mct_message_set_extraparameters(&msg, 0) == MCT_RETURN_ERROR) {
         mct_message_free(&msg, 0);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* prepare extended header */
-    msg.extendedheader = (DltExtendedHeader *)(msg.headerbuffer +
-                                               sizeof(DltStorageHeader) +
-                                               sizeof(DltStandardHeader) +
-                                               DLT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->
+    msg.extendedheader = (MctExtendedHeader *)(msg.headerbuffer +
+                                               sizeof(MctStorageHeader) +
+                                               sizeof(MctStandardHeader) +
+                                               MCT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->
                                                                               htyp));
 
-    msg.extendedheader->msin = DLT_MSIN_CONTROL_REQUEST;
+    msg.extendedheader->msin = MCT_MSIN_CONTROL_REQUEST;
 
     msg.extendedheader->noar = 1; /* number of arguments */
 
-    mct_set_id(msg.extendedheader->apid, (apid[0] == '\0') ? DLT_CLIENT_DUMMY_APP_ID : apid);
-    mct_set_id(msg.extendedheader->ctid, (ctid[0] == '\0') ? DLT_CLIENT_DUMMY_CON_ID : ctid);
+    mct_set_id(msg.extendedheader->apid, (apid[0] == '\0') ? MCT_CLIENT_DUMMY_APP_ID : apid);
+    mct_set_id(msg.extendedheader->ctid, (ctid[0] == '\0') ? MCT_CLIENT_DUMMY_CON_ID : ctid);
 
     /* prepare length information */
-    msg.headersize = sizeof(DltStorageHeader) +
-        sizeof(DltStandardHeader) +
-        sizeof(DltExtendedHeader) +
-        DLT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->htyp);
+    msg.headersize = sizeof(MctStorageHeader) +
+        sizeof(MctStandardHeader) +
+        sizeof(MctExtendedHeader) +
+        MCT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->htyp);
 
-    len = msg.headersize - sizeof(DltStorageHeader) + msg.datasize;
+    len = msg.headersize - sizeof(MctStorageHeader) + msg.datasize;
 
     if (len > UINT16_MAX) {
         mct_vlog(LOG_ERR,
@@ -665,13 +665,13 @@ DltReturnValue mct_client_send_ctrl_msg(DltClient *client,
                  __func__);
         mct_message_free(&msg, 0);
 
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    msg.standardheader->len = DLT_HTOBE_16(len);
+    msg.standardheader->len = MCT_HTOBE_16(len);
 
     /* Send data (without storage header) */
-    if ((client->mode == DLT_CLIENT_MODE_TCP) || (client->mode == DLT_CLIENT_MODE_SERIAL)) {
+    if ((client->mode == MCT_CLIENT_MODE_TCP) || (client->mode == MCT_CLIENT_MODE_SERIAL)) {
         /* via FileDescriptor */
         if (client->send_serial_header) {
             ret = write(client->sock, mctSerialHeader, sizeof(mctSerialHeader));
@@ -679,19 +679,19 @@ DltReturnValue mct_client_send_ctrl_msg(DltClient *client,
             if (ret < 0) {
                 mct_vlog(LOG_ERR, "%s: Sending message failed\n", __func__);
                 mct_message_free(&msg, 0);
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
         }
 
         ret =
             write(client->sock,
-                  msg.headerbuffer + sizeof(DltStorageHeader),
-                  msg.headersize - sizeof(DltStorageHeader));
+                  msg.headerbuffer + sizeof(MctStorageHeader),
+                  msg.headersize - sizeof(MctStorageHeader));
 
         if (0 > ret) {
             mct_vlog(LOG_ERR, "%s: Sending message failed\n", __func__);
             mct_message_free(&msg, 0);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
         ret = write(client->sock, msg.databuffer, msg.datasize);
@@ -699,35 +699,35 @@ DltReturnValue mct_client_send_ctrl_msg(DltClient *client,
         if (0 > ret) {
             mct_vlog(LOG_ERR, "%s: Sending message failed\n", __func__);
             mct_message_free(&msg, 0);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
         id_tmp = *((uint32_t *)(msg.databuffer));
-        id = DLT_ENDIAN_GET_32(msg.standardheader->htyp, id_tmp);
+        id = MCT_ENDIAN_GET_32(msg.standardheader->htyp, id_tmp);
 
         mct_vlog(LOG_INFO,
                  "%s: Control message forwarded : %s\n", __func__,
                  mct_get_service_name(id));
     } else {
         /* via Socket */
-        if (mct_client_send_message_to_socket(client, &msg) == DLT_RETURN_ERROR) {
+        if (mct_client_send_message_to_socket(client, &msg) == MCT_RETURN_ERROR) {
             mct_vlog(LOG_ERR,
                      "%s: Sending message to socket failed\n",
                      __func__);
             mct_message_free(&msg, 0);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     /* free message */
-    if (mct_message_free(&msg, 0) == DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+    if (mct_message_free(&msg, 0) == MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_inject_msg(DltClient *client,
+MctReturnValue mct_client_send_inject_msg(MctClient *client,
                                           char *apid,
                                           char *ctid,
                                           uint32_t serviceID,
@@ -740,7 +740,7 @@ DltReturnValue mct_client_send_inject_msg(DltClient *client,
     payload = (uint8_t *)malloc(sizeof(uint32_t) + sizeof(uint32_t) + size);
 
     if (payload == 0) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     offset = 0;
@@ -752,35 +752,35 @@ DltReturnValue mct_client_send_inject_msg(DltClient *client,
 
     /* free message */
     if (mct_client_send_ctrl_msg(client, apid, ctid, payload,
-                                 sizeof(uint32_t) + sizeof(uint32_t) + size) == DLT_RETURN_ERROR) {
+                                 sizeof(uint32_t) + sizeof(uint32_t) + size) == MCT_RETURN_ERROR) {
         free(payload);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     free(payload);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_log_level(DltClient *client,
+MctReturnValue mct_client_send_log_level(MctClient *client,
                                          char *apid,
                                          char *ctid,
                                          uint8_t logLevel)
 {
-    DltServiceSetLogLevel *req;
-    int ret = DLT_RETURN_ERROR;
+    MctServiceSetLogLevel *req;
+    int ret = MCT_RETURN_ERROR;
 
     if (client == NULL) {
         return ret;
     }
 
-    req = calloc(1, sizeof(DltServiceSetLogLevel));
+    req = calloc(1, sizeof(MctServiceSetLogLevel));
 
     if (req == NULL) {
         return ret;
     }
 
-    req->service_id = DLT_SERVICE_ID_SET_LOG_LEVEL;
+    req->service_id = MCT_SERVICE_ID_SET_LOG_LEVEL;
     mct_set_id(req->apid, apid);
     mct_set_id(req->ctid, ctid);
     req->log_level = logLevel;
@@ -791,7 +791,7 @@ DltReturnValue mct_client_send_log_level(DltClient *client,
                                    "APP",
                                    "CON",
                                    (uint8_t *)req,
-                                   sizeof(DltServiceSetLogLevel));
+                                   sizeof(MctServiceSetLogLevel));
 
 
     free(req);
@@ -799,22 +799,22 @@ DltReturnValue mct_client_send_log_level(DltClient *client,
     return ret;
 }
 
-DltReturnValue mct_client_get_log_info(DltClient *client)
+MctReturnValue mct_client_get_log_info(MctClient *client)
 {
-    DltServiceGetLogInfoRequest *req;
-    int ret = DLT_RETURN_ERROR;
+    MctServiceGetLogInfoRequest *req;
+    int ret = MCT_RETURN_ERROR;
 
     if (client == NULL) {
         return ret;
     }
 
-    req = (DltServiceGetLogInfoRequest *)malloc(sizeof(DltServiceGetLogInfoRequest));
+    req = (MctServiceGetLogInfoRequest *)malloc(sizeof(MctServiceGetLogInfoRequest));
 
     if (req == NULL) {
         return ret;
     }
 
-    req->service_id = DLT_SERVICE_ID_GET_LOG_INFO;
+    req->service_id = MCT_SERVICE_ID_GET_LOG_INFO;
     req->options = 7;
     mct_set_id(req->apid, "");
     mct_set_id(req->ctid, "");
@@ -825,82 +825,82 @@ DltReturnValue mct_client_get_log_info(DltClient *client)
                                    "",
                                    "",
                                    (uint8_t *)req,
-                                   sizeof(DltServiceGetLogInfoRequest));
+                                   sizeof(MctServiceGetLogInfoRequest));
 
     free(req);
 
     return ret;
 }
 
-DltReturnValue mct_client_get_default_log_level(DltClient *client)
+MctReturnValue mct_client_get_default_log_level(MctClient *client)
 {
-    DltServiceGetDefaultLogLevelRequest *req;
-    int ret = DLT_RETURN_ERROR;
+    MctServiceGetDefaultLogLevelRequest *req;
+    int ret = MCT_RETURN_ERROR;
 
     if (client == NULL) {
         return ret;
     }
 
-    req = (DltServiceGetDefaultLogLevelRequest *)
-        malloc(sizeof(DltServiceGetDefaultLogLevelRequest));
+    req = (MctServiceGetDefaultLogLevelRequest *)
+        malloc(sizeof(MctServiceGetDefaultLogLevelRequest));
 
     if (req == NULL) {
         return ret;
     }
 
-    req->service_id = DLT_SERVICE_ID_GET_DEFAULT_LOG_LEVEL;
+    req->service_id = MCT_SERVICE_ID_GET_DEFAULT_LOG_LEVEL;
 
     /* send control message to daemon*/
     ret = mct_client_send_ctrl_msg(client,
                                    "",
                                    "",
                                    (uint8_t *)req,
-                                   sizeof(DltServiceGetDefaultLogLevelRequest));
+                                   sizeof(MctServiceGetDefaultLogLevelRequest));
 
     free(req);
 
     return ret;
 }
 
-DltReturnValue mct_client_get_software_version(DltClient *client)
+MctReturnValue mct_client_get_software_version(MctClient *client)
 {
-    DltServiceGetSoftwareVersion *req;
-    int ret = DLT_RETURN_ERROR;
+    MctServiceGetSoftwareVersion *req;
+    int ret = MCT_RETURN_ERROR;
 
     if (client == NULL) {
         return ret;
     }
 
-    req = (DltServiceGetSoftwareVersion *)malloc(sizeof(DltServiceGetSoftwareVersion));
+    req = (MctServiceGetSoftwareVersion *)malloc(sizeof(MctServiceGetSoftwareVersion));
 
-    req->service_id = DLT_SERVICE_ID_GET_SOFTWARE_VERSION;
+    req->service_id = MCT_SERVICE_ID_GET_SOFTWARE_VERSION;
 
     /* send control message to daemon*/
     ret = mct_client_send_ctrl_msg(client,
                                    "",
                                    "",
                                    (uint8_t *)req,
-                                   sizeof(DltServiceGetSoftwareVersion));
+                                   sizeof(MctServiceGetSoftwareVersion));
 
     free(req);
 
     return ret;
 }
 
-DltReturnValue mct_client_send_trace_status(DltClient *client,
+MctReturnValue mct_client_send_trace_status(MctClient *client,
                                             char *apid,
                                             char *ctid,
                                             uint8_t traceStatus)
 {
-    DltServiceSetLogLevel *req;
+    MctServiceSetLogLevel *req;
 
-    req = calloc(1,sizeof(DltServiceSetLogLevel));
+    req = calloc(1,sizeof(MctServiceSetLogLevel));
 
     if (req == 0) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    req->service_id = DLT_SERVICE_ID_SET_TRACE_STATUS;
+    req->service_id = MCT_SERVICE_ID_SET_TRACE_STATUS;
     mct_set_id(req->apid, apid);
     mct_set_id(req->ctid, ctid);
     req->log_level = traceStatus;
@@ -908,204 +908,204 @@ DltReturnValue mct_client_send_trace_status(DltClient *client,
 
     /* free message */
     if (mct_client_send_ctrl_msg(client, "APP", "CON", (uint8_t*) req,
-                                 sizeof(DltServiceSetLogLevel)) == DLT_RETURN_ERROR) {
+                                 sizeof(MctServiceSetLogLevel)) == MCT_RETURN_ERROR) {
         free(req);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     free(req);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_default_log_level(DltClient *client, uint8_t defaultLogLevel)
+MctReturnValue mct_client_send_default_log_level(MctClient *client, uint8_t defaultLogLevel)
 {
-    DltServiceSetDefaultLogLevel *req;
+    MctServiceSetDefaultLogLevel *req;
 
-    req = calloc(1, sizeof(DltServiceSetDefaultLogLevel));
+    req = calloc(1, sizeof(MctServiceSetDefaultLogLevel));
 
     if (req == 0) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    req->service_id = DLT_SERVICE_ID_SET_DEFAULT_LOG_LEVEL;
+    req->service_id = MCT_SERVICE_ID_SET_DEFAULT_LOG_LEVEL;
     req->log_level = defaultLogLevel;
     mct_set_id(req->com, "remo");
 
     /* free message */
     if (mct_client_send_ctrl_msg(client, "APP", "CON", (uint8_t*) req,
-                                 sizeof(DltServiceSetDefaultLogLevel)) == DLT_RETURN_ERROR) {
+                                 sizeof(MctServiceSetDefaultLogLevel)) == MCT_RETURN_ERROR) {
         free(req);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     free(req);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_all_log_level(DltClient *client, uint8_t LogLevel)
+MctReturnValue mct_client_send_all_log_level(MctClient *client, uint8_t LogLevel)
 {
-    DltServiceSetDefaultLogLevel *req;
+    MctServiceSetDefaultLogLevel *req;
 
-    req = calloc(1, sizeof(DltServiceSetDefaultLogLevel));
+    req = calloc(1, sizeof(MctServiceSetDefaultLogLevel));
 
     if (req == 0) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    req->service_id = DLT_SERVICE_ID_SET_ALL_LOG_LEVEL;
+    req->service_id = MCT_SERVICE_ID_SET_ALL_LOG_LEVEL;
     req->log_level = LogLevel;
     mct_set_id(req->com, "remo");
 
     /* free message */
     if (mct_client_send_ctrl_msg(client, "APP", "CON", (uint8_t*) req,
-                                 sizeof(DltServiceSetDefaultLogLevel)) == -1) {
+                                 sizeof(MctServiceSetDefaultLogLevel)) == -1) {
         free(req);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     free(req);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_default_trace_status(DltClient *client, uint8_t defaultTraceStatus)
+MctReturnValue mct_client_send_default_trace_status(MctClient *client, uint8_t defaultTraceStatus)
 {
-    DltServiceSetDefaultLogLevel *req;
+    MctServiceSetDefaultLogLevel *req;
 
-    req = calloc(1, sizeof(DltServiceSetDefaultLogLevel));
+    req = calloc(1, sizeof(MctServiceSetDefaultLogLevel));
 
     if (req == 0) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    req->service_id = DLT_SERVICE_ID_SET_DEFAULT_TRACE_STATUS;
+    req->service_id = MCT_SERVICE_ID_SET_DEFAULT_TRACE_STATUS;
     req->log_level = defaultTraceStatus;
     mct_set_id(req->com, "remo");
 
     /* free message */
     if (mct_client_send_ctrl_msg(client, "APP", "CON", (uint8_t*) req,
-                                 sizeof(DltServiceSetDefaultLogLevel)) == DLT_RETURN_ERROR) {
+                                 sizeof(MctServiceSetDefaultLogLevel)) == MCT_RETURN_ERROR) {
         free(req);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     free(req);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_all_trace_status(DltClient *client, uint8_t traceStatus)
+MctReturnValue mct_client_send_all_trace_status(MctClient *client, uint8_t traceStatus)
 {
-    DltServiceSetDefaultLogLevel *req;
+    MctServiceSetDefaultLogLevel *req;
 
     if (client == NULL) {
         mct_vlog(LOG_ERR, "%s: Invalid parameters\n", __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    req = calloc(1, sizeof(DltServiceSetDefaultLogLevel));
+    req = calloc(1, sizeof(MctServiceSetDefaultLogLevel));
 
     if (req == 0) {
         mct_vlog(LOG_ERR, "%s: Could not allocate memory %zu\n", __func__,
-                 sizeof(DltServiceSetDefaultLogLevel));
-        return DLT_RETURN_ERROR;
+                 sizeof(MctServiceSetDefaultLogLevel));
+        return MCT_RETURN_ERROR;
     }
 
-    req->service_id = DLT_SERVICE_ID_SET_ALL_TRACE_STATUS;
+    req->service_id = MCT_SERVICE_ID_SET_ALL_TRACE_STATUS;
     req->log_level = traceStatus;
     mct_set_id(req->com, "remo");
 
     /* free message */
     if (mct_client_send_ctrl_msg(client, "APP", "CON", (uint8_t*) req,
-                                 sizeof(DltServiceSetDefaultLogLevel)) == -1) {
+                                 sizeof(MctServiceSetDefaultLogLevel)) == -1) {
         free(req);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     free(req);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_timing_pakets(DltClient *client, uint8_t timingPakets)
+MctReturnValue mct_client_send_timing_pakets(MctClient *client, uint8_t timingPakets)
 {
-    DltServiceSetVerboseMode *req;
+    MctServiceSetVerboseMode *req;
 
-    req = calloc(1, sizeof(DltServiceSetVerboseMode));
+    req = calloc(1, sizeof(MctServiceSetVerboseMode));
 
     if (req == 0) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    req->service_id = DLT_SERVICE_ID_SET_TIMING_PACKETS;
+    req->service_id = MCT_SERVICE_ID_SET_TIMING_PACKETS;
     req->new_status = timingPakets;
 
     /* free message */
     if (mct_client_send_ctrl_msg(client, "APP", "CON", (uint8_t*) req,
-                                 sizeof(DltServiceSetVerboseMode)) == DLT_RETURN_ERROR) {
+                                 sizeof(MctServiceSetVerboseMode)) == MCT_RETURN_ERROR) {
         free(req);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     free(req);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_store_config(DltClient *client)
+MctReturnValue mct_client_send_store_config(MctClient *client)
 {
     uint32_t service_id;
 
-    service_id = DLT_SERVICE_ID_STORE_CONFIG;
+    service_id = MCT_SERVICE_ID_STORE_CONFIG;
 
     /* free message */
     if (mct_client_send_ctrl_msg(client, "APP", "CON", (uint8_t *)&service_id,
-                                 sizeof(uint32_t)) == DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+                                 sizeof(uint32_t)) == MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_send_reset_to_factory_default(DltClient *client)
+MctReturnValue mct_client_send_reset_to_factory_default(MctClient *client)
 {
     uint32_t service_id;
 
-    service_id = DLT_SERVICE_ID_RESET_TO_FACTORY_DEFAULT;
+    service_id = MCT_SERVICE_ID_RESET_TO_FACTORY_DEFAULT;
 
     /* free message */
     if (mct_client_send_ctrl_msg(client, "APP", "CON", (uint8_t *)&service_id,
-                                 sizeof(uint32_t)) == DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+                                 sizeof(uint32_t)) == MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_setbaudrate(DltClient *client, int baudrate)
+MctReturnValue mct_client_setbaudrate(MctClient *client, int baudrate)
 {
     if (client == 0) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     client->baudrate = mct_convert_serial_speed(baudrate);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_client_set_mode(DltClient *client, DltClientMode mode)
+MctReturnValue mct_client_set_mode(MctClient *client, MctClientMode mode)
 {
     if (client == 0) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     client->mode = mode;
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-int mct_client_set_server_ip(DltClient *client, char *ipaddr)
+int mct_client_set_server_ip(MctClient *client, char *ipaddr)
 {
     client->servIP = strdup(ipaddr);
 
@@ -1113,13 +1113,13 @@ int mct_client_set_server_ip(DltClient *client, char *ipaddr)
         mct_vlog(LOG_ERR,
                  "%s: ERROR: failed to duplicate server IP\n",
                  __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-int mct_client_set_host_if_address(DltClient *client, char *hostip)
+int mct_client_set_host_if_address(MctClient *client, char *hostip)
 {
     client->hostip = strdup(hostip);
 
@@ -1127,13 +1127,13 @@ int mct_client_set_host_if_address(DltClient *client, char *hostip)
         mct_vlog(LOG_ERR,
                  "%s: ERROR: failed to duplicate UDP interface address\n",
                  __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-int mct_client_set_serial_device(DltClient *client, char *serial_device)
+int mct_client_set_serial_device(MctClient *client, char *serial_device)
 {
     client->serialDevice = strdup(serial_device);
 
@@ -1141,13 +1141,13 @@ int mct_client_set_serial_device(DltClient *client, char *serial_device)
         mct_vlog(LOG_ERR,
                  "%s: ERROR: failed to duplicate serial device\n",
                  __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-int mct_client_set_socket_path(DltClient *client, char *socket_path)
+int mct_client_set_socket_path(MctClient *client, char *socket_path)
 {
     client->socketPath = strdup(socket_path);
 
@@ -1155,18 +1155,18 @@ int mct_client_set_socket_path(DltClient *client, char *socket_path)
         mct_vlog(LOG_ERR,
                  "%s: ERROR: failed to duplicate socket path\n",
                  __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 /**
  * free allocation when calloc failed
  *
- * @param resp          DltServiceGetLogInfoResponse
+ * @param resp          MctServiceGetLogInfoResponse
  * @param count_app_ids number of app_ids which needs to be freed
  */
-DLT_STATIC void mct_client_free_calloc_failed_get_log_info(DltServiceGetLogInfoResponse *resp,
+static void mct_client_free_calloc_failed_get_log_info(MctServiceGetLogInfoResponse *resp,
                                                            int count_app_ids)
 {
     AppIDsType *app = NULL;
@@ -1197,7 +1197,7 @@ DLT_STATIC void mct_client_free_calloc_failed_get_log_info(DltServiceGetLogInfoR
     return;
 }
 
-DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoResponse *resp,
+MctReturnValue mct_client_parse_get_log_info_resp_text(MctServiceGetLogInfoResponse *resp,
                                                        char *resp_text)
 {
     AppIDsType *app = NULL;
@@ -1208,7 +1208,7 @@ DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoRespo
     int rp_count = 0;
 
     if ((resp == NULL) || (resp_text == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* ------------------------------------------------------
@@ -1232,7 +1232,7 @@ DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoRespo
      *  kk kk ..   : description text of apid
      *  ------------------------------------------------------ */
 
-    rp = resp_text + DLT_GET_LOG_INFO_HEADER;
+    rp = resp_text + MCT_GET_LOG_INFO_HEADER;
     rp_count = 0;
 
     /* check if status is acceptable */
@@ -1255,7 +1255,7 @@ DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoRespo
                      resp->status);
         }
 
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* count_app_ids */
@@ -1268,13 +1268,13 @@ DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoRespo
     if (resp->log_info_type.app_ids == NULL) {
         mct_vlog(LOG_ERR, "%s: calloc failed for app_ids\n", __func__);
         mct_client_free_calloc_failed_get_log_info(resp, 0);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     for (i = 0; i < resp->log_info_type.count_app_ids; i++) {
         app = &(resp->log_info_type.app_ids[i]);
         /* get app id */
-        mct_getloginfo_conv_ascii_to_id(rp, &rp_count, app->app_id, DLT_ID_SIZE);
+        mct_getloginfo_conv_ascii_to_id(rp, &rp_count, app->app_id, MCT_ID_SIZE);
 
         /* count_con_ids */
         app->count_context_ids = mct_getloginfo_conv_ascii_to_uint16_t(rp,
@@ -1287,7 +1287,7 @@ DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoRespo
             mct_vlog(LOG_ERR,
                      "%s: calloc failed for context_id_info\n", __func__);
             mct_client_free_calloc_failed_get_log_info(resp, i);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
 
         for (j = 0; j < app->count_context_ids; j++) {
@@ -1296,7 +1296,7 @@ DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoRespo
             mct_getloginfo_conv_ascii_to_id(rp,
                                             &rp_count,
                                             con->context_id,
-                                            DLT_ID_SIZE);
+                                            MCT_ID_SIZE);
 
             /* log_level */
             if ((resp->status == 4) || (resp->status == 6) || (resp->status == 7)) {
@@ -1322,7 +1322,7 @@ DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoRespo
                              "%s: calloc failed for context description\n",
                              __func__);
                     mct_client_free_calloc_failed_get_log_info(resp, i);
-                    return DLT_RETURN_ERROR;
+                    return MCT_RETURN_ERROR;
                 }
 
                 mct_getloginfo_conv_ascii_to_id(rp,
@@ -1344,7 +1344,7 @@ DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoRespo
                          "%s: calloc failed for application description\n",
                          __func__);
                 mct_client_free_calloc_failed_get_log_info(resp, i);
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
 
             mct_getloginfo_conv_ascii_to_id(rp,
@@ -1354,17 +1354,17 @@ DltReturnValue mct_client_parse_get_log_info_resp_text(DltServiceGetLogInfoRespo
         }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-int mct_client_cleanup_get_log_info(DltServiceGetLogInfoResponse *resp)
+int mct_client_cleanup_get_log_info(MctServiceGetLogInfoResponse *resp)
 {
     AppIDsType app;
     int i = 0;
     int j = 0;
 
     if (resp == NULL) {
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     for (i = 0; i < resp->log_info_type.count_app_ids; i++) {
@@ -1387,71 +1387,71 @@ int mct_client_cleanup_get_log_info(DltServiceGetLogInfoResponse *resp)
     free(resp);
     resp = NULL;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-int mct_client_send_set_blockmode(DltClient *client, int block_mode)
+int mct_client_send_set_blockmode(MctClient *client, int block_mode)
 {
-    DltServiceSetBlockMode *req;
+    MctServiceSetBlockMode *req;
 
     if (client == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    req = (DltServiceSetBlockMode *)malloc(sizeof(DltServiceSetBlockMode));
+    req = (MctServiceSetBlockMode *)malloc(sizeof(MctServiceSetBlockMode));
 
     if (req == NULL) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    req->service_id = DLT_SERVICE_ID_SET_BLOCK_MODE;
+    req->service_id = MCT_SERVICE_ID_SET_BLOCK_MODE;
     req->mode = block_mode;
-    mct_set_id(req->apid, DLT_ALL_APPLICATIONS); /* send for all applications */
+    mct_set_id(req->apid, MCT_ALL_APPLICATIONS); /* send for all applications */
 
     if (mct_client_send_ctrl_msg(
             client,
             "",
             "",
             (uint8_t *)req,
-            sizeof(DltServiceSetBlockMode)) != DLT_RETURN_OK) {
+            sizeof(MctServiceSetBlockMode)) != MCT_RETURN_OK) {
         free(req);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     free(req);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-int mct_client_send_get_blockmode(DltClient *client)
+int mct_client_send_get_blockmode(MctClient *client)
 {
-    DltServiceGetBlockMode *req;
+    MctServiceGetBlockMode *req;
 
     if (client == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    req = (DltServiceGetBlockMode *)malloc(sizeof(DltServiceGetBlockMode));
+    req = (MctServiceGetBlockMode *)malloc(sizeof(MctServiceGetBlockMode));
 
     if (req == NULL) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    req->service_id = DLT_SERVICE_ID_GET_BLOCK_MODE;
+    req->service_id = MCT_SERVICE_ID_GET_BLOCK_MODE;
     req->mode = 0;
-    mct_set_id(req->apid, DLT_ALL_APPLICATIONS);
+    mct_set_id(req->apid, MCT_ALL_APPLICATIONS);
 
     if (mct_client_send_ctrl_msg(
             client,
             "",
             "",
             (uint8_t *)req,
-            sizeof(DltServiceGetBlockMode)) != DLT_RETURN_OK) {
+            sizeof(MctServiceGetBlockMode)) != MCT_RETURN_OK) {
         free(req);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     free(req);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }

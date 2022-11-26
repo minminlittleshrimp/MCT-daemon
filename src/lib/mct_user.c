@@ -30,10 +30,10 @@
 
 #include <stdatomic.h>
 
-#if defined DLT_LIB_USE_UNIX_SOCKET_IPC
+#if defined MCT_LIB_USE_UNIX_SOCKET_IPC
 #include <sys/socket.h>
 #endif
-#ifdef DLT_LIB_USE_UNIX_SOCKET_IPC
+#ifdef MCT_LIB_USE_UNIX_SOCKET_IPC
 #include <sys/un.h>
 #endif
 
@@ -43,34 +43,34 @@
 #include "mct_user_shared_cfg.h"
 #include "mct_user_cfg.h"
 
-#ifdef DLT_FATAL_LOG_RESET_ENABLE
-#define DLT_LOG_FATAL_RESET_TRAP(LOGLEVEL) \
+#ifdef MCT_FATAL_LOG_RESET_ENABLE
+#define MCT_LOG_FATAL_RESET_TRAP(LOGLEVEL) \
     do {                                   \
-        if (LOGLEVEL == DLT_LOG_FATAL) {   \
+        if (LOGLEVEL == MCT_LOG_FATAL) {   \
             int *p = NULL;                 \
             *p = 0;                        \
         }                                  \
     } while (0)
-#else /* DLT_FATAL_LOG_RESET_ENABLE */
-#define DLT_LOG_FATAL_RESET_TRAP(LOGLEVEL)
-#endif /* DLT_FATAL_LOG_RESET_ENABLE */
+#else /* MCT_FATAL_LOG_RESET_ENABLE */
+#define MCT_LOG_FATAL_RESET_TRAP(LOGLEVEL)
+#endif /* MCT_FATAL_LOG_RESET_ENABLE */
 
-#ifndef DLT_HP_LOG_ENABLE
-static DltUser mct_user;
+#ifndef MCT_HP_LOG_ENABLE
+static MctUser mct_user;
 #else
-DltUser mct_user;
+MctUser mct_user;
 #endif
 static atomic_bool mct_user_initialised = false;
 static int mct_user_freeing = 0;
 static bool mct_user_file_reach_max = false;
 static bool mct_user_app_unreg = true;
 
-#ifdef DLT_LIB_USE_FIFO_IPC
-static char mct_user_dir[DLT_PATH_MAX];
-static char mct_daemon_fifo[DLT_PATH_MAX];
+#ifdef MCT_LIB_USE_FIFO_IPC
+static char mct_user_dir[MCT_PATH_MAX];
+static char mct_daemon_fifo[MCT_PATH_MAX];
 #endif
 
-#ifndef DLT_HP_LOG_ENABLE
+#ifndef MCT_HP_LOG_ENABLE
 static sem_t mct_mutex;
 #else
 sem_t mct_mutex;
@@ -80,7 +80,7 @@ static pthread_t mct_housekeeperthread_handle;
 /* calling mct_user_atexit_handler() second time fails with error message */
 static int atexit_registered = 0;
 
-/* used to disallow DLT usage in fork() child */
+/* used to disallow MCT usage in fork() child */
 static int g_mct_is_child = 0;
 /* String truncate message */
 static const char STR_TRUNCATED_MESSAGE[] = "... <<Message truncated, too long>>";
@@ -102,11 +102,11 @@ typedef struct VarInfo
     bool with_unit;    // true if the "unit" field is to be considered
 } VarInfo;
 
-#define DLT_UNUSED(x) (void)(x)
+#define MCT_UNUSED(x) (void)(x)
 
 /* Thread definitions */
-#define DLT_USER_NO_THREAD            0
-#define DLT_USER_HOUSEKEEPER_THREAD  (1 << 1)
+#define MCT_USER_NO_THREAD            0
+#define MCT_USER_HOUSEKEEPER_THREAD  (1 << 1)
 
 /* Mutex to wait on buffer flushed to FIFO */
 pthread_mutex_t flush_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -137,9 +137,9 @@ void mct_unlock_mutex(pthread_mutex_t *mutex)
 /* Structure to pass data to segmented thread */
 typedef struct
 {
-    DltContext *handle;
+    MctContext *handle;
     uint32_t id;
-    DltNetworkTraceType nw_trace_type;
+    MctNetworkTraceType nw_trace_type;
     uint32_t header_len;
     void *header;
     uint32_t payload_len;
@@ -149,23 +149,23 @@ typedef struct
 /* Function prototypes for internally used functions */
 static void mct_user_housekeeperthread_function(void *ptr);
 static void mct_user_atexit_handler(void);
-static DltReturnValue mct_user_log_init(DltContext *handle, DltContextData *log);
-static DltReturnValue mct_user_log_send_log(DltContextData *log, int mtype);
-static DltReturnValue mct_user_log_send_register_application(void);
-static DltReturnValue mct_user_log_send_unregister_application(void);
-static DltReturnValue mct_user_log_send_register_context(DltContextData *log);
-static DltReturnValue mct_user_log_send_unregister_context(DltContextData *log);
-static DltReturnValue mct_send_app_ll_ts_limit(const char *apid,
-                                               DltLogLevelType loglevel,
-                                               DltTraceStatusType tracestatus);
-static DltReturnValue mct_user_log_send_marker();
-static DltReturnValue mct_user_print_msg(DltMessage *msg, DltContextData *log);
-static DltReturnValue mct_user_log_check_user_message(void);
+static MctReturnValue mct_user_log_init(MctContext *handle, MctContextData *log);
+static MctReturnValue mct_user_log_send_log(MctContextData *log, int mtype);
+static MctReturnValue mct_user_log_send_register_application(void);
+static MctReturnValue mct_user_log_send_unregister_application(void);
+static MctReturnValue mct_user_log_send_register_context(MctContextData *log);
+static MctReturnValue mct_user_log_send_unregister_context(MctContextData *log);
+static MctReturnValue mct_send_app_ll_ts_limit(const char *apid,
+                                               MctLogLevelType loglevel,
+                                               MctTraceStatusType tracestatus);
+static MctReturnValue mct_user_log_send_marker();
+static MctReturnValue mct_user_print_msg(MctMessage *msg, MctContextData *log);
+static MctReturnValue mct_user_log_check_user_message(void);
 static void mct_user_log_reattach_to_daemon(void);
-static DltReturnValue mct_user_log_send_overflow(void);
-static DltReturnValue mct_user_set_blockmode(int8_t mode);
+static MctReturnValue mct_user_log_send_overflow(void);
+static MctReturnValue mct_user_set_blockmode(int8_t mode);
 static int mct_user_get_blockmode();
-static DltReturnValue mct_user_log_out_error_handling(void *ptr1,
+static MctReturnValue mct_user_log_out_error_handling(void *ptr1,
                                                       size_t len1,
                                                       void *ptr2,
                                                       size_t len2,
@@ -176,41 +176,41 @@ static int mct_start_threads(int id);
 static void mct_stop_threads();
 static void mct_fork_child_fork_handler();
 
-static DltReturnValue mct_user_log_write_string_utils_attr(DltContextData *log, const char *text, const enum StringType type, const char *name, bool with_var_info);
-static DltReturnValue mct_user_log_write_sized_string_utils_attr(DltContextData *log, const char *text, uint16_t length, const enum StringType type, const char *name, bool with_var_info);
+static MctReturnValue mct_user_log_write_string_utils_attr(MctContextData *log, const char *text, const enum StringType type, const char *name, bool with_var_info);
+static MctReturnValue mct_user_log_write_sized_string_utils_attr(MctContextData *log, const char *text, uint16_t length, const enum StringType type, const char *name, bool with_var_info);
 
 
-static DltReturnValue mct_unregister_app_util(bool force_sending_messages);
+static MctReturnValue mct_unregister_app_util(bool force_sending_messages);
 
-DltReturnValue mct_user_check_library_version(const char *user_major_version,
+MctReturnValue mct_user_check_library_version(const char *user_major_version,
                                               const char *user_minor_version)
 {
-    char lib_major_version[DLT_USER_MAX_LIB_VERSION_LENGTH];
-    char lib_minor_version[DLT_USER_MAX_LIB_VERSION_LENGTH];
+    char lib_major_version[MCT_USER_MAX_LIB_VERSION_LENGTH];
+    char lib_minor_version[MCT_USER_MAX_LIB_VERSION_LENGTH];
 
-    mct_get_major_version(lib_major_version, DLT_USER_MAX_LIB_VERSION_LENGTH);
-    mct_get_minor_version(lib_minor_version, DLT_USER_MAX_LIB_VERSION_LENGTH);
+    mct_get_major_version(lib_major_version, MCT_USER_MAX_LIB_VERSION_LENGTH);
+    mct_get_minor_version(lib_minor_version, MCT_USER_MAX_LIB_VERSION_LENGTH);
 
     if ((strcmp(lib_major_version,
                 user_major_version) != 0) ||
         (strcmp(lib_minor_version, user_minor_version) != 0)) {
         mct_vnlog(
             LOG_WARNING,
-            DLT_USER_BUFFER_LENGTH,
-            "DLT Library version check failed! Installed DLT library version is %s.%s - Application using DLT library version %s.%s\n",
+            MCT_USER_BUFFER_LENGTH,
+            "MCT Library version check failed! Installed MCT library version is %s.%s - Application using MCT library version %s.%s\n",
             lib_major_version,
             lib_minor_version,
             user_major_version,
             user_minor_version);
 
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-#if defined DLT_LIB_USE_UNIX_SOCKET_IPC
-static DltReturnValue mct_socket_set_nonblock_and_linger(int sockfd)
+#if defined MCT_LIB_USE_UNIX_SOCKET_IPC
+static MctReturnValue mct_socket_set_nonblock_and_linger(int sockfd)
 {
     int status;
     struct linger l_opt;
@@ -219,7 +219,7 @@ static DltReturnValue mct_socket_set_nonblock_and_linger(int sockfd)
 
     if (status == -1) {
         mct_log(LOG_INFO, "Socket cannot be changed to NON BLOCK\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     l_opt.l_onoff = 1;
@@ -229,150 +229,150 @@ static DltReturnValue mct_socket_set_nonblock_and_linger(int sockfd)
         mct_log(LOG_WARNING, "Failed to set socket linger option\n");
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 #endif
 
-#ifdef DLT_LIB_USE_UNIX_SOCKET_IPC
-static DltReturnValue mct_initialize_socket_connection(void)
+#ifdef MCT_LIB_USE_UNIX_SOCKET_IPC
+static MctReturnValue mct_initialize_socket_connection(void)
 {
     struct sockaddr_un remote;
-    char mctSockBaseDir[DLT_IPC_PATH_MAX];
+    char mctSockBaseDir[MCT_IPC_PATH_MAX];
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
     int sockfd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
 
-    if (sockfd == DLT_FD_INIT) {
+    if (sockfd == MCT_FD_INIT) {
         mct_log(LOG_CRIT, "Failed to create socket\n");
-        DLT_SEM_FREE();
-        return DLT_RETURN_ERROR;
+        MCT_SEM_FREE();
+        return MCT_RETURN_ERROR;
     }
 
     mct_user.mct_log_handle = sockfd;
 
     /* Change socket mode */
-    if (mct_set_socket_mode(mct_user.socket_mode) == DLT_RETURN_ERROR) {
-        DLT_SEM_FREE();
-        return DLT_RETURN_ERROR;
+    if (mct_set_socket_mode(mct_user.socket_mode) == MCT_RETURN_ERROR) {
+        MCT_SEM_FREE();
+        return MCT_RETURN_ERROR;
     }
 
-    if (mct_socket_set_nonblock_and_linger(sockfd) != DLT_RETURN_OK) {
+    if (mct_socket_set_nonblock_and_linger(sockfd) != MCT_RETURN_OK) {
         close(sockfd);
-        DLT_SEM_FREE();
-        return DLT_RETURN_ERROR;
+        MCT_SEM_FREE();
+        return MCT_RETURN_ERROR;
     }
 
     remote.sun_family = AF_UNIX;
-    snprintf(mctSockBaseDir, DLT_IPC_PATH_MAX, "%s/mct", DLT_USER_IPC_PATH);
+    snprintf(mctSockBaseDir, MCT_IPC_PATH_MAX, "%s/mct", MCT_USER_IPC_PATH);
     strncpy(remote.sun_path, mctSockBaseDir, sizeof(remote.sun_path));
 
-    if (strlen(DLT_USER_IPC_PATH) > DLT_IPC_PATH_MAX) {
+    if (strlen(MCT_USER_IPC_PATH) > MCT_IPC_PATH_MAX) {
         mct_vlog(LOG_INFO,
                  "Provided path too long...trimming it to path[%s]\n",
                  mctSockBaseDir);
     }
 
     if (connect(sockfd, (struct sockaddr *)&remote, sizeof(remote)) == -1) {
-        if (mct_user.connection_state != DLT_USER_RETRY_CONNECT) {
+        if (mct_user.connection_state != MCT_USER_RETRY_CONNECT) {
             mct_vlog(LOG_INFO,
                      "Socket %s cannot be opened (errno=%d). Retrying later...\n",
                      mctSockBaseDir, errno);
-            mct_user.connection_state = DLT_USER_RETRY_CONNECT;
+            mct_user.connection_state = MCT_USER_RETRY_CONNECT;
         }
 
         close(sockfd);
         mct_user.mct_log_handle = -1;
     } else {
         mct_user.mct_log_handle = sockfd;
-        mct_user.connection_state = DLT_USER_CONNECTED;
+        mct_user.connection_state = MCT_USER_CONNECTED;
 
         if (mct_receiver_init(&(mct_user.receiver),
                               sockfd,
-                              DLT_RECEIVE_SOCKET,
-                              DLT_USER_RCVBUF_MAX_SIZE) == DLT_RETURN_ERROR) {
+                              MCT_RECEIVE_SOCKET,
+                              MCT_USER_RCVBUF_MAX_SIZE) == MCT_RETURN_ERROR) {
             mct_user_initialised = false;
             close(sockfd);
-            DLT_SEM_FREE();
-            return DLT_RETURN_ERROR;
+            MCT_SEM_FREE();
+            return MCT_RETURN_ERROR;
         }
     }
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-#elif defined DLT_LIB_USE_VSOCK_IPC
-static DltReturnValue mct_initialize_vsock_connection()
+#elif defined MCT_LIB_USE_VSOCK_IPC
+static MctReturnValue mct_initialize_vsock_connection()
 {
     struct sockaddr_vm remote;
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
     int sockfd = socket(AF_VSOCK, SOCK_STREAM, 0);
 
-    if (sockfd == DLT_FD_INIT) {
+    if (sockfd == MCT_FD_INIT) {
         mct_log(LOG_CRIT, "Failed to create VSOCK socket\n");
-        DLT_SEM_FREE();
-        return DLT_RETURN_ERROR;
+        MCT_SEM_FREE();
+        return MCT_RETURN_ERROR;
     }
 
     memset(&remote, 0, sizeof(remote));
     remote.svm_family = AF_VSOCK;
-    remote.svm_port = DLT_VSOCK_PORT;
+    remote.svm_port = MCT_VSOCK_PORT;
     remote.svm_cid = VMADDR_CID_HOST;
 
     if (connect(sockfd, (struct sockaddr *)&remote, sizeof(remote)) == -1) {
-        if (mct_user.connection_state != DLT_USER_RETRY_CONNECT) {
+        if (mct_user.connection_state != MCT_USER_RETRY_CONNECT) {
             mct_vlog(LOG_INFO, "VSOCK socket cannot be opened. Retrying later...\n");
-            mct_user.connection_state = DLT_USER_RETRY_CONNECT;
+            mct_user.connection_state = MCT_USER_RETRY_CONNECT;
         }
 
         close(sockfd);
         mct_user.mct_log_handle = -1;
     } else {
-        /* Set to non-blocking after connect() to avoid EINPROGRESS. DltUserConntextionState
+        /* Set to non-blocking after connect() to avoid EINPROGRESS. MctUserConntextionState
          * needs "connecting" state if connect() should be non-blocking. */
-        if (mct_socket_set_nonblock_and_linger(sockfd) != DLT_RETURN_OK) {
+        if (mct_socket_set_nonblock_and_linger(sockfd) != MCT_RETURN_OK) {
             close(sockfd);
-            DLT_SEM_FREE();
-            return DLT_RETURN_ERROR;
+            MCT_SEM_FREE();
+            return MCT_RETURN_ERROR;
         }
 
         mct_user.mct_log_handle = sockfd;
-        mct_user.connection_state = DLT_USER_CONNECTED;
+        mct_user.connection_state = MCT_USER_CONNECTED;
 
         if (mct_receiver_init(&(mct_user.receiver),
                               sockfd,
-                              DLT_RECEIVE_SOCKET,
-                              DLT_USER_RCVBUF_MAX_SIZE) == DLT_RETURN_ERROR) {
+                              MCT_RECEIVE_SOCKET,
+                              MCT_USER_RCVBUF_MAX_SIZE) == MCT_RETURN_ERROR) {
             mct_user_initialised = false;
             close(sockfd);
-            DLT_SEM_FREE();
-            return DLT_RETURN_ERROR;
+            MCT_SEM_FREE();
+            return MCT_RETURN_ERROR;
         }
     }
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
-#else /* DLT_LIB_USE_FIFO_IPC */
-static DltReturnValue mct_initialize_fifo_connection(void)
+#else /* MCT_LIB_USE_FIFO_IPC */
+static MctReturnValue mct_initialize_fifo_connection(void)
 {
-    char filename[DLT_PATH_MAX];
+    char filename[MCT_PATH_MAX];
     int ret;
 
-    snprintf(mct_user_dir, DLT_PATH_MAX, "%s/mctpipes", mctFifoBaseDir);
-    snprintf(mct_daemon_fifo, DLT_PATH_MAX, "%s/mct", mctFifoBaseDir);
+    snprintf(mct_user_dir, MCT_PATH_MAX, "%s/mctpipes", mctFifoBaseDir);
+    snprintf(mct_daemon_fifo, MCT_PATH_MAX, "%s/mct", mctFifoBaseDir);
     ret = mkdir(mct_user_dir,
                 S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH | S_ISVTX);
 
     if ((ret == -1) && (errno != EEXIST)) {
         mct_vnlog(LOG_ERR,
-                  DLT_USER_BUFFER_LENGTH,
+                  MCT_USER_BUFFER_LENGTH,
                   "FIFO user dir %s cannot be created!\n",
                   mct_user_dir);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* if mct pipes directory is created by the application also chmod the directory */
@@ -386,15 +386,15 @@ static DltReturnValue mct_initialize_fifo_connection(void)
 
         if (ret == -1) {
             mct_vnlog(LOG_ERR,
-                      DLT_USER_BUFFER_LENGTH,
+                      MCT_USER_BUFFER_LENGTH,
                       "FIFO user dir %s cannot be chmoded!\n",
                       mct_user_dir);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
-    /* create and open DLT user FIFO */
-    snprintf(filename, DLT_PATH_MAX, "%s/mct%d", mct_user_dir, getpid());
+    /* create and open MCT user FIFO */
+    snprintf(filename, MCT_PATH_MAX, "%s/mct%d", mct_user_dir, getpid());
 
     /* Try to delete existing pipe, ignore result of unlink */
     unlink(filename);
@@ -403,7 +403,7 @@ static DltReturnValue mct_initialize_fifo_connection(void)
 
     if (ret == -1) {
         mct_vnlog(LOG_WARNING,
-                  DLT_USER_BUFFER_LENGTH,
+                  MCT_USER_BUFFER_LENGTH,
                   "Loging disabled, FIFO user %s cannot be created!\n",
                   filename);
     }
@@ -413,69 +413,69 @@ static DltReturnValue mct_initialize_fifo_connection(void)
 
     if (ret == -1) {
         mct_vnlog(LOG_WARNING,
-                  DLT_USER_BUFFER_LENGTH,
+                  MCT_USER_BUFFER_LENGTH,
                   "FIFO user %s cannot be chmoded!\n",
                   mct_user_dir);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     mct_user.mct_user_handle = open(filename, O_RDWR | O_NONBLOCK | O_CLOEXEC);
 
-    if (mct_user.mct_user_handle == DLT_FD_INIT) {
+    if (mct_user.mct_user_handle == MCT_FD_INIT) {
         mct_vnlog(LOG_WARNING,
-                  DLT_USER_BUFFER_LENGTH,
+                  MCT_USER_BUFFER_LENGTH,
                   "Logging disabled, FIFO user %s cannot be opened!\n",
                   filename);
         unlink(filename);
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
-    /* open DLT output FIFO */
+    /* open MCT output FIFO */
     mct_user.mct_log_handle = open(mct_daemon_fifo, O_WRONLY | O_NONBLOCK | O_CLOEXEC);
 
     if (mct_user.mct_log_handle == -1) {
         /* This is a normal usecase. It is OK that the daemon (and thus the FIFO /tmp/mct)
-         * starts later and some DLT users have already been started before.
+         * starts later and some MCT users have already been started before.
          * Thus it is OK if the FIFO can't be opened. */
-        mct_vnlog(LOG_INFO, DLT_USER_BUFFER_LENGTH, "FIFO %s cannot be opened. Retrying later...\n",
+        mct_vnlog(LOG_INFO, MCT_USER_BUFFER_LENGTH, "FIFO %s cannot be opened. Retrying later...\n",
                   mct_daemon_fifo);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 #endif
 
-DltReturnValue mct_set_socket_mode(DltUserSocketMode mode)
+MctReturnValue mct_set_socket_mode(MctUserSocketMode mode)
 {
-    int ret = DLT_RETURN_OK;
+    int ret = MCT_RETURN_OK;
 
-#ifdef DLT_USE_UNIX_SOCKET_IPC
+#ifdef MCT_USE_UNIX_SOCKET_IPC
     int flags = 0;
     int result = 0;
-    char mctSockBaseDir[DLT_IPC_PATH_MAX];
+    char mctSockBaseDir[MCT_IPC_PATH_MAX];
 
     if (mct_user.mct_log_handle != -1) {
         flags = fcntl(mct_user.mct_log_handle, F_GETFL);
 
-        if (mode == DLT_USER_SOCKET_BLOCKING) {
+        if (mode == MCT_USER_SOCKET_BLOCKING) {
             /* Set socket to Blocking mode */
             mct_vlog(LOG_DEBUG, "%s: Set socket to Blocking mode\n", __func__);
             result = fcntl(mct_user.mct_log_handle, F_SETFL, flags & ~O_NONBLOCK);
-            mct_user.socket_mode = DLT_USER_SOCKET_BLOCKING;
+            mct_user.socket_mode = MCT_USER_SOCKET_BLOCKING;
         } else {
             /* Set socket to Non-blocking mode */
             mct_vlog(LOG_DEBUG, "%s: Set socket to Non-blocking mode\n", __func__);
             result = fcntl(mct_user.mct_log_handle, F_SETFL, flags | O_NONBLOCK);
-            mct_user.socket_mode = DLT_USER_SOCKET_NON_BLOCKING;
+            mct_user.socket_mode = MCT_USER_SOCKET_NON_BLOCKING;
         }
 
-        snprintf(mctSockBaseDir, DLT_IPC_PATH_MAX, "%s/mct", DLT_USER_IPC_PATH);
+        snprintf(mctSockBaseDir, MCT_IPC_PATH_MAX, "%s/mct", MCT_USER_IPC_PATH);
 
         if (result < 0) {
             mct_vlog(LOG_WARNING,
                      "%s: Failed to change mode of socket %s: %s\n",
                      __func__, mctSockBaseDir, strerror(errno));
-            ret = DLT_RETURN_ERROR;
+            ret = MCT_RETURN_ERROR;
         }
     }
 
@@ -487,7 +487,7 @@ DltReturnValue mct_set_socket_mode(DltUserSocketMode mode)
     return ret;
 }
 
-DltReturnValue mct_init(void)
+MctReturnValue mct_init(void)
 {
     /* Compare 'mct_user_initialised' to false. If equal, 'mct_user_initialised' will be set to true.
     Calls retruns true, if 'mct_user_initialised' was false.
@@ -497,13 +497,13 @@ DltReturnValue mct_init(void)
     */
     bool expected = false;
     if (!(atomic_compare_exchange_strong(&mct_user_initialised, &expected, true)))
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
 
     /* check environment variables */
     mct_check_envvar();
 
     /* Check logging mode and internal log file is opened or not*/
-    if(logging_mode == DLT_LOG_TO_FILE && logging_handle == NULL)
+    if(logging_mode == MCT_LOG_TO_FILE && logging_handle == NULL)
     {
         mct_log_init(logging_mode);
     }
@@ -512,15 +512,15 @@ DltReturnValue mct_init(void)
     if (mct_user_freeing != 0) {
         mct_vlog(LOG_INFO, "%s logging disabled, process is exiting", __func__);
         /* return negative value, to stop the current log */
-        return DLT_RETURN_LOGGING_DISABLED;
+        return MCT_RETURN_LOGGING_DISABLED;
     }
 
     mct_user_app_unreg = false;
 
     /* Initialize common part of mct_init()/mct_init_file() */
-    if (mct_init_common() == DLT_RETURN_ERROR) {
+    if (mct_init_common() == MCT_RETURN_ERROR) {
         mct_user_initialised = false;
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     mct_user.mct_is_file = 0;
@@ -530,64 +530,64 @@ DltReturnValue mct_init(void)
     mct_user.overflow = 0;
     mct_user.overflow_counter = 0;
 
-#ifdef DLT_LIB_USE_UNIX_SOCKET_IPC
+#ifdef MCT_LIB_USE_UNIX_SOCKET_IPC
 
-    if (mct_initialize_socket_connection() != DLT_RETURN_OK) {
+    if (mct_initialize_socket_connection() != MCT_RETURN_OK) {
         /* We could connect to the pipe, but not to the socket, which is normally */
-        /* open before by the DLT daemon => bad failure => return error code */
+        /* open before by the MCT daemon => bad failure => return error code */
         /* in case application is started before daemon, it is expected behaviour */
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-#elif defined DLT_LIB_USE_VSOCK_IPC
+#elif defined MCT_LIB_USE_VSOCK_IPC
 
-    if (mct_initialize_vsock_connection() != DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+    if (mct_initialize_vsock_connection() != MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
-#else /* DLT_LIB_USE_FIFO_IPC */
+#else /* MCT_LIB_USE_FIFO_IPC */
 
-    if (mct_initialize_fifo_connection() != DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+    if (mct_initialize_fifo_connection() != MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
     if (mct_receiver_init(&(mct_user.receiver),
                           mct_user.mct_user_handle,
-                          DLT_RECEIVE_FD,
-                          DLT_USER_RCVBUF_MAX_SIZE) == DLT_RETURN_ERROR) {
+                          MCT_RECEIVE_FD,
+                          MCT_USER_RCVBUF_MAX_SIZE) == MCT_RETURN_ERROR) {
         mct_user_initialised = false;
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
 #endif
 
-    if (mct_start_threads(DLT_USER_HOUSEKEEPER_THREAD) < 0) {
+    if (mct_start_threads(MCT_USER_HOUSEKEEPER_THREAD) < 0) {
         mct_user_initialised = false;
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* prepare for fork() call */
     pthread_atfork(NULL, NULL, &mct_fork_child_fork_handler);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_get_appid(char *appid)
+MctReturnValue mct_get_appid(char *appid)
 {
     if (appid != NULL) {
         strncpy(appid, mct_user.appID, 4);
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     } else {
         mct_log(LOG_ERR, "Invalid parameter.\n");
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 }
 
-DltReturnValue mct_init_file(const char *name)
+MctReturnValue mct_init_file(const char *name)
 {
     /* check null pointer */
     if (!name) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* Compare 'mct_user_initialised' to false. If equal, 'mct_user_initialised' will be set to true.
@@ -598,36 +598,36 @@ DltReturnValue mct_init_file(const char *name)
     */
     bool expected = false;
     if (!(atomic_compare_exchange_strong(&mct_user_initialised, &expected, true)))
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
 
     /* Initialize common part of mct_init()/mct_init_file() */
-    if (mct_init_common() == DLT_RETURN_ERROR) {
+    if (mct_init_common() == MCT_RETURN_ERROR) {
         mct_user_initialised = false;
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     mct_user.mct_is_file = 1;
 
-    /* open DLT output file */
+    /* open MCT output file */
     mct_user.mct_log_handle = open(name, O_WRONLY | O_CREAT,
                                    S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH); /* mode: wb */
 
     if (mct_user.mct_log_handle == -1) {
-        mct_vnlog(LOG_ERR, DLT_USER_BUFFER_LENGTH, "Log file %s cannot be opened!\n", name);
+        mct_vnlog(LOG_ERR, MCT_USER_BUFFER_LENGTH, "Log file %s cannot be opened!\n", name);
         mct_user.mct_is_file = 0;
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_set_filesize_max(unsigned int filesize)
+MctReturnValue mct_set_filesize_max(unsigned int filesize)
 {
     if (mct_user.mct_is_file == 0)
     {
         mct_vlog(LOG_ERR, "%s: Library is not configured to log to file\n",
                  __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (filesize == 0) {
@@ -639,25 +639,25 @@ DltReturnValue mct_set_filesize_max(unsigned int filesize)
     mct_vlog(LOG_DEBUG, "%s: Defined filesize_max is [%d]\n", __func__,
              mct_user.filesize_max);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-/* Return true if verbose mode is to be used for this DltContextData */
-static inline bool is_verbose_mode(int8_t mctuser_verbose_mode, const DltContextData* log)
+/* Return true if verbose mode is to be used for this MctContextData */
+static inline bool is_verbose_mode(int8_t mctuser_verbose_mode, const MctContextData* log)
 {
     return (mctuser_verbose_mode == 1) || (log != NULL && log->verbose_mode);
 }
 
-DltReturnValue mct_init_common(void)
+MctReturnValue mct_init_common(void)
 {
     char *env_local_print;
     char *env_initial_log_level;
     char *env_buffer_min;
-    uint32_t buffer_min = DLT_USER_RINGBUFFER_MIN_SIZE;
+    uint32_t buffer_min = MCT_USER_RINGBUFFER_MIN_SIZE;
     char *env_buffer_max;
-    uint32_t buffer_max = DLT_USER_RINGBUFFER_MAX_SIZE;
+    uint32_t buffer_max = MCT_USER_RINGBUFFER_MAX_SIZE;
     char *env_buffer_step;
-    uint32_t buffer_step = DLT_USER_RINGBUFFER_STEP_SIZE;
+    uint32_t buffer_step = MCT_USER_RINGBUFFER_STEP_SIZE;
     char *env_force_block;
     char *env_disable_extended_header_for_nonverbose;
     char *env_log_buffer_len;
@@ -667,16 +667,16 @@ DltReturnValue mct_init_common(void)
     /* Binary semaphore for threads */
     if (sem_init(&mct_mutex, 0, 1) == -1) {
         mct_user_initialised = false;
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* set to unknown state of connected client */
     mct_user.log_state = -1;
 
     mct_user.mct_log_handle = -1;
-    mct_user.mct_user_handle = DLT_FD_INIT;
+    mct_user.mct_user_handle = MCT_FD_INIT;
 
-    mct_set_id(mct_user.ecuID, DLT_USER_DEFAULT_ECU_ID);
+    mct_set_id(mct_user.ecuID, MCT_USER_DEFAULT_ECU_ID);
     mct_set_id(mct_user.appID, "");
 
     mct_user.application_description = NULL;
@@ -685,87 +685,87 @@ DltReturnValue mct_init_common(void)
     mct_user.verbose_mode = 1;
 
     /* header_size is used for resend buffer
-     * so it won't include DltStorageHeader
+     * so it won't include MctStorageHeader
      */
-    header_size = sizeof(DltUserHeader) + sizeof(DltStandardHeader) +
-        sizeof(DltStandardHeaderExtra);
+    header_size = sizeof(MctUserHeader) + sizeof(MctStandardHeader) +
+        sizeof(MctStandardHeaderExtra);
 
     /* Use extended header for non verbose is enabled by default */
     mct_user.use_extended_header_for_non_verbose =
-        DLT_USER_USE_EXTENDED_HEADER_FOR_NONVERBOSE;
+        MCT_USER_USE_EXTENDED_HEADER_FOR_NONVERBOSE;
 
     /* Use extended header for non verbose is modified as per environment variable */
     env_disable_extended_header_for_nonverbose =
-        getenv(DLT_USER_ENV_DISABLE_EXTENDED_HEADER_FOR_NONVERBOSE);
+        getenv(MCT_USER_ENV_DISABLE_EXTENDED_HEADER_FOR_NONVERBOSE);
 
     if (env_disable_extended_header_for_nonverbose) {
         if (strcmp(env_disable_extended_header_for_nonverbose, "1") == 0) {
             mct_user.use_extended_header_for_non_verbose =
-                DLT_USER_NO_USE_EXTENDED_HEADER_FOR_NONVERBOSE;
+                MCT_USER_NO_USE_EXTENDED_HEADER_FOR_NONVERBOSE;
         }
     }
 
     if (mct_user.use_extended_header_for_non_verbose ==
-        DLT_USER_USE_EXTENDED_HEADER_FOR_NONVERBOSE) {
-        header_size += sizeof(DltExtendedHeader);
+        MCT_USER_USE_EXTENDED_HEADER_FOR_NONVERBOSE) {
+        header_size += sizeof(MctExtendedHeader);
     }
 
     /* With session id is enabled by default */
-    mct_user.with_session_id = DLT_USER_WITH_SESSION_ID;
+    mct_user.with_session_id = MCT_USER_WITH_SESSION_ID;
 
     /* With timestamp is enabled by default */
-    mct_user.with_timestamp = DLT_USER_WITH_TIMESTAMP;
+    mct_user.with_timestamp = MCT_USER_WITH_TIMESTAMP;
 
     /* With timestamp is enabled by default */
-    mct_user.with_ecu_id = DLT_USER_WITH_ECU_ID;
+    mct_user.with_ecu_id = MCT_USER_WITH_ECU_ID;
 
     /* Local print is disabled by default */
     mct_user.enable_local_print = 0;
 
-    mct_user.local_print_mode = DLT_PM_UNSET;
+    mct_user.local_print_mode = MCT_PM_UNSET;
 
-    mct_user.timeout_at_exit_handler = DLT_USER_ATEXIT_RESEND_BUFFER_EXIT_TIMEOUT;
+    mct_user.timeout_at_exit_handler = MCT_USER_ATEXIT_RESEND_BUFFER_EXIT_TIMEOUT;
 
-    env_local_print = getenv(DLT_USER_ENV_LOCAL_PRINT_MODE);
+    env_local_print = getenv(MCT_USER_ENV_LOCAL_PRINT_MODE);
 
     if (env_local_print) {
         if (strcmp(env_local_print, "AUTOMATIC") == 0) {
-            mct_user.local_print_mode = DLT_PM_AUTOMATIC;
+            mct_user.local_print_mode = MCT_PM_AUTOMATIC;
         } else if (strcmp(env_local_print, "FORCE_ON") == 0) {
-            mct_user.local_print_mode = DLT_PM_FORCE_ON;
+            mct_user.local_print_mode = MCT_PM_FORCE_ON;
         } else if (strcmp(env_local_print, "FORCE_OFF") == 0) {
-            mct_user.local_print_mode = DLT_PM_FORCE_OFF;
+            mct_user.local_print_mode = MCT_PM_FORCE_OFF;
         }
     }
 
-    env_initial_log_level = getenv("DLT_INITIAL_LOG_LEVEL");
+    env_initial_log_level = getenv("MCT_INITIAL_LOG_LEVEL");
 
     if (env_initial_log_level != NULL) {
         if (mct_env_extract_ll_set(&env_initial_log_level, &mct_user.initial_ll_set) != 0) {
             mct_vlog(LOG_WARNING,
                      "Unable to parse initial set of log-levels from environment! Env:\n%s\n",
-                     getenv("DLT_INITIAL_LOG_LEVEL"));
+                     getenv("MCT_INITIAL_LOG_LEVEL"));
         }
     }
 
     /* Check for force block mode environment variable */
-    env_force_block = getenv(DLT_USER_ENV_FORCE_BLOCK_MODE);
+    env_force_block = getenv(MCT_USER_ENV_FORCE_BLOCK_MODE);
 
     /* Initialize LogLevel/TraceStatus field */
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
     mct_user.mct_ll_ts = NULL;
     mct_user.mct_ll_ts_max_num_entries = 0;
     mct_user.mct_ll_ts_num_entries = 0;
 
     /* set block mode */
     if (env_force_block != NULL) {
-        mct_user.block_mode = DLT_MODE_BLOCKING;
-        mct_user.force_blocking = DLT_MODE_BLOCKING;
+        mct_user.block_mode = MCT_MODE_BLOCKING;
+        mct_user.force_blocking = MCT_MODE_BLOCKING;
     }
 
-    env_buffer_min = getenv(DLT_USER_ENV_BUFFER_MIN_SIZE);
-    env_buffer_max = getenv(DLT_USER_ENV_BUFFER_MAX_SIZE);
-    env_buffer_step = getenv(DLT_USER_ENV_BUFFER_STEP_SIZE);
+    env_buffer_min = getenv(MCT_USER_ENV_BUFFER_MIN_SIZE);
+    env_buffer_max = getenv(MCT_USER_ENV_BUFFER_MAX_SIZE);
+    env_buffer_step = getenv(MCT_USER_ENV_BUFFER_STEP_SIZE);
 
     if (env_buffer_min != NULL) {
         buffer_min = (uint32_t)strtol(env_buffer_min, NULL, 10);
@@ -773,9 +773,9 @@ DltReturnValue mct_init_common(void)
         if ((errno == EINVAL) || (errno == ERANGE)) {
             mct_vlog(LOG_ERR,
                      "Wrong value specified for %s. Using default: %d\n",
-                     DLT_USER_ENV_BUFFER_MIN_SIZE,
-                     DLT_USER_RINGBUFFER_MIN_SIZE);
-            buffer_min = DLT_USER_RINGBUFFER_MIN_SIZE;
+                     MCT_USER_ENV_BUFFER_MIN_SIZE,
+                     MCT_USER_RINGBUFFER_MIN_SIZE);
+            buffer_min = MCT_USER_RINGBUFFER_MIN_SIZE;
         }
     }
 
@@ -785,9 +785,9 @@ DltReturnValue mct_init_common(void)
         if ((errno == EINVAL) || (errno == ERANGE)) {
             mct_vlog(LOG_ERR,
                      "Wrong value specified for %s. Using default: %d\n",
-                     DLT_USER_ENV_BUFFER_MAX_SIZE,
-                     DLT_USER_RINGBUFFER_MAX_SIZE);
-            buffer_max = DLT_USER_RINGBUFFER_MAX_SIZE;
+                     MCT_USER_ENV_BUFFER_MAX_SIZE,
+                     MCT_USER_RINGBUFFER_MAX_SIZE);
+            buffer_max = MCT_USER_RINGBUFFER_MAX_SIZE;
         }
     }
 
@@ -797,21 +797,21 @@ DltReturnValue mct_init_common(void)
         if ((errno == EINVAL) || (errno == ERANGE)) {
             mct_vlog(LOG_ERR,
                      "Wrong value specified for %s. Using default: %d\n",
-                     DLT_USER_ENV_BUFFER_STEP_SIZE,
-                     DLT_USER_RINGBUFFER_STEP_SIZE);
-            buffer_step = DLT_USER_RINGBUFFER_STEP_SIZE;
+                     MCT_USER_ENV_BUFFER_STEP_SIZE,
+                     MCT_USER_RINGBUFFER_STEP_SIZE);
+            buffer_step = MCT_USER_RINGBUFFER_STEP_SIZE;
         }
     }
 
     /* init log buffer size */
-    mct_user.log_buf_len = DLT_USER_BUF_MAX_SIZE;
-    env_log_buffer_len = getenv(DLT_USER_ENV_LOG_MSG_BUF_LEN);
+    mct_user.log_buf_len = MCT_USER_BUF_MAX_SIZE;
+    env_log_buffer_len = getenv(MCT_USER_ENV_LOG_MSG_BUF_LEN);
 
     if (env_log_buffer_len != NULL) {
         buffer_max_configured = (uint32_t)strtol(env_log_buffer_len, NULL, 10);
 
-        if (buffer_max_configured > DLT_LOG_MSG_BUF_MAX_SIZE) {
-            mct_user.log_buf_len = DLT_LOG_MSG_BUF_MAX_SIZE;
+        if (buffer_max_configured > MCT_LOG_MSG_BUF_MAX_SIZE) {
+            mct_user.log_buf_len = MCT_LOG_MSG_BUF_MAX_SIZE;
             mct_vlog(
                 LOG_WARNING,
                 "Configured size exceeds maximum allowed size,restricting to max [65535 bytes]\n");
@@ -829,15 +829,15 @@ DltReturnValue mct_init_common(void)
 
         if (mct_user.resend_buffer == NULL) {
             mct_user_initialised = false;
-            DLT_SEM_FREE();
+            MCT_SEM_FREE();
             mct_vlog(LOG_ERR, "cannot allocate memory for resend buffer\n");
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     mct_user.disable_injection_msg = 0;
 
-    if (getenv(DLT_USER_ENV_DISABLE_INJECTION_MSG)) {
+    if (getenv(MCT_USER_ENV_DISABLE_INJECTION_MSG)) {
         mct_log(LOG_WARNING, "Injection message is disabled\n");
         mct_user.disable_injection_msg = 1;
     }
@@ -845,13 +845,13 @@ DltReturnValue mct_init_common(void)
     if (mct_buffer_init_dynamic(&(mct_user.startup_buffer),
                                 buffer_min,
                                 buffer_max,
-                                buffer_step) == DLT_RETURN_ERROR) {
+                                buffer_step) == MCT_RETURN_ERROR) {
         mct_user_initialised = false;
-        DLT_SEM_FREE();
-        return DLT_RETURN_ERROR;
+        MCT_SEM_FREE();
+        return MCT_RETURN_ERROR;
     }
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
     signal(SIGPIPE, SIG_IGN);                  /* ignore pipe signals */
 
@@ -860,13 +860,13 @@ DltReturnValue mct_init_common(void)
         atexit(mct_user_atexit_handler);
     }
 
-#ifdef DLT_TEST_ENABLE
+#ifdef MCT_TEST_ENABLE
     mct_user.corrupt_user_header = 0;
     mct_user.corrupt_message_size = 0;
     mct_user.corrupt_message_size_size = 0;
 #endif
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 void mct_user_atexit_handler(void)
@@ -908,9 +908,9 @@ int mct_user_atexit_blow_out_user_buffer(void)
     uint32_t exitTime = mct_uptime() + mct_user.timeout_at_exit_handler;
 
     /* Send content of ringbuffer */
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
     count = mct_buffer_get_message_count(&(mct_user.startup_buffer));
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
     if ((count > 0) && (mct_user.timeout_at_exit_handler > 0)) {
         while (mct_uptime() < exitTime) {
@@ -921,7 +921,7 @@ int mct_user_atexit_blow_out_user_buffer(void)
                 if ((mct_user.mct_log_handle != -1) && (mct_user.overflow_counter)) {
                     if (mct_user_log_send_overflow() == 0) {
                         mct_vnlog(LOG_WARNING,
-                                  DLT_USER_BUFFER_LENGTH,
+                                  MCT_USER_BUFFER_LENGTH,
                                   "%u messages discarded!\n",
                                   mct_user.overflow_counter);
                         mct_user.overflow_counter = 0;
@@ -933,22 +933,22 @@ int mct_user_atexit_blow_out_user_buffer(void)
                 ret = mct_user_log_resend_buffer();
 
                 if (ret == 0) {
-                    DLT_SEM_LOCK();
+                    MCT_SEM_LOCK();
                     count = mct_buffer_get_message_count(&(mct_user.startup_buffer));
-                    DLT_SEM_FREE();
+                    MCT_SEM_FREE();
 
                     return count;
                 }
             }
 
             ts.tv_sec = 0;
-            ts.tv_nsec = DLT_USER_ATEXIT_RESEND_BUFFER_SLEEP;
+            ts.tv_nsec = MCT_USER_ATEXIT_RESEND_BUFFER_SLEEP;
             nanosleep(&ts, NULL);
         }
 
-        DLT_SEM_LOCK();
+        MCT_SEM_LOCK();
         count = mct_buffer_get_message_count(&(mct_user.startup_buffer));
-        DLT_SEM_FREE();
+        MCT_SEM_FREE();
     }
 
     return count;
@@ -962,17 +962,17 @@ static void mct_user_free_buffer(unsigned char **buffer)
     }
 }
 
-DltReturnValue mct_free(void)
+MctReturnValue mct_free(void)
 {
     uint32_t i;
     int ret = 0;
-#ifdef DLT_LIB_USE_FIFO_IPC
-    char filename[DLT_PATH_MAX];
+#ifdef MCT_LIB_USE_FIFO_IPC
+    char filename[MCT_PATH_MAX];
 #endif
 
     if (mct_user_freeing != 0) {
         /* resources are already being freed. Do nothing and return. */
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* library is freeing its resources. Avoid to allocate it in mct_init() */
@@ -980,19 +980,19 @@ DltReturnValue mct_free(void)
 
     if (!mct_user_initialised) {
         mct_user_freeing = 0;
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     mct_user_initialised = false;
 
     mct_stop_threads();
 
-#ifdef DLT_LIB_USE_FIFO_IPC
+#ifdef MCT_LIB_USE_FIFO_IPC
 
-    if (mct_user.mct_user_handle != DLT_FD_INIT) {
+    if (mct_user.mct_user_handle != MCT_FD_INIT) {
         close(mct_user.mct_user_handle);
-        mct_user.mct_user_handle = DLT_FD_INIT;
-        snprintf(filename, DLT_PATH_MAX, "%s/mct%d", mct_user_dir, getpid());
+        mct_user.mct_user_handle = MCT_FD_INIT;
+        snprintf(filename, MCT_PATH_MAX, "%s/mct%d", mct_user_dir, getpid());
         unlink(filename);
     }
 
@@ -1000,7 +1000,7 @@ DltReturnValue mct_free(void)
 
     if (mct_user.mct_log_handle != -1) {
         /* close log file/output fifo to daemon */
-#if defined DLT_LIB_USE_UNIX_SOCKET_IPC
+#if defined MCT_LIB_USE_UNIX_SOCKET_IPC
         ret = shutdown(mct_user.mct_log_handle, SHUT_WR);
 
         if (ret < 0) {
@@ -1013,7 +1013,7 @@ DltReturnValue mct_free(void)
             nfd[0].fd = mct_user.mct_log_handle;
 
             while (1) {
-                ret = poll(nfd, 1, DLT_USER_RECEIVE_MDELAY);
+                ret = poll(nfd, 1, MCT_USER_RECEIVE_MDELAY);
 
                 /* In case failure of polling or reaching timeout,
                  * continue to close socket anyway.
@@ -1073,12 +1073,12 @@ DltReturnValue mct_free(void)
     }
 
     /* Ignore return value */
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
     mct_receiver_free(&(mct_user.receiver));
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
     /* Ignore return value */
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     mct_user_free_buffer(&(mct_user.resend_buffer));
     mct_buffer_free_dynamic(&(mct_user.startup_buffer));
@@ -1114,11 +1114,11 @@ DltReturnValue mct_free(void)
 
             mct_user.mct_ll_ts[i].nrcallbacks = 0;
             mct_user.mct_ll_ts[i].log_level_changed_callback = 0;
-#ifdef DLT_HP_LOG_ENABLE
+#ifdef MCT_HP_LOG_ENABLE
 
-            if (mct_user.mct_ll_ts[i].DltExtBuff_ptr != 0) {
-                free(mct_user.mct_ll_ts[i].DltExtBuff_ptr);
-                mct_user.mct_ll_ts[i].DltExtBuff_ptr = 0;
+            if (mct_user.mct_ll_ts[i].MctExtBuff_ptr != 0) {
+                free(mct_user.mct_ll_ts[i].MctExtBuff_ptr);
+                mct_user.mct_ll_ts[i].MctExtBuff_ptr = 0;
             }
 
 #endif
@@ -1131,7 +1131,7 @@ DltReturnValue mct_free(void)
     }
 
     mct_env_free_ll_set(&mct_user.initial_ll_set);
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
     sem_destroy(&mct_mutex);
 
@@ -1140,18 +1140,18 @@ DltReturnValue mct_free(void)
     /* This should be removed for other projects (see documentation of mct_free() */
     mct_user_freeing = 0;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_check_library_version(const char *user_major_version,
+MctReturnValue mct_check_library_version(const char *user_major_version,
                                          const char *user_minor_version)
 {
     return mct_user_check_library_version(user_major_version, user_minor_version);
 }
 
-DltReturnValue mct_register_app(const char *apid, const char *description)
+MctReturnValue mct_register_app(const char *apid, const char *description)
 {
-    DltReturnValue ret = DLT_RETURN_OK;
+    MctReturnValue ret = MCT_RETURN_OK;
 
     /* pointer points to AppID environment variable */
     const char *env_app_id = NULL;
@@ -1159,18 +1159,18 @@ DltReturnValue mct_register_app(const char *apid, const char *description)
     const char *p_app_id = NULL;
 
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (!mct_user_initialised) {
         if (mct_init() < 0) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     /* the AppID  may be specified by an environment variable */
-    env_app_id = getenv(DLT_USER_ENV_APP_ID);
+    env_app_id = getenv(MCT_USER_ENV_APP_ID);
 
     if (env_app_id != NULL) {
         /* always use AppID if it is specified by an environment variable */
@@ -1181,36 +1181,36 @@ DltReturnValue mct_register_app(const char *apid, const char *description)
     }
 
     if ((p_app_id == NULL) || (p_app_id[0] == '\0')) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* check if application already registered */
     /* if yes do not register again */
     if (p_app_id[1] == 0) {
         if (p_app_id[0] == mct_user.appID[0]) {
-            return DLT_RETURN_OK;
+            return MCT_RETURN_OK;
         }
     } else if (p_app_id[2] == 0) {
         if ((p_app_id[0] == mct_user.appID[0]) &&
             (p_app_id[1] == mct_user.appID[1])) {
-            return DLT_RETURN_OK;
+            return MCT_RETURN_OK;
         }
     } else if (p_app_id[3] == 0) {
         if ((p_app_id[0] == mct_user.appID[0]) &&
             (p_app_id[1] == mct_user.appID[1]) &&
             (p_app_id[2] == mct_user.appID[2])) {
-            return DLT_RETURN_OK;
+            return MCT_RETURN_OK;
         }
     } else {
         if ((p_app_id[0] == mct_user.appID[0]) &&
             (p_app_id[1] == mct_user.appID[1]) &&
             (p_app_id[2] == mct_user.appID[2]) &&
             (p_app_id[3] == mct_user.appID[3])) {
-            return DLT_RETURN_OK;
+            return MCT_RETURN_OK;
         }
     }
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     /* Store locally application id and application description */
     mct_set_id(mct_user.appID, p_app_id);
@@ -1228,92 +1228,92 @@ DltReturnValue mct_register_app(const char *apid, const char *description)
         if (mct_user.application_description) {
             strncpy(mct_user.application_description, description, desc_len + 1);
         } else {
-            DLT_SEM_FREE();
-            return DLT_RETURN_ERROR;
+            MCT_SEM_FREE();
+            return MCT_RETURN_ERROR;
         }
     }
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
     ret = mct_user_log_send_register_application();
 
-    if ((ret == DLT_RETURN_OK) && (mct_user.mct_log_handle != -1)) {
+    if ((ret == MCT_RETURN_OK) && (mct_user.mct_log_handle != -1)) {
         ret = mct_user_log_resend_buffer();
     }
 
     return ret;
 }
 
-DltReturnValue mct_register_context(DltContext *handle,
+MctReturnValue mct_register_context(MctContext *handle,
                                     const char *contextid,
                                     const char *description)
 {
     /* check nullpointer */
     if (handle == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* forbid mct usage in child after fork */
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (!mct_user_initialised) {
         if (mct_init() < 0) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     if ((contextid == NULL) || (contextid[0] == '\0')) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     return mct_register_context_ll_ts(handle,
                                       contextid,
                                       description,
-                                      DLT_USER_LOG_LEVEL_NOT_SET,
-                                      DLT_USER_TRACE_STATUS_NOT_SET);
+                                      MCT_USER_LOG_LEVEL_NOT_SET,
+                                      MCT_USER_TRACE_STATUS_NOT_SET);
 }
 
-DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
+MctReturnValue mct_register_context_ll_ts_llccb(MctContext *handle,
                                                 const char *contextid,
                                                 const char *description,
                                                 int loglevel,
                                                 int tracestatus,
                                                 void (*mct_log_level_changed_callback)(
-                                                    char context_id[DLT_ID_SIZE],
+                                                    char context_id[MCT_ID_SIZE],
                                                     uint8_t
                                                     log_level,
                                                     uint8_t
                                                     trace_status))
 {
-    DltContextData log;
+    MctContextData log;
     uint32_t i;
-    int envLogLevel = DLT_USER_LOG_LEVEL_NOT_SET;
+    int envLogLevel = MCT_USER_LOG_LEVEL_NOT_SET;
 
     /*check nullpointer */
     if ((handle == NULL) || (contextid == NULL) || (contextid[0] == '\0')) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* forbid mct usage in child after fork */
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    if ((loglevel < DLT_USER_LOG_LEVEL_NOT_SET) || (loglevel >= DLT_LOG_MAX)) {
+    if ((loglevel < MCT_USER_LOG_LEVEL_NOT_SET) || (loglevel >= MCT_LOG_MAX)) {
         mct_vlog(LOG_ERR, "Loglevel %d is outside valid range", loglevel);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    if ((tracestatus < DLT_USER_TRACE_STATUS_NOT_SET) || (tracestatus >= DLT_TRACE_STATUS_MAX)) {
+    if ((tracestatus < MCT_USER_TRACE_STATUS_NOT_SET) || (tracestatus >= MCT_TRACE_STATUS_MAX)) {
         mct_vlog(LOG_ERR, "Tracestatus %d is outside valid range", tracestatus);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    if (mct_user_log_init(handle, &log) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+    if (mct_user_log_init(handle, &log) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
     /* Reset message counter */
@@ -1322,7 +1322,7 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
     /* Store context id in log level/trace status field */
 
     /* Check if already registered, else register context */
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     /* Check of double context registration removed */
     /* Double registration is already checked by daemon */
@@ -1330,14 +1330,14 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
     /* Allocate or expand context array */
     if (mct_user.mct_ll_ts == NULL) {
         mct_user.mct_ll_ts = (mct_ll_ts_type *)malloc(
-                sizeof(mct_ll_ts_type) * DLT_USER_CONTEXT_ALLOC_SIZE);
+                sizeof(mct_ll_ts_type) * MCT_USER_CONTEXT_ALLOC_SIZE);
 
         if (mct_user.mct_ll_ts == NULL) {
-            DLT_SEM_FREE();
-            return DLT_RETURN_ERROR;
+            MCT_SEM_FREE();
+            return MCT_RETURN_ERROR;
         }
 
-        mct_user.mct_ll_ts_max_num_entries = DLT_USER_CONTEXT_ALLOC_SIZE;
+        mct_user.mct_ll_ts_max_num_entries = MCT_USER_CONTEXT_ALLOC_SIZE;
 
         /* Initialize new entries */
         for (i = 0; i < mct_user.mct_ll_ts_max_num_entries; i++) {
@@ -1345,8 +1345,8 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
 
             /* At startup, logging and tracing is locally enabled */
             /* the correct log level/status is set after received from daemon */
-            mct_user.mct_ll_ts[i].log_level = DLT_USER_INITIAL_LOG_LEVEL;
-            mct_user.mct_ll_ts[i].trace_status = DLT_USER_INITIAL_TRACE_STATUS;
+            mct_user.mct_ll_ts[i].log_level = MCT_USER_INITIAL_LOG_LEVEL;
+            mct_user.mct_ll_ts[i].trace_status = MCT_USER_INITIAL_TRACE_STATUS;
 
             mct_user.mct_ll_ts[i].log_level_ptr = 0;
             mct_user.mct_ll_ts[i].trace_status_ptr = 0;
@@ -1356,12 +1356,12 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
             mct_user.mct_ll_ts[i].injection_table = 0;
             mct_user.mct_ll_ts[i].nrcallbacks = 0;
             mct_user.mct_ll_ts[i].log_level_changed_callback = 0;
-#ifdef DLT_HP_LOG_ENABLE
-            mct_user.mct_ll_ts[i].DltExtBuff_ptr = 0;
+#ifdef MCT_HP_LOG_ENABLE
+            mct_user.mct_ll_ts[i].MctExtBuff_ptr = 0;
 #endif
         }
-    } else if ((mct_user.mct_ll_ts_num_entries % DLT_USER_CONTEXT_ALLOC_SIZE) == 0) {
-        /* allocate memory in steps of DLT_USER_CONTEXT_ALLOC_SIZE, e.g. 500 */
+    } else if ((mct_user.mct_ll_ts_num_entries % MCT_USER_CONTEXT_ALLOC_SIZE) == 0) {
+        /* allocate memory in steps of MCT_USER_CONTEXT_ALLOC_SIZE, e.g. 500 */
         mct_ll_ts_type *old_ll_ts;
         uint32_t old_max_entries;
 
@@ -1369,16 +1369,16 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
         old_max_entries = mct_user.mct_ll_ts_max_num_entries;
 
         mct_user.mct_ll_ts_max_num_entries = ((mct_user.mct_ll_ts_num_entries
-                                               / DLT_USER_CONTEXT_ALLOC_SIZE) + 1)
-            * DLT_USER_CONTEXT_ALLOC_SIZE;
+                                               / MCT_USER_CONTEXT_ALLOC_SIZE) + 1)
+            * MCT_USER_CONTEXT_ALLOC_SIZE;
         mct_user.mct_ll_ts = (mct_ll_ts_type *)malloc(sizeof(mct_ll_ts_type) *
                                                       mct_user.mct_ll_ts_max_num_entries);
 
         if (mct_user.mct_ll_ts == NULL) {
             mct_user.mct_ll_ts = old_ll_ts;
             mct_user.mct_ll_ts_max_num_entries = old_max_entries;
-            DLT_SEM_FREE();
-            return DLT_RETURN_ERROR;
+            MCT_SEM_FREE();
+            return MCT_RETURN_ERROR;
         }
 
         memcpy(mct_user.mct_ll_ts,
@@ -1392,8 +1392,8 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
 
             /* At startup, logging and tracing is locally enabled */
             /* the correct log level/status is set after received from daemon */
-            mct_user.mct_ll_ts[i].log_level = DLT_USER_INITIAL_LOG_LEVEL;
-            mct_user.mct_ll_ts[i].trace_status = DLT_USER_INITIAL_TRACE_STATUS;
+            mct_user.mct_ll_ts[i].log_level = MCT_USER_INITIAL_LOG_LEVEL;
+            mct_user.mct_ll_ts[i].trace_status = MCT_USER_INITIAL_TRACE_STATUS;
 
             mct_user.mct_ll_ts[i].log_level_ptr = 0;
             mct_user.mct_ll_ts[i].trace_status_ptr = 0;
@@ -1403,8 +1403,8 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
             mct_user.mct_ll_ts[i].injection_table = 0;
             mct_user.mct_ll_ts[i].nrcallbacks = 0;
             mct_user.mct_ll_ts[i].log_level_changed_callback = 0;
-#ifdef DLT_HP_LOG_ENABLE
-            mct_user.mct_ll_ts[i].DltExtBuff_ptr = 0;
+#ifdef MCT_HP_LOG_ENABLE
+            mct_user.mct_ll_ts[i].MctExtBuff_ptr = 0;
 #endif
         }
     }
@@ -1427,8 +1427,8 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
         ctx_entry->context_description = malloc(desc_len + 1);
 
         if (ctx_entry->context_description == 0) {
-            DLT_SEM_FREE();
-            return DLT_RETURN_ERROR;
+            MCT_SEM_FREE();
+            return MCT_RETURN_ERROR;
         }
 
         strncpy(ctx_entry->context_description, description, desc_len + 1);
@@ -1438,8 +1438,8 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
         ctx_entry->log_level_ptr = malloc(sizeof(int8_t));
 
         if (ctx_entry->log_level_ptr == 0) {
-            DLT_SEM_FREE();
-            return DLT_RETURN_ERROR;
+            MCT_SEM_FREE();
+            return MCT_RETURN_ERROR;
         }
     }
 
@@ -1447,8 +1447,8 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
         ctx_entry->trace_status_ptr = malloc(sizeof(int8_t));
 
         if (ctx_entry->trace_status_ptr == 0) {
-            DLT_SEM_FREE();
-            return DLT_RETURN_ERROR;
+            MCT_SEM_FREE();
+            return MCT_RETURN_ERROR;
         }
     }
 
@@ -1456,16 +1456,16 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
     envLogLevel = mct_env_adjust_ll_from_env(&mct_user.initial_ll_set,
                                              mct_user.appID,
                                              contextid,
-                                             DLT_USER_LOG_LEVEL_NOT_SET);
+                                             MCT_USER_LOG_LEVEL_NOT_SET);
 
-    if (envLogLevel != DLT_USER_LOG_LEVEL_NOT_SET) {
+    if (envLogLevel != MCT_USER_LOG_LEVEL_NOT_SET) {
         ctx_entry->log_level = envLogLevel;
         loglevel = envLogLevel;
-    } else if (loglevel != DLT_USER_LOG_LEVEL_NOT_SET) {
+    } else if (loglevel != MCT_USER_LOG_LEVEL_NOT_SET) {
         ctx_entry->log_level = loglevel;
     }
 
-    if (tracestatus != DLT_USER_TRACE_STATUS_NOT_SET) {
+    if (tracestatus != MCT_USER_TRACE_STATUS_NOT_SET) {
         ctx_entry->trace_status = tracestatus;
     }
 
@@ -1487,12 +1487,12 @@ DltReturnValue mct_register_context_ll_ts_llccb(DltContext *handle,
 
     mct_user.mct_ll_ts_num_entries++;
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
     return mct_user_log_send_register_context(&log);
 }
 
-DltReturnValue mct_register_context_ll_ts(DltContext *handle,
+MctReturnValue mct_register_context_ll_ts(MctContext *handle,
                                           const char *contextid,
                                           const char *description,
                                           int loglevel,
@@ -1506,53 +1506,53 @@ DltReturnValue mct_register_context_ll_ts(DltContext *handle,
                                             NULL);
 }
 
-DltReturnValue mct_register_context_llccb(DltContext *handle,
+MctReturnValue mct_register_context_llccb(MctContext *handle,
                                           const char *contextid,
                                           const char *description,
                                           void (*mct_log_level_changed_callback)(
-                                              char context_id[DLT_ID_SIZE],
+                                              char context_id[MCT_ID_SIZE],
                                               uint8_t log_level,
                                               uint8_t
                                               trace_status))
 {
     if ((handle == NULL) || (contextid == NULL) || (contextid[0] == '\0')) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* forbid mct usage in child after fork */
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (!mct_user_initialised) {
         if (mct_init() < 0) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     return mct_register_context_ll_ts_llccb(handle,
                                             contextid,
                                             description,
-                                            DLT_USER_LOG_LEVEL_NOT_SET,
-                                            DLT_USER_TRACE_STATUS_NOT_SET,
+                                            MCT_USER_LOG_LEVEL_NOT_SET,
+                                            MCT_USER_TRACE_STATUS_NOT_SET,
                                             mct_log_level_changed_callback);
 }
 
 /* If force_sending_messages is set to true, do not clean appIDs when there are
  * still data in startup_buffer. atexit_handler will free the appIDs */
-DltReturnValue mct_unregister_app_util(bool force_sending_messages)
+MctReturnValue mct_unregister_app_util(bool force_sending_messages)
 {
-    DltReturnValue ret = DLT_RETURN_OK;
+    MctReturnValue ret = MCT_RETURN_OK;
 
     /* forbid mct usage in child after fork */
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_WARNING, "%s mct_user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* Do not allow unregister_context() to be called after this */
@@ -1561,7 +1561,7 @@ DltReturnValue mct_unregister_app_util(bool force_sending_messages)
     /* Inform daemon to unregister application and all of its contexts */
     ret = mct_user_log_send_unregister_application();
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     int count = mct_buffer_get_message_count(&(mct_user.startup_buffer));
 
@@ -1577,64 +1577,64 @@ DltReturnValue mct_unregister_app_util(bool force_sending_messages)
         mct_user.application_description = NULL;
     }
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
     return ret;
 }
 
-DltReturnValue mct_unregister_app(void)
+MctReturnValue mct_unregister_app(void)
 {
     return mct_unregister_app_util(false);
 }
 
-DltReturnValue mct_unregister_app_flush_buffered_logs(void)
+MctReturnValue mct_unregister_app_flush_buffered_logs(void)
 {
-    DltReturnValue ret = DLT_RETURN_OK;
+    MctReturnValue ret = MCT_RETURN_OK;
 
     /* forbid mct usage in child after fork */
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_ERR, "%s mct_user_initialised false\n", __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (mct_user.mct_log_handle != -1) {
         do {
             ret = mct_user_log_resend_buffer();
-        } while ((ret != DLT_RETURN_OK) && (mct_user.mct_log_handle != -1));
+        } while ((ret != MCT_RETURN_OK) && (mct_user.mct_log_handle != -1));
     }
 
     return mct_unregister_app_util(true);
 }
 
-DltReturnValue mct_unregister_context(DltContext *handle)
+MctReturnValue mct_unregister_context(MctContext *handle)
 {
-    DltContextData log;
-    DltReturnValue ret = DLT_RETURN_OK;
+    MctContextData log;
+    MctReturnValue ret = MCT_RETURN_OK;
 
     /* forbid mct usage in child after fork */
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (mct_user_app_unreg) {
         mct_vlog(LOG_WARNING,
                  "%s: Contexts and application are already unregistered\n",
                  __func__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     log.handle = NULL;
     log.context_description = NULL;
 
-    if (mct_user_log_init(handle, &log) <= DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+    if (mct_user_log_init(handle, &log) <= MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     handle->log_level_ptr = NULL;
     handle->trace_status_ptr = NULL;
@@ -1643,8 +1643,8 @@ DltReturnValue mct_unregister_context(DltContext *handle)
         /* Clear and free local stored context information */
         mct_set_id(mct_user.mct_ll_ts[handle->log_level_pos].contextID, "");
 
-        mct_user.mct_ll_ts[handle->log_level_pos].log_level = DLT_USER_INITIAL_LOG_LEVEL;
-        mct_user.mct_ll_ts[handle->log_level_pos].trace_status = DLT_USER_INITIAL_TRACE_STATUS;
+        mct_user.mct_ll_ts[handle->log_level_pos].log_level = MCT_USER_INITIAL_LOG_LEVEL;
+        mct_user.mct_ll_ts[handle->log_level_pos].trace_status = MCT_USER_INITIAL_TRACE_STATUS;
 
         if (mct_user.mct_ll_ts[handle->log_level_pos].context_description != NULL) {
             free(mct_user.mct_ll_ts[handle->log_level_pos].context_description);
@@ -1669,17 +1669,17 @@ DltReturnValue mct_unregister_context(DltContext *handle)
 
         mct_user.mct_ll_ts[handle->log_level_pos].nrcallbacks = 0;
         mct_user.mct_ll_ts[handle->log_level_pos].log_level_changed_callback = 0;
-#ifdef DLT_HP_LOG_ENABLE
+#ifdef MCT_HP_LOG_ENABLE
 
-        if (mct_user.mct_ll_ts[handle->log_level_pos].DltExtBuff_ptr) {
-            free(mct_user.mct_ll_ts[handle->log_level_pos].DltExtBuff_ptr);
-            mct_user.mct_ll_ts[handle->log_level_pos].DltExtBuff_ptr = 0;
+        if (mct_user.mct_ll_ts[handle->log_level_pos].MctExtBuff_ptr) {
+            free(mct_user.mct_ll_ts[handle->log_level_pos].MctExtBuff_ptr);
+            mct_user.mct_ll_ts[handle->log_level_pos].MctExtBuff_ptr = 0;
         }
 
 #endif
     }
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
     /* Inform daemon to unregister context */
     ret = mct_user_log_send_unregister_context(&log);
@@ -1687,38 +1687,38 @@ DltReturnValue mct_unregister_context(DltContext *handle)
     return ret;
 }
 
-DltReturnValue mct_set_application_ll_ts_limit(DltLogLevelType loglevel,
-                                               DltTraceStatusType tracestatus)
+MctReturnValue mct_set_application_ll_ts_limit(MctLogLevelType loglevel,
+                                               MctTraceStatusType tracestatus)
 {
     uint32_t i;
 
     /* forbid mct usage in child after fork */
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    if ((loglevel < DLT_USER_LOG_LEVEL_NOT_SET) || (loglevel >= DLT_LOG_MAX)) {
+    if ((loglevel < MCT_USER_LOG_LEVEL_NOT_SET) || (loglevel >= MCT_LOG_MAX)) {
         mct_vlog(LOG_ERR, "Loglevel %d is outside valid range", loglevel);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    if ((tracestatus < DLT_USER_TRACE_STATUS_NOT_SET) || (tracestatus >= DLT_TRACE_STATUS_MAX)) {
+    if ((tracestatus < MCT_USER_TRACE_STATUS_NOT_SET) || (tracestatus >= MCT_TRACE_STATUS_MAX)) {
         mct_vlog(LOG_ERR, "Tracestatus %d is outside valid range", tracestatus);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (!mct_user_initialised) {
         if (mct_init() < 0) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     if (mct_user.mct_ll_ts == NULL) {
-        DLT_SEM_FREE();
-        return DLT_RETURN_ERROR;
+        MCT_SEM_FREE();
+        return MCT_RETURN_ERROR;
     }
 
     /* Update local structures */
@@ -1735,9 +1735,9 @@ DltReturnValue mct_set_application_ll_ts_limit(DltLogLevelType loglevel,
         }
     }
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
-    /* Inform DLT server about update */
+    /* Inform MCT server about update */
     return mct_send_app_ll_ts_limit(mct_user.appID, loglevel, tracestatus);
 }
 
@@ -1747,13 +1747,13 @@ int mct_get_log_state()
 }
 
 /* @deprecated */
-DltReturnValue mct_set_log_mode(DltUserLogMode mode)
+MctReturnValue mct_set_log_mode(MctUserLogMode mode)
 {
-    DLT_UNUSED(mode);
+    MCT_UNUSED(mode);
 
     /* forbid mct usage in child after fork */
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     return 0;
@@ -1763,7 +1763,7 @@ int mct_set_resend_timeout_atexit(uint32_t timeout_in_milliseconds)
 {
     /* forbid mct usage in child after fork */
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (mct_user_initialised == 0) {
@@ -1778,91 +1778,91 @@ int mct_set_resend_timeout_atexit(uint32_t timeout_in_milliseconds)
 
 /* ********************************************************************************************* */
 
-DltReturnValue mct_user_log_write_start_init(DltContext *handle,
-                                                    DltContextData *log,
-                                                    DltLogLevelType loglevel,
+MctReturnValue mct_user_log_write_start_init(MctContext *handle,
+                                                    MctContextData *log,
+                                                    MctLogLevelType loglevel,
                                                     bool is_verbose)
 {
-    DLT_LOG_FATAL_RESET_TRAP(loglevel);
+    MCT_LOG_FATAL_RESET_TRAP(loglevel);
 
     /* initialize values */
-    if ((mct_user_log_init(handle, log) < DLT_RETURN_OK) || (mct_user.mct_ll_ts == NULL))
-        return DLT_RETURN_ERROR;
+    if ((mct_user_log_init(handle, log) < MCT_RETURN_OK) || (mct_user.mct_ll_ts == NULL))
+        return MCT_RETURN_ERROR;
 
     log->args_num = 0;
     log->log_level = loglevel;
     log->size = 0;
-    log->use_timestamp = DLT_AUTO_TIMESTAMP;
+    log->use_timestamp = MCT_AUTO_TIMESTAMP;
     log->verbose_mode = is_verbose;
 
-    return DLT_RETURN_TRUE;
+    return MCT_RETURN_TRUE;
 }
 
-static DltReturnValue mct_user_log_write_start_internal(DltContext *handle,
-                                                        DltContextData *log,
-                                                        DltLogLevelType loglevel,
+static MctReturnValue mct_user_log_write_start_internal(MctContext *handle,
+                                                        MctContextData *log,
+                                                        MctLogLevelType loglevel,
                                                         uint32_t messageid,
                                                         bool is_verbose);
 
-inline DltReturnValue mct_user_log_write_start(DltContext *handle,
-                                               DltContextData *log,
-                                               DltLogLevelType loglevel)
+inline MctReturnValue mct_user_log_write_start(MctContext *handle,
+                                               MctContextData *log,
+                                               MctLogLevelType loglevel)
 {
-    return mct_user_log_write_start_internal(handle, log, loglevel, DLT_USER_DEFAULT_MSGID, true);
+    return mct_user_log_write_start_internal(handle, log, loglevel, MCT_USER_DEFAULT_MSGID, true);
 }
 
-DltReturnValue mct_user_log_write_start_id(DltContext *handle,
-                                           DltContextData *log,
-                                           DltLogLevelType loglevel,
+MctReturnValue mct_user_log_write_start_id(MctContext *handle,
+                                           MctContextData *log,
+                                           MctLogLevelType loglevel,
                                            uint32_t messageid)
 {
     return mct_user_log_write_start_internal(handle, log, loglevel, messageid, false);
 }
 
-DltReturnValue mct_user_log_write_start_internal(DltContext *handle,
-                                           DltContextData *log,
-                                           DltLogLevelType loglevel,
+MctReturnValue mct_user_log_write_start_internal(MctContext *handle,
+                                           MctContextData *log,
+                                           MctLogLevelType loglevel,
                                            uint32_t messageid,
                                            bool is_verbose)
 {
-    int ret = DLT_RETURN_TRUE;
+    int ret = MCT_RETURN_TRUE;
 
     /* check nullpointer */
     if ((handle == NULL) || (log == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* forbid mct usage in child after fork */
     if (g_mct_is_child) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* check log levels */
     ret = mct_user_is_logLevel_enabled(handle, loglevel);
 
-    if (ret == DLT_RETURN_WRONG_PARAMETER) {
-        return DLT_RETURN_WRONG_PARAMETER;
-    } else if (ret == DLT_RETURN_LOGGING_DISABLED) {
+    if (ret == MCT_RETURN_WRONG_PARAMETER) {
+        return MCT_RETURN_WRONG_PARAMETER;
+    } else if (ret == MCT_RETURN_LOGGING_DISABLED) {
         log->handle = NULL;
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     ret = mct_user_log_write_start_init(handle, log, loglevel, is_verbose);
-    if (ret == DLT_RETURN_TRUE) {
+    if (ret == MCT_RETURN_TRUE) {
         /* initialize values */
         if (log->buffer == NULL) {
             log->buffer = calloc(sizeof(unsigned char), mct_user.log_buf_len);
 
             if (log->buffer == NULL) {
-                mct_vlog(LOG_ERR, "Cannot allocate buffer for DLT Log message\n");
-                return DLT_RETURN_ERROR;
+                mct_vlog(LOG_ERR, "Cannot allocate buffer for MCT Log message\n");
+                return MCT_RETURN_ERROR;
             }
         }
 
         /* In non-verbose mode, insert message id */
         if (!is_verbose_mode(mct_user.verbose_mode, log)) {
             if ((sizeof(uint32_t)) > mct_user.log_buf_len) {
-                return DLT_RETURN_USER_BUFFER_FULL;
+                return MCT_RETURN_USER_BUFFER_FULL;
             }
 
             /* Write message id */
@@ -1876,33 +1876,33 @@ DltReturnValue mct_user_log_write_start_internal(DltContext *handle,
     return ret;
 }
 
-DltReturnValue mct_user_log_write_start_w_given_buffer(DltContext *handle,
-                                                       DltContextData *log,
-                                                       DltLogLevelType loglevel,
+MctReturnValue mct_user_log_write_start_w_given_buffer(MctContext *handle,
+                                                       MctContextData *log,
+                                                       MctLogLevelType loglevel,
                                                        char *buffer,
                                                        size_t size,
                                                        int32_t args_num)
 {
-    int ret = DLT_RETURN_TRUE;
+    int ret = MCT_RETURN_TRUE;
 
     /* check nullpointer */
     if ((handle == NULL) || (log == NULL) || (buffer == NULL))
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
 
     /* discard unexpected parameters */
     if ((size <= 0) || (size > mct_user.log_buf_len) || (args_num <= 0))
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
 
     /* forbid mct usage in child after fork */
     if (g_mct_is_child)
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
     /* discard non-verbose mode */
     if (mct_user.verbose_mode == 0)
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
     ret = mct_user_log_write_start_init(handle, log, loglevel, true);
-    if (ret == DLT_RETURN_TRUE) {
+    if (ret == MCT_RETURN_TRUE) {
         log->buffer = (unsigned char *)buffer;
         log->size = size;
         log->args_num = args_num;
@@ -1911,78 +1911,77 @@ DltReturnValue mct_user_log_write_start_w_given_buffer(DltContext *handle,
     return ret;
 }
 
-DltReturnValue mct_user_log_write_finish(DltContextData *log)
+MctReturnValue mct_user_log_write_finish(MctContextData *log)
 {
-    int ret = DLT_RETURN_ERROR;
+    int ret = MCT_RETURN_ERROR;
 
     if (log == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    ret = mct_user_log_send_log(log, DLT_TYPE_LOG);
+    ret = mct_user_log_send_log(log, MCT_TYPE_LOG);
 
     mct_user_free_buffer(&(log->buffer));
 
     return ret;
 }
 
-DltReturnValue mct_user_log_write_finish_w_given_buffer(DltContextData *log)
+MctReturnValue mct_user_log_write_finish_w_given_buffer(MctContextData *log)
 {
-    int ret = DLT_RETURN_ERROR;
+    int ret = MCT_RETURN_ERROR;
 
     if (log == NULL)
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
 
-    ret = mct_user_log_send_log(log, DLT_TYPE_LOG);
+    ret = mct_user_log_send_log(log, MCT_TYPE_LOG);
 
     return ret;
 }
 
-static DltReturnValue mct_user_log_write_raw_internal(DltContextData *log, const void *data, uint16_t length, DltFormatType type, const char *name, bool with_var_info)
+static MctReturnValue mct_user_log_write_raw_internal(MctContextData *log, const void *data, uint16_t length, MctFormatType type, const char *name, bool with_var_info)
 {
     /* check nullpointer */
     if ((log == NULL) || ((data == NULL) && (length != 0))) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    /* Have to cast type to signed type because some compilers assume that DltFormatType is unsigned and issue a warning */
-    if (((int16_t)type < DLT_FORMAT_DEFAULT) || (type >= DLT_FORMAT_MAX)) {
+    /* Have to cast type to signed type because some compilers assume that MctFormatType is unsigned and issue a warning */
+    if (((int16_t)type < MCT_FORMAT_DEFAULT) || (type >= MCT_FORMAT_MAX)) {
         mct_vlog(LOG_ERR, "Format type %u is outside valid range", type);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_WARNING, "%s mct_user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     const uint16_t name_size = (name != NULL) ? strlen(name)+1 : 0;
 
     size_t needed_size = length + sizeof(uint16_t);
     if ((log->size + needed_size) > mct_user.log_buf_len)
-        return DLT_RETURN_USER_BUFFER_FULL;
+        return MCT_RETURN_USER_BUFFER_FULL;
 
     if (is_verbose_mode(mct_user.verbose_mode, log)) {
-        uint32_t type_info = DLT_TYPE_INFO_RAWD;
+        uint32_t type_info = MCT_TYPE_INFO_RAWD;
 
         needed_size += sizeof(uint32_t);  // Type Info field
         if (with_var_info) {
             needed_size += sizeof(uint16_t);  // length of name
             needed_size += name_size;  // the name itself
 
-            type_info |= DLT_TYPE_INFO_VARI;
+            type_info |= MCT_TYPE_INFO_VARI;
         }
         if ((log->size + needed_size) > mct_user.log_buf_len)
-            return DLT_RETURN_USER_BUFFER_FULL;
+            return MCT_RETURN_USER_BUFFER_FULL;
 
-        // Genivi extension: put formatting hints into the unused (for RAWD) TYLE + SCOD fields.
-        // The SCOD field holds the base (hex or bin); the TYLE field holds the column width (8bit..64bit).
-        if ((type >= DLT_FORMAT_HEX8) && (type <= DLT_FORMAT_HEX64)) {
-            type_info |= DLT_SCOD_HEX;
+
+        if ((type >= MCT_FORMAT_HEX8) && (type <= MCT_FORMAT_HEX64)) {
+            type_info |= MCT_SCOD_HEX;
             type_info += type;
-        } else if ((type >= DLT_FORMAT_BIN8) && (type <= DLT_FORMAT_BIN16)) {
-            type_info |= DLT_SCOD_BIN;
-            type_info += type - DLT_FORMAT_BIN8 + 1;
+        } else if ((type >= MCT_FORMAT_BIN8) && (type <= MCT_FORMAT_BIN16)) {
+            type_info |= MCT_SCOD_BIN;
+            type_info += type - MCT_FORMAT_BIN8 + 1;
         }
 
         memcpy(log->buffer + log->size, &type_info, sizeof(uint32_t));
@@ -2014,43 +2013,43 @@ static DltReturnValue mct_user_log_write_raw_internal(DltContextData *log, const
 
     log->args_num++;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_raw(DltContextData *log, void *data, uint16_t length)
+MctReturnValue mct_user_log_write_raw(MctContextData *log, void *data, uint16_t length)
 {
-    return mct_user_log_write_raw_internal(log, data, length, DLT_FORMAT_DEFAULT, NULL, false);
+    return mct_user_log_write_raw_internal(log, data, length, MCT_FORMAT_DEFAULT, NULL, false);
 }
 
-DltReturnValue mct_user_log_write_raw_formatted(DltContextData *log, void *data, uint16_t length, DltFormatType type)
+MctReturnValue mct_user_log_write_raw_formatted(MctContextData *log, void *data, uint16_t length, MctFormatType type)
 {
     return mct_user_log_write_raw_internal(log, data, length, type, NULL, false);
 }
 
-DltReturnValue mct_user_log_write_raw_attr(DltContextData *log, const void *data, uint16_t length, const char *name)
+MctReturnValue mct_user_log_write_raw_attr(MctContextData *log, const void *data, uint16_t length, const char *name)
 {
-    return mct_user_log_write_raw_internal(log, data, length, DLT_FORMAT_DEFAULT, name, true);
+    return mct_user_log_write_raw_internal(log, data, length, MCT_FORMAT_DEFAULT, name, true);
 }
 
-DltReturnValue mct_user_log_write_raw_formatted_attr(DltContextData *log, const void *data, uint16_t length, DltFormatType type, const char *name)
+MctReturnValue mct_user_log_write_raw_formatted_attr(MctContextData *log, const void *data, uint16_t length, MctFormatType type, const char *name)
 {
     return mct_user_log_write_raw_internal(log, data, length, type, name, true);
 }
 
 // Generic implementation for all "simple" types, possibly with attributes
-static DltReturnValue mct_user_log_write_generic_attr(DltContextData *log, const void *datap, size_t datalen, uint32_t type_info, const VarInfo *varinfo)
+static MctReturnValue mct_user_log_write_generic_attr(MctContextData *log, const void *datap, size_t datalen, uint32_t type_info, const VarInfo *varinfo)
 {
     if (log == NULL)
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_WARNING, "%s mct_user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     size_t needed_size = datalen;
     if ((log->size + needed_size) > mct_user.log_buf_len)
-        return DLT_RETURN_USER_BUFFER_FULL;
+        return MCT_RETURN_USER_BUFFER_FULL;
 
     if (is_verbose_mode(mct_user.verbose_mode, log)) {
         bool with_var_info = (varinfo != NULL);
@@ -2070,10 +2069,10 @@ static DltReturnValue mct_user_log_write_generic_attr(DltContextData *log, const
                 needed_size += unit_size;         // the unit itself
             }
 
-            type_info |= DLT_TYPE_INFO_VARI;
+            type_info |= MCT_TYPE_INFO_VARI;
         }
         if ((log->size + needed_size) > mct_user.log_buf_len)
-            return DLT_RETURN_USER_BUFFER_FULL;
+            return MCT_RETURN_USER_BUFFER_FULL;
 
         memcpy(log->buffer + log->size, &type_info, sizeof(uint32_t));
         log->size += sizeof(uint32_t);
@@ -2107,41 +2106,40 @@ static DltReturnValue mct_user_log_write_generic_attr(DltContextData *log, const
 
     log->args_num++;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 // Generic implementation for all "simple" types
-static DltReturnValue mct_user_log_write_generic_formatted(DltContextData *log, const void *datap, size_t datalen, uint32_t type_info, DltFormatType type)
+static MctReturnValue mct_user_log_write_generic_formatted(MctContextData *log, const void *datap, size_t datalen, uint32_t type_info, MctFormatType type)
 {
     if (log == NULL)
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
 
-    /* Have to cast type to signed type because some compilers assume that DltFormatType is unsigned and issue a warning */
-    if (((int16_t)type < DLT_FORMAT_DEFAULT) || (type >= DLT_FORMAT_MAX)) {
+    /* Have to cast type to signed type because some compilers assume that MctFormatType is unsigned and issue a warning */
+    if (((int16_t)type < MCT_FORMAT_DEFAULT) || (type >= MCT_FORMAT_MAX)) {
         mct_vlog(LOG_ERR, "Format type %d is outside valid range", type);
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_WARNING, "%s mct_user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     size_t needed_size = datalen;
     if ((log->size + needed_size) > mct_user.log_buf_len)
-        return DLT_RETURN_USER_BUFFER_FULL;
+        return MCT_RETURN_USER_BUFFER_FULL;
 
     if (is_verbose_mode(mct_user.verbose_mode, log)) {
         needed_size += sizeof(uint32_t);  // Type Info field
         if ((log->size + needed_size) > mct_user.log_buf_len)
-            return DLT_RETURN_USER_BUFFER_FULL;
+            return MCT_RETURN_USER_BUFFER_FULL;
 
-        // Genivi extension: put formatting hints into the unused (for SINT/UINT/FLOA) SCOD field.
-        if ((type >= DLT_FORMAT_HEX8) && (type <= DLT_FORMAT_HEX64))
-            type_info |= DLT_SCOD_HEX;
+        if ((type >= MCT_FORMAT_HEX8) && (type <= MCT_FORMAT_HEX64))
+            type_info |= MCT_SCOD_HEX;
 
-        else if ((type >= DLT_FORMAT_BIN8) && (type <= DLT_FORMAT_BIN16))
-            type_info |= DLT_SCOD_BIN;
+        else if ((type >= MCT_FORMAT_BIN8) && (type <= MCT_FORMAT_BIN16))
+            type_info |= MCT_SCOD_BIN;
 
         memcpy(log->buffer + log->size, &type_info, sizeof(uint32_t));
         log->size += sizeof(uint32_t);
@@ -2152,56 +2150,56 @@ static DltReturnValue mct_user_log_write_generic_formatted(DltContextData *log, 
 
     log->args_num++;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_float32(DltContextData *log, float32_t data)
+MctReturnValue mct_user_log_write_float32(MctContextData *log, float32_t data)
 {
     if (sizeof(float32_t) != 4)
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
-    uint32_t type_info = DLT_TYPE_INFO_FLOA | DLT_TYLE_32BIT;
+    uint32_t type_info = MCT_TYPE_INFO_FLOA | MCT_TYLE_32BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(float32_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_float64(DltContextData *log, float64_t data)
+MctReturnValue mct_user_log_write_float64(MctContextData *log, float64_t data)
 {
     if (sizeof(float64_t) != 8)
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
-    uint32_t type_info = DLT_TYPE_INFO_FLOA | DLT_TYLE_64BIT;
+    uint32_t type_info = MCT_TYPE_INFO_FLOA | MCT_TYLE_64BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(float64_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_float32_attr(DltContextData *log, float32_t data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_float32_attr(MctContextData *log, float32_t data, const char *name, const char *unit)
 {
     if (sizeof(float32_t) != 4)
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
-    uint32_t type_info = DLT_TYPE_INFO_FLOA | DLT_TYLE_32BIT;
+    uint32_t type_info = MCT_TYPE_INFO_FLOA | MCT_TYLE_32BIT;
     const VarInfo var_info = { name, unit, true };
     return mct_user_log_write_generic_attr(log, &data, sizeof(float32_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_float64_attr(DltContextData *log, float64_t data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_float64_attr(MctContextData *log, float64_t data, const char *name, const char *unit)
 {
     if (sizeof(float64_t) != 8)
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
-    uint32_t type_info = DLT_TYPE_INFO_FLOA | DLT_TYLE_64BIT;
+    uint32_t type_info = MCT_TYPE_INFO_FLOA | MCT_TYLE_64BIT;
     const VarInfo var_info = { name, unit, true };
     return mct_user_log_write_generic_attr(log, &data, sizeof(float64_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_uint(DltContextData *log, unsigned int data)
+MctReturnValue mct_user_log_write_uint(MctContextData *log, unsigned int data)
 {
     if (log == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_WARNING, "%s mct_user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     switch (sizeof(unsigned int)) {
@@ -2227,46 +2225,46 @@ DltReturnValue mct_user_log_write_uint(DltContextData *log, unsigned int data)
     }
     default:
     {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
         break;
     }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_uint8(DltContextData *log, uint8_t data)
+MctReturnValue mct_user_log_write_uint8(MctContextData *log, uint8_t data)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_8BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_8BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(uint8_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_uint16(DltContextData *log, uint16_t data)
+MctReturnValue mct_user_log_write_uint16(MctContextData *log, uint16_t data)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_16BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_16BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(uint16_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_uint32(DltContextData *log, uint32_t data)
+MctReturnValue mct_user_log_write_uint32(MctContextData *log, uint32_t data)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_32BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_32BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(uint32_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_uint64(DltContextData *log, uint64_t data)
+MctReturnValue mct_user_log_write_uint64(MctContextData *log, uint64_t data)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_64BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_64BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(uint64_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_uint_attr(DltContextData *log, unsigned int data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_uint_attr(MctContextData *log, unsigned int data, const char *name, const char *unit)
 {
     if (log == NULL)
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_WARNING, "%s mct_user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     switch (sizeof(unsigned int)) {
@@ -2292,112 +2290,112 @@ DltReturnValue mct_user_log_write_uint_attr(DltContextData *log, unsigned int da
     }
     default:
     {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
         break;
     }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_uint8_attr(DltContextData *log, uint8_t data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_uint8_attr(MctContextData *log, uint8_t data, const char *name, const char *unit)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_8BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_8BIT;
     const VarInfo var_info = { name, unit, true };
     return mct_user_log_write_generic_attr(log, &data, sizeof(uint8_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_uint16_attr(DltContextData *log, uint16_t data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_uint16_attr(MctContextData *log, uint16_t data, const char *name, const char *unit)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_16BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_16BIT;
     const VarInfo var_info = { name, unit, true };
     return mct_user_log_write_generic_attr(log, &data, sizeof(uint16_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_uint32_attr(DltContextData *log, uint32_t data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_uint32_attr(MctContextData *log, uint32_t data, const char *name, const char *unit)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_32BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_32BIT;
     const VarInfo var_info = { name, unit, true };
     return mct_user_log_write_generic_attr(log, &data, sizeof(uint32_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_uint64_attr(DltContextData *log, uint64_t data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_uint64_attr(MctContextData *log, uint64_t data, const char *name, const char *unit)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_64BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_64BIT;
     const VarInfo var_info = { name, unit, true };
     return mct_user_log_write_generic_attr(log, &data, sizeof(uint64_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_uint8_formatted(DltContextData *log,
+MctReturnValue mct_user_log_write_uint8_formatted(MctContextData *log,
                                                   uint8_t data,
-                                                  DltFormatType type)
+                                                  MctFormatType type)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_8BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_8BIT;
     return mct_user_log_write_generic_formatted(log, &data, sizeof(uint8_t), type_info, type);
 }
 
-DltReturnValue mct_user_log_write_uint16_formatted(DltContextData *log,
+MctReturnValue mct_user_log_write_uint16_formatted(MctContextData *log,
                                                    uint16_t data,
-                                                   DltFormatType type)
+                                                   MctFormatType type)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_16BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_16BIT;
     return mct_user_log_write_generic_formatted(log, &data, sizeof(uint16_t), type_info, type);
 }
 
-DltReturnValue mct_user_log_write_uint32_formatted(DltContextData *log,
+MctReturnValue mct_user_log_write_uint32_formatted(MctContextData *log,
                                                    uint32_t data,
-                                                   DltFormatType type)
+                                                   MctFormatType type)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_32BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_32BIT;
     return mct_user_log_write_generic_formatted(log, &data, sizeof(uint32_t), type_info, type);
 }
 
-DltReturnValue mct_user_log_write_uint64_formatted(DltContextData *log,
+MctReturnValue mct_user_log_write_uint64_formatted(MctContextData *log,
                                                    uint64_t data,
-                                                   DltFormatType type)
+                                                   MctFormatType type)
 {
-    uint32_t type_info = DLT_TYPE_INFO_UINT | DLT_TYLE_64BIT;
+    uint32_t type_info = MCT_TYPE_INFO_UINT | MCT_TYLE_64BIT;
     return mct_user_log_write_generic_formatted(log, &data, sizeof(uint64_t), type_info, type);
 }
 
-DltReturnValue mct_user_log_write_ptr(DltContextData *log, void *data)
+MctReturnValue mct_user_log_write_ptr(MctContextData *log, void *data)
 {
     if (log == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_WARNING, "%s user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     switch (sizeof(void *)) {
         case 4:
             return mct_user_log_write_uint32_formatted(log,
                                                        (uintptr_t)data,
-                                                       DLT_FORMAT_HEX32);
+                                                       MCT_FORMAT_HEX32);
             break;
         case 8:
             return mct_user_log_write_uint64_formatted(log,
                                                        (uintptr_t)data,
-                                                       DLT_FORMAT_HEX64);
+                                                       MCT_FORMAT_HEX64);
             break;
         default:
             ; /* skip */
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_int(DltContextData *log, int data)
+MctReturnValue mct_user_log_write_int(MctContextData *log, int data)
 {
     if (log == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_WARNING, "%s mct_user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     switch (sizeof(int)) {
@@ -2423,46 +2421,46 @@ DltReturnValue mct_user_log_write_int(DltContextData *log, int data)
     }
     default:
     {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
         break;
     }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_int8(DltContextData *log, int8_t data)
+MctReturnValue mct_user_log_write_int8(MctContextData *log, int8_t data)
 {
-    uint32_t type_info = DLT_TYPE_INFO_SINT | DLT_TYLE_8BIT;
+    uint32_t type_info = MCT_TYPE_INFO_SINT | MCT_TYLE_8BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(int8_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_int16(DltContextData *log, int16_t data)
+MctReturnValue mct_user_log_write_int16(MctContextData *log, int16_t data)
 {
-    uint32_t type_info = DLT_TYPE_INFO_SINT | DLT_TYLE_16BIT;
+    uint32_t type_info = MCT_TYPE_INFO_SINT | MCT_TYLE_16BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(int16_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_int32(DltContextData *log, int32_t data)
+MctReturnValue mct_user_log_write_int32(MctContextData *log, int32_t data)
 {
-    uint32_t type_info = DLT_TYPE_INFO_SINT | DLT_TYLE_32BIT;
+    uint32_t type_info = MCT_TYPE_INFO_SINT | MCT_TYLE_32BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(int32_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_int64(DltContextData *log, int64_t data)
+MctReturnValue mct_user_log_write_int64(MctContextData *log, int64_t data)
 {
-    uint32_t type_info = DLT_TYPE_INFO_SINT | DLT_TYLE_64BIT;
+    uint32_t type_info = MCT_TYPE_INFO_SINT | MCT_TYLE_64BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(int64_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_int_attr(DltContextData *log, int data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_int_attr(MctContextData *log, int data, const char *name, const char *unit)
 {
     if (log == NULL)
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_WARNING, "%s mct_user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     switch (sizeof(int)) {
@@ -2488,153 +2486,153 @@ DltReturnValue mct_user_log_write_int_attr(DltContextData *log, int data, const 
     }
     default:
     {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
         break;
     }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_int8_attr(DltContextData *log, int8_t data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_int8_attr(MctContextData *log, int8_t data, const char *name, const char *unit)
 {
-    uint32_t type_info = DLT_TYPE_INFO_SINT | DLT_TYLE_8BIT;
+    uint32_t type_info = MCT_TYPE_INFO_SINT | MCT_TYLE_8BIT;
     const VarInfo var_info = { name, unit, true };
     return mct_user_log_write_generic_attr(log, &data, sizeof(int8_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_int16_attr(DltContextData *log, int16_t data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_int16_attr(MctContextData *log, int16_t data, const char *name, const char *unit)
 {
-    uint32_t type_info = DLT_TYPE_INFO_SINT | DLT_TYLE_16BIT;
+    uint32_t type_info = MCT_TYPE_INFO_SINT | MCT_TYLE_16BIT;
     const VarInfo var_info = { name, unit, true };
     return mct_user_log_write_generic_attr(log, &data, sizeof(int16_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_int32_attr(DltContextData *log, int32_t data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_int32_attr(MctContextData *log, int32_t data, const char *name, const char *unit)
 {
-    uint32_t type_info = DLT_TYPE_INFO_SINT | DLT_TYLE_32BIT;
+    uint32_t type_info = MCT_TYPE_INFO_SINT | MCT_TYLE_32BIT;
     const VarInfo var_info = { name, unit, true };
     return mct_user_log_write_generic_attr(log, &data, sizeof(int32_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_int64_attr(DltContextData *log, int64_t data, const char *name, const char *unit)
+MctReturnValue mct_user_log_write_int64_attr(MctContextData *log, int64_t data, const char *name, const char *unit)
 {
-    uint32_t type_info = DLT_TYPE_INFO_SINT | DLT_TYLE_64BIT;
+    uint32_t type_info = MCT_TYPE_INFO_SINT | MCT_TYLE_64BIT;
     const VarInfo var_info = { name, unit, true };
     return mct_user_log_write_generic_attr(log, &data, sizeof(int64_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_bool(DltContextData *log, uint8_t data)
+MctReturnValue mct_user_log_write_bool(MctContextData *log, uint8_t data)
 {
-    uint32_t type_info = DLT_TYPE_INFO_BOOL | DLT_TYLE_8BIT;
+    uint32_t type_info = MCT_TYPE_INFO_BOOL | MCT_TYLE_8BIT;
     return mct_user_log_write_generic_attr(log, &data, sizeof(uint8_t), type_info, NULL);
 }
 
-DltReturnValue mct_user_log_write_bool_attr(DltContextData *log, uint8_t data, const char *name)
+MctReturnValue mct_user_log_write_bool_attr(MctContextData *log, uint8_t data, const char *name)
 {
-    uint32_t type_info = DLT_TYPE_INFO_BOOL | DLT_TYLE_8BIT;
+    uint32_t type_info = MCT_TYPE_INFO_BOOL | MCT_TYLE_8BIT;
     const VarInfo var_info = { name, NULL, false };
     return mct_user_log_write_generic_attr(log, &data, sizeof(uint8_t), type_info, &var_info);
 }
 
-DltReturnValue mct_user_log_write_string(DltContextData *log, const char *text)
+MctReturnValue mct_user_log_write_string(MctContextData *log, const char *text)
 {
     return mct_user_log_write_string_utils_attr(log, text, ASCII_STRING, NULL, false);
 }
 
-DltReturnValue mct_user_log_write_string_attr(DltContextData *log, const char *text, const char *name)
+MctReturnValue mct_user_log_write_string_attr(MctContextData *log, const char *text, const char *name)
 {
     return mct_user_log_write_string_utils_attr(log, text, ASCII_STRING, name, true);
 }
 
-DltReturnValue mct_user_log_write_sized_string(DltContextData *log,
+MctReturnValue mct_user_log_write_sized_string(MctContextData *log,
                                                const char *text,
                                                uint16_t length)
 {
     return mct_user_log_write_sized_string_utils_attr(log, text, length, ASCII_STRING, NULL, false);
 }
 
-DltReturnValue mct_user_log_write_sized_string_attr(DltContextData *log, const char *text, uint16_t length, const char *name)
+MctReturnValue mct_user_log_write_sized_string_attr(MctContextData *log, const char *text, uint16_t length, const char *name)
 {
     return mct_user_log_write_sized_string_utils_attr(log, text, length, ASCII_STRING, name, true);
 }
 
-DltReturnValue mct_user_log_write_constant_string(DltContextData *log, const char *text)
+MctReturnValue mct_user_log_write_constant_string(MctContextData *log, const char *text)
 {
     /* Send parameter only in verbose mode */
-    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_string(log, text) : DLT_RETURN_OK;
+    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_string(log, text) : MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_constant_string_attr(DltContextData *log, const char *text, const char *name)
+MctReturnValue mct_user_log_write_constant_string_attr(MctContextData *log, const char *text, const char *name)
 {
     /* Send parameter only in verbose mode */
-    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_string_attr(log, text, name) : DLT_RETURN_OK;
+    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_string_attr(log, text, name) : MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_sized_constant_string(DltContextData *log, const char *text, uint16_t length)
+MctReturnValue mct_user_log_write_sized_constant_string(MctContextData *log, const char *text, uint16_t length)
 {
     /* Send parameter only in verbose mode */
-    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_sized_string(log, text, length) : DLT_RETURN_OK;
+    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_sized_string(log, text, length) : MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_sized_constant_string_attr(DltContextData *log, const char *text, uint16_t length, const char *name)
+MctReturnValue mct_user_log_write_sized_constant_string_attr(MctContextData *log, const char *text, uint16_t length, const char *name)
 {
     /* Send parameter only in verbose mode */
-    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_sized_string_attr(log, text, length, name) : DLT_RETURN_OK;
+    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_sized_string_attr(log, text, length, name) : MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_utf8_string(DltContextData *log, const char *text)
+MctReturnValue mct_user_log_write_utf8_string(MctContextData *log, const char *text)
 {
     return mct_user_log_write_string_utils_attr(log, text, UTF8_STRING, NULL, false);
 }
 
-DltReturnValue mct_user_log_write_utf8_string_attr(DltContextData *log, const char *text, const char *name)
+MctReturnValue mct_user_log_write_utf8_string_attr(MctContextData *log, const char *text, const char *name)
 {
     return mct_user_log_write_string_utils_attr(log, text, UTF8_STRING, name, true);
 }
 
-DltReturnValue mct_user_log_write_sized_utf8_string(DltContextData *log, const char *text, uint16_t length)
+MctReturnValue mct_user_log_write_sized_utf8_string(MctContextData *log, const char *text, uint16_t length)
 {
     return mct_user_log_write_sized_string_utils_attr(log, text, length, UTF8_STRING, NULL, false);
 }
 
-DltReturnValue mct_user_log_write_sized_utf8_string_attr(DltContextData *log, const char *text, uint16_t length, const char *name)
+MctReturnValue mct_user_log_write_sized_utf8_string_attr(MctContextData *log, const char *text, uint16_t length, const char *name)
 {
     return mct_user_log_write_sized_string_utils_attr(log, text, length, UTF8_STRING, name, true);
 }
 
-DltReturnValue mct_user_log_write_constant_utf8_string(DltContextData *log, const char *text)
+MctReturnValue mct_user_log_write_constant_utf8_string(MctContextData *log, const char *text)
 {
     /* Send parameter only in verbose mode */
-    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_utf8_string(log, text) : DLT_RETURN_OK;
+    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_utf8_string(log, text) : MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_constant_utf8_string_attr(DltContextData *log, const char *text, const char *name)
+MctReturnValue mct_user_log_write_constant_utf8_string_attr(MctContextData *log, const char *text, const char *name)
 {
     /* Send parameter only in verbose mode */
-    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_utf8_string_attr(log, text, name) : DLT_RETURN_OK;
+    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_utf8_string_attr(log, text, name) : MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_sized_constant_utf8_string(DltContextData *log, const char *text, uint16_t length)
+MctReturnValue mct_user_log_write_sized_constant_utf8_string(MctContextData *log, const char *text, uint16_t length)
 {
     /* Send parameter only in verbose mode */
-    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_sized_utf8_string(log, text, length) : DLT_RETURN_OK;
+    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_sized_utf8_string(log, text, length) : MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_write_sized_constant_utf8_string_attr(DltContextData *log, const char *text, uint16_t length, const char *name)
+MctReturnValue mct_user_log_write_sized_constant_utf8_string_attr(MctContextData *log, const char *text, uint16_t length, const char *name)
 {
     /* Send parameter only in verbose mode */
-    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_sized_utf8_string_attr(log, text, length, name) : DLT_RETURN_OK;
+    return is_verbose_mode(mct_user.verbose_mode, log) ? mct_user_log_write_sized_utf8_string_attr(log, text, length, name) : MCT_RETURN_OK;
 }
 
-static DltReturnValue mct_user_log_write_sized_string_utils_attr(DltContextData *log, const char *text, uint16_t length, const enum StringType type, const char *name, bool with_var_info)
+static MctReturnValue mct_user_log_write_sized_string_utils_attr(MctContextData *log, const char *text, uint16_t length, const enum StringType type, const char *name, bool with_var_info)
 {
     if ((log == NULL) || (text == NULL))
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_WARNING, "%s mct_user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     const uint16_t name_size = (name != NULL) ? strlen(name)+1 : 0;
@@ -2651,17 +2649,17 @@ static DltReturnValue mct_user_log_write_sized_string_utils_attr(DltContextData 
             new_log_size += sizeof(uint16_t);  // length of "name" attribute
             new_log_size += name_size;  // the "name" attribute itself
 
-            type_info |= DLT_TYPE_INFO_VARI;
+            type_info |= MCT_TYPE_INFO_VARI;
         }
     }
 
     size_t str_truncate_message_length = strlen(STR_TRUNCATED_MESSAGE) + 1;
     size_t max_payload_str_msg;
-    DltReturnValue ret = DLT_RETURN_OK;
+    MctReturnValue ret = MCT_RETURN_OK;
 
     /* Check log size condition */
     if (new_log_size > mct_user.log_buf_len) {
-        ret = DLT_RETURN_USER_BUFFER_FULL;
+        ret = MCT_RETURN_USER_BUFFER_FULL;
 
         /* Re-calculate arg_size */
         arg_size = mct_user.log_buf_len - log->size - sizeof(uint16_t);
@@ -2719,10 +2717,10 @@ static DltReturnValue mct_user_log_write_sized_string_utils_attr(DltContextData 
     if (is_verbose_mode(mct_user.verbose_mode, log)) {
         switch (type) {
         case ASCII_STRING:
-            type_info |= DLT_TYPE_INFO_STRG | DLT_SCOD_ASCII;
+            type_info |= MCT_TYPE_INFO_STRG | MCT_SCOD_ASCII;
             break;
         case UTF8_STRING:
-            type_info |= DLT_TYPE_INFO_STRG | DLT_SCOD_UTF8;
+            type_info |= MCT_TYPE_INFO_STRG | MCT_SCOD_UTF8;
             break;
         default:
             /* Do nothing */
@@ -2754,7 +2752,7 @@ static DltReturnValue mct_user_log_write_sized_string_utils_attr(DltContextData 
     }
 
     switch (ret) {
-    case DLT_RETURN_OK:
+    case MCT_RETURN_OK:
     {
         /* Whole string will be copied */
         memcpy(log->buffer + log->size, text, length);
@@ -2763,7 +2761,7 @@ static DltReturnValue mct_user_log_write_sized_string_utils_attr(DltContextData 
         log->size += arg_size;
         break;
     }
-    case DLT_RETURN_USER_BUFFER_FULL:
+    case MCT_RETURN_USER_BUFFER_FULL:
     {
         /* Only copy partial string */
         memcpy(log->buffer + log->size, text, max_payload_str_msg);
@@ -2786,46 +2784,46 @@ static DltReturnValue mct_user_log_write_sized_string_utils_attr(DltContextData 
     return ret;
 }
 
-static DltReturnValue mct_user_log_write_string_utils_attr(DltContextData *log, const char *text, const enum StringType type, const char *name, bool with_var_info)
+static MctReturnValue mct_user_log_write_string_utils_attr(MctContextData *log, const char *text, const enum StringType type, const char *name, bool with_var_info)
 {
     if ((log == NULL) || (text == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     uint16_t length = (uint16_t) strlen(text);
     return mct_user_log_write_sized_string_utils_attr(log, text, length, type, name, with_var_info);
 }
 
-DltReturnValue mct_register_injection_callback_with_id(DltContext *handle,
+MctReturnValue mct_register_injection_callback_with_id(MctContext *handle,
                                                        uint32_t service_id,
                                                        mct_injection_callback_id mct_injection_cbk,
                                                        void *priv)
 {
-    DltContextData log;
+    MctContextData log;
     uint32_t i, j, k;
     int found = 0;
 
-    DltUserInjectionCallback *old;
+    MctUserInjectionCallback *old;
 
-    if (mct_user_log_init(handle, &log) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+    if (mct_user_log_init(handle, &log) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
-    if (service_id < DLT_USER_INJECTION_MIN) {
-        return DLT_RETURN_WRONG_PARAMETER;
+    if (service_id < MCT_USER_INJECTION_MIN) {
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* This function doesn't make sense storing to local file is choosen;
      * so terminate this function */
     if (mct_user.mct_is_file) {
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     if (mct_user.mct_ll_ts == NULL) {
-        DLT_SEM_FREE();
-        return DLT_RETURN_OK;
+        MCT_SEM_FREE();
+        return MCT_RETURN_OK;
     }
 
     /* Insert callback in corresponding table */
@@ -2848,24 +2846,24 @@ DltReturnValue mct_register_injection_callback_with_id(DltContext *handle,
         /* Allocate or expand injection table */
         if (mct_user.mct_ll_ts[i].injection_table == NULL) {
             mct_user.mct_ll_ts[i].injection_table =
-                (DltUserInjectionCallback *)malloc(sizeof(DltUserInjectionCallback));
+                (MctUserInjectionCallback *)malloc(sizeof(MctUserInjectionCallback));
 
             if (mct_user.mct_ll_ts[i].injection_table == NULL) {
-                DLT_SEM_FREE();
-                return DLT_RETURN_ERROR;
+                MCT_SEM_FREE();
+                return MCT_RETURN_ERROR;
             }
         } else {
             old = mct_user.mct_ll_ts[i].injection_table;
-            mct_user.mct_ll_ts[i].injection_table = (DltUserInjectionCallback *)malloc(
-                    sizeof(DltUserInjectionCallback) * (j + 1));
+            mct_user.mct_ll_ts[i].injection_table = (MctUserInjectionCallback *)malloc(
+                    sizeof(MctUserInjectionCallback) * (j + 1));
 
             if (mct_user.mct_ll_ts[i].injection_table == NULL) {
                 mct_user.mct_ll_ts[i].injection_table = old;
-                DLT_SEM_FREE();
-                return DLT_RETURN_ERROR;
+                MCT_SEM_FREE();
+                return MCT_RETURN_ERROR;
             }
 
-            memcpy(mct_user.mct_ll_ts[i].injection_table, old, sizeof(DltUserInjectionCallback) * j);
+            memcpy(mct_user.mct_ll_ts[i].injection_table, old, sizeof(MctUserInjectionCallback) * j);
             free(old);
         }
 
@@ -2886,12 +2884,12 @@ DltReturnValue mct_register_injection_callback_with_id(DltContext *handle,
         mct_user.mct_ll_ts[i].injection_table[j].data = priv;
     }
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_register_injection_callback(DltContext *handle, uint32_t service_id,
+MctReturnValue mct_register_injection_callback(MctContext *handle, uint32_t service_id,
                                                int (*mct_injection_callback)(uint32_t service_id,
                                                                              void *data,
                                                                              uint32_t length))
@@ -2904,30 +2902,30 @@ DltReturnValue mct_register_injection_callback(DltContext *handle, uint32_t serv
                NULL);
 }
 
-DltReturnValue mct_register_log_level_changed_callback(DltContext *handle,
+MctReturnValue mct_register_log_level_changed_callback(MctContext *handle,
                                                        void (*mct_log_level_changed_callback)(
-                                                           char context_id[DLT_ID_SIZE],
+                                                           char context_id[MCT_ID_SIZE],
                                                            uint8_t log_level,
                                                            uint8_t trace_status))
 {
-    DltContextData log;
+    MctContextData log;
     uint32_t i;
 
-    if (mct_user_log_init(handle, &log) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+    if (mct_user_log_init(handle, &log) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
     /* This function doesn't make sense storing to local file is choosen;
      * so terminate this function */
     if (mct_user.mct_is_file) {
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     if (mct_user.mct_ll_ts == NULL) {
-        DLT_SEM_FREE();
-        return DLT_RETURN_OK;
+        MCT_SEM_FREE();
+        return MCT_RETURN_OK;
     }
 
     /* Insert callback in corresponding table */
@@ -2936,301 +2934,301 @@ DltReturnValue mct_register_log_level_changed_callback(DltContext *handle,
     /* Store new callback function */
     mct_user.mct_ll_ts[i].log_level_changed_callback = mct_log_level_changed_callback;
 
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 
-DltReturnValue mct_log_string(DltContext *handle, DltLogLevelType loglevel, const char *text)
+MctReturnValue mct_log_string(MctContext *handle, MctLogLevelType loglevel, const char *text)
 {
     if (!is_verbose_mode(mct_user.verbose_mode, NULL))
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
     if ((handle == NULL) || (text == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    DltReturnValue ret = DLT_RETURN_OK;
-    DltContextData log;
+    MctReturnValue ret = MCT_RETURN_OK;
+    MctContextData log;
 
-    if (mct_user_log_write_start(handle, &log, loglevel) == DLT_RETURN_TRUE) {
+    if (mct_user_log_write_start(handle, &log, loglevel) == MCT_RETURN_TRUE) {
         ret = mct_user_log_write_string(&log, text);
 
-        if (mct_user_log_write_finish(&log) < DLT_RETURN_OK) {
-            ret = DLT_RETURN_ERROR;
+        if (mct_user_log_write_finish(&log) < MCT_RETURN_OK) {
+            ret = MCT_RETURN_ERROR;
         }
     }
 
     return ret;
 }
 
-DltReturnValue mct_log_string_int(DltContext *handle,
-                                  DltLogLevelType loglevel,
+MctReturnValue mct_log_string_int(MctContext *handle,
+                                  MctLogLevelType loglevel,
                                   const char *text,
                                   int data)
 {
     if (!is_verbose_mode(mct_user.verbose_mode, NULL))
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
     if ((handle == NULL) || (text == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    DltReturnValue ret = DLT_RETURN_OK;
-    DltContextData log;
+    MctReturnValue ret = MCT_RETURN_OK;
+    MctContextData log;
 
-    if (mct_user_log_write_start(handle, &log, loglevel) == DLT_RETURN_TRUE) {
+    if (mct_user_log_write_start(handle, &log, loglevel) == MCT_RETURN_TRUE) {
         ret = mct_user_log_write_string(&log, text);
         mct_user_log_write_int(&log, data);
 
-        if (mct_user_log_write_finish(&log) < DLT_RETURN_OK) {
-            ret = DLT_RETURN_ERROR;
+        if (mct_user_log_write_finish(&log) < MCT_RETURN_OK) {
+            ret = MCT_RETURN_ERROR;
         }
     }
 
     return ret;
 }
 
-DltReturnValue mct_log_string_uint(DltContext *handle,
-                                   DltLogLevelType loglevel,
+MctReturnValue mct_log_string_uint(MctContext *handle,
+                                   MctLogLevelType loglevel,
                                    const char *text,
                                    unsigned int data)
 {
     if (!is_verbose_mode(mct_user.verbose_mode, NULL))
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
     if ((handle == NULL) || (text == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    DltReturnValue ret = DLT_RETURN_OK;
-    DltContextData log;
+    MctReturnValue ret = MCT_RETURN_OK;
+    MctContextData log;
 
-    if (mct_user_log_write_start(handle, &log, loglevel) == DLT_RETURN_TRUE) {
+    if (mct_user_log_write_start(handle, &log, loglevel) == MCT_RETURN_TRUE) {
         ret = mct_user_log_write_string(&log, text);
         mct_user_log_write_uint(&log, data);
 
-        if (mct_user_log_write_finish(&log) < DLT_RETURN_OK) {
-            ret = DLT_RETURN_ERROR;
+        if (mct_user_log_write_finish(&log) < MCT_RETURN_OK) {
+            ret = MCT_RETURN_ERROR;
         }
     }
 
     return ret;
 }
 
-DltReturnValue mct_log_int(DltContext *handle, DltLogLevelType loglevel, int data)
+MctReturnValue mct_log_int(MctContext *handle, MctLogLevelType loglevel, int data)
 {
     if (!is_verbose_mode(mct_user.verbose_mode, NULL))
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
     if (handle == NULL) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    DltContextData log;
+    MctContextData log;
 
-    if (mct_user_log_write_start(handle, &log, loglevel) == DLT_RETURN_TRUE) {
+    if (mct_user_log_write_start(handle, &log, loglevel) == MCT_RETURN_TRUE) {
         mct_user_log_write_int(&log, data);
 
-        if (mct_user_log_write_finish(&log) < DLT_RETURN_OK) {
-            return DLT_RETURN_ERROR;
+        if (mct_user_log_write_finish(&log) < MCT_RETURN_OK) {
+            return MCT_RETURN_ERROR;
         }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_log_uint(DltContext *handle, DltLogLevelType loglevel, unsigned int data)
+MctReturnValue mct_log_uint(MctContext *handle, MctLogLevelType loglevel, unsigned int data)
 {
     if (!is_verbose_mode(mct_user.verbose_mode, NULL))
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
     if (handle == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    DltContextData log;
+    MctContextData log;
 
-    if (mct_user_log_write_start(handle, &log, loglevel) == DLT_RETURN_TRUE) {
+    if (mct_user_log_write_start(handle, &log, loglevel) == MCT_RETURN_TRUE) {
         mct_user_log_write_uint(&log, data);
 
-        if (mct_user_log_write_finish(&log) < DLT_RETURN_OK) {
-            return DLT_RETURN_ERROR;
+        if (mct_user_log_write_finish(&log) < MCT_RETURN_OK) {
+            return MCT_RETURN_ERROR;
         }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_log_raw(DltContext *handle,
-                           DltLogLevelType loglevel,
+MctReturnValue mct_log_raw(MctContext *handle,
+                           MctLogLevelType loglevel,
                            void *data,
                            uint16_t length)
 {
     if (!is_verbose_mode(mct_user.verbose_mode, NULL))
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
 
     if (handle == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    DltContextData log;
-    DltReturnValue ret = DLT_RETURN_OK;
+    MctContextData log;
+    MctReturnValue ret = MCT_RETURN_OK;
 
     if (mct_user_log_write_start(handle, &log, loglevel) > 0) {
-        if ((ret = mct_user_log_write_raw(&log, data, length)) < DLT_RETURN_OK) {
+        if ((ret = mct_user_log_write_raw(&log, data, length)) < MCT_RETURN_OK) {
             mct_user_free_buffer(&(log.buffer));
             return ret;
         }
 
-        if (mct_user_log_write_finish(&log) < DLT_RETURN_OK) {
-            return DLT_RETURN_ERROR;
+        if (mct_user_log_write_finish(&log) < MCT_RETURN_OK) {
+            return MCT_RETURN_ERROR;
         }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_log_marker()
+MctReturnValue mct_log_marker()
 {
     if (!mct_user_initialised) {
-        if (mct_init() < DLT_RETURN_OK) {
+        if (mct_init() < MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     return mct_user_log_send_marker();
 }
 
-DltReturnValue mct_verbose_mode(void)
+MctReturnValue mct_verbose_mode(void)
 {
     if (!mct_user_initialised) {
-        if (mct_init() < DLT_RETURN_OK) {
+        if (mct_init() < MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     /* Switch to verbose mode */
     mct_user.verbose_mode = 1;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_nonverbose_mode(void)
+MctReturnValue mct_nonverbose_mode(void)
 {
     if (!mct_user_initialised) {
-        if (mct_init() < DLT_RETURN_OK) {
+        if (mct_init() < MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     /* Switch to non-verbose mode */
     mct_user.verbose_mode = 0;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_use_extended_header_for_non_verbose(int8_t use_extended_header_for_non_verbose)
+MctReturnValue mct_use_extended_header_for_non_verbose(int8_t use_extended_header_for_non_verbose)
 {
     if (!mct_user_initialised) {
-        if (mct_init() < DLT_RETURN_OK) {
+        if (mct_init() < MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     /* Set use_extended_header_for_non_verbose */
     mct_user.use_extended_header_for_non_verbose = use_extended_header_for_non_verbose;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_with_session_id(int8_t with_session_id)
+MctReturnValue mct_with_session_id(int8_t with_session_id)
 {
     if (!mct_user_initialised) {
-        if (mct_init() < DLT_RETURN_OK) {
+        if (mct_init() < MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     /* Set use_extended_header_for_non_verbose */
     mct_user.with_session_id = with_session_id;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_with_timestamp(int8_t with_timestamp)
+MctReturnValue mct_with_timestamp(int8_t with_timestamp)
 {
     if (!mct_user_initialised) {
-        if (mct_init() < DLT_RETURN_OK) {
+        if (mct_init() < MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     /* Set with_timestamp */
     mct_user.with_timestamp = with_timestamp;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_with_ecu_id(int8_t with_ecu_id)
+MctReturnValue mct_with_ecu_id(int8_t with_ecu_id)
 {
     if (!mct_user_initialised) {
-        if (mct_init() < DLT_RETURN_OK) {
+        if (mct_init() < MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     /* Set with_timestamp */
     mct_user.with_ecu_id = with_ecu_id;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_enable_local_print(void)
+MctReturnValue mct_enable_local_print(void)
 {
     if (!mct_user_initialised) {
-        if (mct_init() < DLT_RETURN_OK) {
+        if (mct_init() < MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     mct_user.enable_local_print = 1;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_disable_local_print(void)
+MctReturnValue mct_disable_local_print(void)
 {
     if (!mct_user_initialised) {
-        if (mct_init() < DLT_RETURN_OK) {
+        if (mct_init() < MCT_RETURN_OK) {
             mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
-            return DLT_RETURN_ERROR;
+            return MCT_RETURN_ERROR;
         }
     }
 
     mct_user.enable_local_print = 0;
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 /* Cleanup on thread cancellation, thread may hold lock release it here */
 static void mct_user_cleanup_handler(void *arg)
 {
-    DLT_UNUSED(arg); /* Satisfy compiler */
-    /* unlock the DLT buffer */
+    MCT_UNUSED(arg); /* Satisfy compiler */
+    /* unlock the MCT buffer */
     mct_unlock_mutex(&flush_mutex);
 
-    /* unlock DLT (mct_mutex) */
-    DLT_SEM_FREE();
+    /* unlock MCT (mct_mutex) */
+    MCT_SEM_FREE();
 }
 
 void mct_user_housekeeperthread_function(__attribute__((unused)) void *ptr)
@@ -3239,7 +3237,7 @@ void mct_user_housekeeperthread_function(__attribute__((unused)) void *ptr)
     bool in_loop = true;
 
 
-#ifdef DLT_USE_PTHREAD_SETNAME_NP
+#ifdef MCT_USE_PTHREAD_SETNAME_NP
     if (pthread_setname_np(mct_housekeeperthread_handle, "mct_housekeeper"))
         mct_log(LOG_WARNING, "Failed to rename housekeeper thread!\n");
 #elif linux
@@ -3250,15 +3248,15 @@ void mct_user_housekeeperthread_function(__attribute__((unused)) void *ptr)
     pthread_cleanup_push(mct_user_cleanup_handler, NULL);
 
     while (in_loop) {
-        /* Check for new messages from DLT daemon */
+        /* Check for new messages from MCT daemon */
         if (!mct_user.disable_injection_msg) {
-            if (mct_user_log_check_user_message() < DLT_RETURN_OK) {
+            if (mct_user_log_check_user_message() < MCT_RETURN_OK) {
                 /* Critical error */
                 mct_log(LOG_CRIT, "Housekeeper thread encountered error condition\n");
             }
         }
 
-        /* flush buffer to DLT daemon if possible */
+        /* flush buffer to MCT daemon if possible */
         pthread_mutex_lock(&flush_mutex);
 
         /* mct_buffer_empty is set by main thread to 0 in case data is written to buffer */
@@ -3267,7 +3265,7 @@ void mct_user_housekeeperthread_function(__attribute__((unused)) void *ptr)
             mct_user_log_reattach_to_daemon();
 
             if (mct_user.mct_log_handle > 0) {
-                if (mct_user_log_resend_buffer() == DLT_RETURN_OK) {
+                if (mct_user_log_resend_buffer() == MCT_RETURN_OK) {
                     /* writing buffer to FIFO was successful */
                     g_mct_buffer_empty = 1; /* buffer is empty after flushing */
                     g_mct_buffer_full = 0;
@@ -3279,7 +3277,7 @@ void mct_user_housekeeperthread_function(__attribute__((unused)) void *ptr)
         pthread_mutex_unlock(&flush_mutex);
         /* delay */
         ts.tv_sec = 0;
-        ts.tv_nsec = DLT_USER_RECEIVE_NDELAY;
+        ts.tv_nsec = MCT_USER_RECEIVE_NDELAY;
         nanosleep(&ts, NULL);
     }
 
@@ -3288,19 +3286,19 @@ void mct_user_housekeeperthread_function(__attribute__((unused)) void *ptr)
 
 /* Private functions of user library */
 
-DltReturnValue mct_user_log_init(DltContext *handle, DltContextData *log)
+MctReturnValue mct_user_log_init(MctContext *handle, MctContextData *log)
 {
-    int ret = DLT_RETURN_OK;
+    int ret = MCT_RETURN_OK;
 
     if ((handle == NULL) || (log == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (!mct_user_initialised) {
         ret = mct_init();
 
-        if (ret < DLT_RETURN_OK) {
-            if (ret != DLT_RETURN_LOGGING_DISABLED) {
+        if (ret < MCT_RETURN_OK) {
+            if (ret != MCT_RETURN_LOGGING_DISABLED) {
                 mct_vlog(LOG_ERR, "%s Failed to initialise mct", __FUNCTION__);
             }
 
@@ -3313,72 +3311,72 @@ DltReturnValue mct_user_log_init(DltContext *handle, DltContextData *log)
     return ret;
 }
 
-DltReturnValue mct_user_log_send_log(DltContextData *log, int mtype)
+MctReturnValue mct_user_log_send_log(MctContextData *log, int mtype)
 {
-    DltMessage msg;
-    DltUserHeader userheader;
+    MctMessage msg;
+    MctUserHeader userheader;
     int32_t len;
 
-    DltReturnValue ret = DLT_RETURN_OK;
+    MctReturnValue ret = MCT_RETURN_OK;
 
     if (!mct_user_initialised) {
         mct_vlog(LOG_ERR, "%s mct_user_initialised false\n", __FUNCTION__);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if ((log == NULL) ||
         (log->handle == NULL) ||
         (log->handle->contextID[0] == '\0') ||
-        (mtype < DLT_TYPE_LOG) || (mtype > DLT_TYPE_CONTROL)
+        (mtype < MCT_TYPE_LOG) || (mtype > MCT_TYPE_CONTROL)
         ) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* also for Trace messages */
-    if (mct_user_set_userheader(&userheader, DLT_USER_MESSAGE_LOG) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+    if (mct_user_set_userheader(&userheader, MCT_USER_MESSAGE_LOG) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
-    if (mct_message_init(&msg, 0) == DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+    if (mct_message_init(&msg, 0) == MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
-    msg.storageheader = (DltStorageHeader *)msg.headerbuffer;
+    msg.storageheader = (MctStorageHeader *)msg.headerbuffer;
 
-    if (mct_set_storageheader(msg.storageheader, mct_user.ecuID) == DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+    if (mct_set_storageheader(msg.storageheader, mct_user.ecuID) == MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
-    msg.standardheader = (DltStandardHeader *)(msg.headerbuffer + sizeof(DltStorageHeader));
-    msg.standardheader->htyp = DLT_HTYP_PROTOCOL_VERSION1;
+    msg.standardheader = (MctStandardHeader *)(msg.headerbuffer + sizeof(MctStorageHeader));
+    msg.standardheader->htyp = MCT_HTYP_PROTOCOL_VERSION1;
 
     /* send ecu id */
     if (mct_user.with_ecu_id) {
-        msg.standardheader->htyp |= DLT_HTYP_WEID;
+        msg.standardheader->htyp |= MCT_HTYP_WEID;
     }
 
     /* send timestamp */
     if (mct_user.with_timestamp) {
-        msg.standardheader->htyp |= DLT_HTYP_WTMS;
+        msg.standardheader->htyp |= MCT_HTYP_WTMS;
     }
 
     /* send session id */
     if (mct_user.with_session_id) {
-        msg.standardheader->htyp |= DLT_HTYP_WSID;
+        msg.standardheader->htyp |= MCT_HTYP_WSID;
         msg.headerextra.seid = getpid();
     }
 
     if (is_verbose_mode(mct_user.verbose_mode, log)){
         /* In verbose mode, send extended header */
-        msg.standardheader->htyp = (msg.standardheader->htyp | DLT_HTYP_UEH);
+        msg.standardheader->htyp = (msg.standardheader->htyp | MCT_HTYP_UEH);
     } else
     /* In non-verbose, send extended header if desired */
     if (mct_user.use_extended_header_for_non_verbose) {
-        msg.standardheader->htyp = (msg.standardheader->htyp | DLT_HTYP_UEH);
+        msg.standardheader->htyp = (msg.standardheader->htyp | MCT_HTYP_UEH);
     }
 
 #if (BYTE_ORDER == BIG_ENDIAN)
-    msg.standardheader->htyp = (msg.standardheader->htyp | DLT_HTYP_MSBF);
+    msg.standardheader->htyp = (msg.standardheader->htyp | MCT_HTYP_MSBF);
 #endif
 
     msg.standardheader->mcnt = log->handle->mcnt++;
@@ -3387,85 +3385,85 @@ DltReturnValue mct_user_log_send_log(DltContextData *log, int mtype)
     mct_set_id(msg.headerextra.ecu, mct_user.ecuID);
 
     /*msg.headerextra.seid = 0; */
-    if (log->use_timestamp == DLT_AUTO_TIMESTAMP) {
+    if (log->use_timestamp == MCT_AUTO_TIMESTAMP) {
         msg.headerextra.tmsp = mct_uptime();
     } else {
         msg.headerextra.tmsp = log->user_timestamp;
     }
 
-    if (mct_message_set_extraparameters(&msg, 0) == DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+    if (mct_message_set_extraparameters(&msg, 0) == MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
     /* Fill out extended header, if extended header should be provided */
-    if (DLT_IS_HTYP_UEH(msg.standardheader->htyp)) {
+    if (MCT_IS_HTYP_UEH(msg.standardheader->htyp)) {
         /* with extended header */
         msg.extendedheader =
-            (DltExtendedHeader *)(msg.headerbuffer + sizeof(DltStorageHeader) +
-                                  sizeof(DltStandardHeader) +
-                                  DLT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->htyp));
+            (MctExtendedHeader *)(msg.headerbuffer + sizeof(MctStorageHeader) +
+                                  sizeof(MctStandardHeader) +
+                                  MCT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->htyp));
 
         switch (mtype) {
-            case DLT_TYPE_LOG:
+            case MCT_TYPE_LOG:
             {
-                msg.extendedheader->msin = (DLT_TYPE_LOG << DLT_MSIN_MSTP_SHIFT) |
-                    ((log->log_level << DLT_MSIN_MTIN_SHIFT) & DLT_MSIN_MTIN);
+                msg.extendedheader->msin = (MCT_TYPE_LOG << MCT_MSIN_MSTP_SHIFT) |
+                    ((log->log_level << MCT_MSIN_MTIN_SHIFT) & MCT_MSIN_MTIN);
                 break;
             }
-            case DLT_TYPE_NW_TRACE:
+            case MCT_TYPE_NW_TRACE:
             {
-                msg.extendedheader->msin = (DLT_TYPE_NW_TRACE << DLT_MSIN_MSTP_SHIFT) |
-                    ((log->trace_status << DLT_MSIN_MTIN_SHIFT) & DLT_MSIN_MTIN);
+                msg.extendedheader->msin = (MCT_TYPE_NW_TRACE << MCT_MSIN_MSTP_SHIFT) |
+                    ((log->trace_status << MCT_MSIN_MTIN_SHIFT) & MCT_MSIN_MTIN);
                 break;
             }
             default:
             {
                 /* This case should not occur */
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
                 break;
             }
         }
 
         /* If in verbose mode, set flag in header for verbose mode */
         if (is_verbose_mode(mct_user.verbose_mode, log))
-            msg.extendedheader->msin |= DLT_MSIN_VERB;
+            msg.extendedheader->msin |= MCT_MSIN_VERB;
 
         msg.extendedheader->noar = log->args_num;                     /* number of arguments */
         mct_set_id(msg.extendedheader->apid, mct_user.appID);         /* application id */
         mct_set_id(msg.extendedheader->ctid, log->handle->contextID); /* context id */
 
-        msg.headersize = sizeof(DltStorageHeader) + sizeof(DltStandardHeader) +
-            sizeof(DltExtendedHeader) +
-            DLT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->htyp);
+        msg.headersize = sizeof(MctStorageHeader) + sizeof(MctStandardHeader) +
+            sizeof(MctExtendedHeader) +
+            MCT_STANDARD_HEADER_EXTRA_SIZE(msg.standardheader->htyp);
     } else {
         /* without extended header */
-        msg.headersize = sizeof(DltStorageHeader) + sizeof(DltStandardHeader) +
-            DLT_STANDARD_HEADER_EXTRA_SIZE(
+        msg.headersize = sizeof(MctStorageHeader) + sizeof(MctStandardHeader) +
+            MCT_STANDARD_HEADER_EXTRA_SIZE(
                 msg.standardheader->htyp);
     }
 
-    len = msg.headersize - sizeof(DltStorageHeader) + log->size;
+    len = msg.headersize - sizeof(MctStorageHeader) + log->size;
 
     if (len > UINT16_MAX) {
         mct_log(LOG_WARNING, "Huge message discarded!\n");
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    msg.standardheader->len = DLT_HTOBE_16(len);
+    msg.standardheader->len = MCT_HTOBE_16(len);
 
     /* print to std out, if enabled */
-    if ((mct_user.local_print_mode != DLT_PM_FORCE_OFF) &&
-        (mct_user.local_print_mode != DLT_PM_AUTOMATIC)) {
-        if ((mct_user.enable_local_print) || (mct_user.local_print_mode == DLT_PM_FORCE_ON)) {
-            if (mct_user_print_msg(&msg, log) == DLT_RETURN_ERROR) {
-                return DLT_RETURN_ERROR;
+    if ((mct_user.local_print_mode != MCT_PM_FORCE_OFF) &&
+        (mct_user.local_print_mode != MCT_PM_AUTOMATIC)) {
+        if ((mct_user.enable_local_print) || (mct_user.local_print_mode == MCT_PM_FORCE_ON)) {
+            if (mct_user_print_msg(&msg, log) == MCT_RETURN_ERROR) {
+                return MCT_RETURN_ERROR;
             }
         }
     }
 
     if (mct_user.mct_is_file) {
         if (mct_user_file_reach_max) {
-            return DLT_RETURN_FILESZERR;
+            return MCT_RETURN_FILESZERR;
         }
         else {
             /* Get file size */
@@ -3483,7 +3481,7 @@ DltReturnValue mct_user_log_send_log(DltContextData *log, int mtype)
                 mct_vlog(LOG_ERR,
                          "%s: File size (%ld bytes) reached to defined maximum size (%d bytes)\n",
                          __func__, st.st_size, mct_user.filesize_max);
-                return DLT_RETURN_FILESZERR;
+                return MCT_RETURN_FILESZERR;
             }
             else {
                 /* log to file */
@@ -3496,9 +3494,9 @@ DltReturnValue mct_user_log_send_log(DltContextData *log, int mtype)
     } else {
 
         if (mct_user.overflow_counter) {
-            if (mct_user_log_send_overflow() == DLT_RETURN_OK) {
+            if (mct_user_log_send_overflow() == MCT_RETURN_OK) {
                 mct_vnlog(LOG_WARNING,
-                          DLT_USER_BUFFER_LENGTH,
+                          MCT_USER_BUFFER_LENGTH,
                           "%u messages discarded!\n",
                           mct_user.overflow_counter);
                 mct_user.overflow_counter = 0;
@@ -3506,7 +3504,7 @@ DltReturnValue mct_user_log_send_log(DltContextData *log, int mtype)
         }
 
         /* try to resent old data first */
-        ret = DLT_RETURN_OK;
+        ret = MCT_RETURN_OK;
 
         if ((mct_user.mct_log_handle != -1) && (mct_user.appID[0] != '\0')) {
             /* buffer not empty */
@@ -3515,95 +3513,95 @@ DltReturnValue mct_user_log_send_log(DltContextData *log, int mtype)
             }
         }
 
-        if ((ret == DLT_RETURN_OK) && (mct_user.appID[0] != '\0')) {
+        if ((ret == MCT_RETURN_OK) && (mct_user.appID[0] != '\0')) {
             pthread_mutex_lock(&flush_mutex);
             /* resend ok or nothing to resent */
             g_mct_buffer_empty = 1;
             pthread_mutex_unlock(&flush_mutex);
             ret = mct_user_log_out3(mct_user.mct_log_handle,
-                                    &(userheader), sizeof(DltUserHeader),
-                                    msg.headerbuffer + sizeof(DltStorageHeader),
-                                    msg.headersize - sizeof(DltStorageHeader),
+                                    &(userheader), sizeof(MctUserHeader),
+                                    msg.headerbuffer + sizeof(MctStorageHeader),
+                                    msg.headersize - sizeof(MctStorageHeader),
                                     log->buffer, log->size);
 
         }
 
-        DltReturnValue process_error_ret = DLT_RETURN_OK;
+        MctReturnValue process_error_ret = MCT_RETURN_OK;
         /* store message in ringbuffer, if an error has occured */
-        if ((ret != DLT_RETURN_OK) || (mct_user.appID[0] == '\0')) {
+        if ((ret != MCT_RETURN_OK) || (mct_user.appID[0] == '\0')) {
             process_error_ret = mct_user_log_out_error_handling(&(userheader),
-                                                  sizeof(DltUserHeader),
-                                                  msg.headerbuffer + sizeof(DltStorageHeader),
-                                                  msg.headersize - sizeof(DltStorageHeader),
+                                                  sizeof(MctUserHeader),
+                                                  msg.headerbuffer + sizeof(MctStorageHeader),
+                                                  msg.headersize - sizeof(MctStorageHeader),
                                                   log->buffer,
                                                   log->size);
         }
 
-        if (process_error_ret == DLT_RETURN_OK)
-            return DLT_RETURN_OK;
-        if (process_error_ret == DLT_RETURN_BUFFER_FULL) {
+        if (process_error_ret == MCT_RETURN_OK)
+            return MCT_RETURN_OK;
+        if (process_error_ret == MCT_RETURN_BUFFER_FULL) {
             /* Buffer full */
             mct_user.overflow_counter += 1;
-            return DLT_RETURN_BUFFER_FULL;
+            return MCT_RETURN_BUFFER_FULL;
         }
 
         /* handle return value of function mct_user_log_out3() when process_error_ret < 0*/
         switch (ret) {
-            case DLT_RETURN_PIPE_FULL:
+            case MCT_RETURN_PIPE_FULL:
             {
                 /* data could not be written */
-                return DLT_RETURN_PIPE_FULL;
+                return MCT_RETURN_PIPE_FULL;
             }
-            case DLT_RETURN_PIPE_ERROR:
+            case MCT_RETURN_PIPE_ERROR:
             {
                 /* handle not open or pipe error */
                 close(mct_user.mct_log_handle);
                 mct_user.mct_log_handle = -1;
-#if defined DLT_LIB_USE_UNIX_SOCKET_IPC
-                mct_user.connection_state = DLT_USER_RETRY_CONNECT;
+#if defined MCT_LIB_USE_UNIX_SOCKET_IPC
+                mct_user.connection_state = MCT_USER_RETRY_CONNECT;
 #endif
 
-                if (mct_user.local_print_mode == DLT_PM_AUTOMATIC) {
+                if (mct_user.local_print_mode == MCT_PM_AUTOMATIC) {
                     mct_user_print_msg(&msg, log);
                 }
 
-                return DLT_RETURN_PIPE_ERROR;
+                return MCT_RETURN_PIPE_ERROR;
             }
-            case DLT_RETURN_ERROR:
+            case MCT_RETURN_ERROR:
             {
                 /* other error condition */
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
-            case DLT_RETURN_OK:
+            case MCT_RETURN_OK:
             {
-                return DLT_RETURN_OK;
+                return MCT_RETURN_OK;
             }
             default:
             {
                 /* This case should never occur. */
-                return DLT_RETURN_ERROR;
+                return MCT_RETURN_ERROR;
             }
         }
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_send_register_application(void)
+MctReturnValue mct_user_log_send_register_application(void)
 {
-    DltUserHeader userheader;
-    DltUserControlMsgRegisterApplication usercontext;
+    MctUserHeader userheader;
+    MctUserControlMsgRegisterApplication usercontext;
 
-    DltReturnValue ret;
+    MctReturnValue ret;
 
     if (mct_user.appID[0] == '\0') {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* set userheader */
     if (mct_user_set_userheader(&userheader,
-                                DLT_USER_MESSAGE_REGISTER_APPLICATION) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+                                MCT_USER_MESSAGE_REGISTER_APPLICATION) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
     /* set usercontext */
@@ -3617,41 +3615,41 @@ DltReturnValue mct_user_log_send_register_application(void)
     }
 
     if (mct_user.mct_is_file) {
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     ret = mct_user_log_out3(mct_user.mct_log_handle,
-                            &(userheader), sizeof(DltUserHeader),
-                            &(usercontext), sizeof(DltUserControlMsgRegisterApplication),
+                            &(userheader), sizeof(MctUserHeader),
+                            &(usercontext), sizeof(MctUserControlMsgRegisterApplication),
                             mct_user.application_description, usercontext.description_length);
 
     /* store message in ringbuffer, if an error has occured */
-    if (ret < DLT_RETURN_OK) {
+    if (ret < MCT_RETURN_OK) {
         return mct_user_log_out_error_handling(&(userheader),
-                                               sizeof(DltUserHeader),
+                                               sizeof(MctUserHeader),
                                                &(usercontext),
-                                               sizeof(DltUserControlMsgRegisterApplication),
+                                               sizeof(MctUserControlMsgRegisterApplication),
                                                mct_user.application_description,
                                                usercontext.description_length);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_send_unregister_application(void)
+MctReturnValue mct_user_log_send_unregister_application(void)
 {
-    DltUserHeader userheader;
-    DltUserControlMsgUnregisterApplication usercontext;
-    DltReturnValue ret = DLT_RETURN_OK;
+    MctUserHeader userheader;
+    MctUserControlMsgUnregisterApplication usercontext;
+    MctReturnValue ret = MCT_RETURN_OK;
 
     if (mct_user.appID[0] == '\0') {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* set userheader */
     if (mct_user_set_userheader(&userheader,
-                                DLT_USER_MESSAGE_UNREGISTER_APPLICATION) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+                                MCT_USER_MESSAGE_UNREGISTER_APPLICATION) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
     /* set usercontext */
@@ -3659,47 +3657,47 @@ DltReturnValue mct_user_log_send_unregister_application(void)
     usercontext.pid = getpid();
 
     if (mct_user.mct_is_file) {
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     ret = mct_user_log_out2(mct_user.mct_log_handle,
-                            &(userheader), sizeof(DltUserHeader),
-                            &(usercontext), sizeof(DltUserControlMsgUnregisterApplication));
+                            &(userheader), sizeof(MctUserHeader),
+                            &(usercontext), sizeof(MctUserControlMsgUnregisterApplication));
 
     /* store message in ringbuffer, if an error has occured */
-    if (ret < DLT_RETURN_OK) {
+    if (ret < MCT_RETURN_OK) {
         return mct_user_log_out_error_handling(&(userheader),
-                                               sizeof(DltUserHeader),
+                                               sizeof(MctUserHeader),
                                                &(usercontext),
-                                               sizeof(DltUserControlMsgUnregisterApplication),
+                                               sizeof(MctUserControlMsgUnregisterApplication),
                                                NULL,
                                                0);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_send_register_context(DltContextData *log)
+MctReturnValue mct_user_log_send_register_context(MctContextData *log)
 {
-    DltUserHeader userheader;
-    DltUserControlMsgRegisterContext usercontext;
-    DltReturnValue ret = DLT_RETURN_ERROR;
+    MctUserHeader userheader;
+    MctUserControlMsgRegisterContext usercontext;
+    MctReturnValue ret = MCT_RETURN_ERROR;
 
     if (log == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (log->handle == NULL) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if (log->handle->contextID[0] == '\0') {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* set userheader */
-    if (mct_user_set_userheader(&userheader, DLT_USER_MESSAGE_REGISTER_CONTEXT) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+    if (mct_user_set_userheader(&userheader, MCT_USER_MESSAGE_REGISTER_CONTEXT) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
     /* set usercontext */
@@ -3718,55 +3716,55 @@ DltReturnValue mct_user_log_send_register_context(DltContextData *log)
     }
 
     if (mct_user.mct_is_file) {
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     if (mct_user.appID[0] != '\0') {
         ret =
             mct_user_log_out3(mct_user.mct_log_handle,
                               &(userheader),
-                              sizeof(DltUserHeader),
+                              sizeof(MctUserHeader),
                               &(usercontext),
-                              sizeof(DltUserControlMsgRegisterContext),
+                              sizeof(MctUserControlMsgRegisterContext),
                               log->context_description,
                               usercontext.description_length);
     }
 
     /* store message in ringbuffer, if an error has occured */
-    if ((ret != DLT_RETURN_OK) || (mct_user.appID[0] == '\0')) {
+    if ((ret != MCT_RETURN_OK) || (mct_user.appID[0] == '\0')) {
         return mct_user_log_out_error_handling(&(userheader),
-                                               sizeof(DltUserHeader),
+                                               sizeof(MctUserHeader),
                                                &(usercontext),
-                                               sizeof(DltUserControlMsgRegisterContext),
+                                               sizeof(MctUserControlMsgRegisterContext),
                                                log->context_description,
                                                usercontext.description_length);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_send_unregister_context(DltContextData *log)
+MctReturnValue mct_user_log_send_unregister_context(MctContextData *log)
 {
-    DltUserHeader userheader;
-    DltUserControlMsgUnregisterContext usercontext;
-    DltReturnValue ret;
+    MctUserHeader userheader;
+    MctUserControlMsgUnregisterContext usercontext;
+    MctReturnValue ret;
 
     if (log == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (log->handle == NULL) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     if (log->handle->contextID[0] == '\0') {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* set userheader */
     if (mct_user_set_userheader(&userheader,
-                                DLT_USER_MESSAGE_UNREGISTER_CONTEXT) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+                                MCT_USER_MESSAGE_UNREGISTER_CONTEXT) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
     /* set usercontext */
@@ -3775,53 +3773,53 @@ DltReturnValue mct_user_log_send_unregister_context(DltContextData *log)
     usercontext.pid = getpid();
 
     if (mct_user.mct_is_file) {
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     ret = mct_user_log_out2(mct_user.mct_log_handle,
                             &(userheader),
-                            sizeof(DltUserHeader),
+                            sizeof(MctUserHeader),
                             &(usercontext),
-                            sizeof(DltUserControlMsgUnregisterContext));
+                            sizeof(MctUserControlMsgUnregisterContext));
 
     /* store message in ringbuffer, if an error has occured */
-    if (ret < DLT_RETURN_OK) {
+    if (ret < MCT_RETURN_OK) {
         return mct_user_log_out_error_handling(&(userheader),
-                                               sizeof(DltUserHeader),
+                                               sizeof(MctUserHeader),
                                                &(usercontext),
-                                               sizeof(DltUserControlMsgUnregisterContext),
+                                               sizeof(MctUserControlMsgUnregisterContext),
                                                NULL,
                                                0);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_send_app_ll_ts_limit(const char *apid,
-                                        DltLogLevelType loglevel,
-                                        DltTraceStatusType tracestatus)
+MctReturnValue mct_send_app_ll_ts_limit(const char *apid,
+                                        MctLogLevelType loglevel,
+                                        MctTraceStatusType tracestatus)
 {
-    DltUserHeader userheader;
-    DltUserControlMsgAppLogLevelTraceStatus usercontext;
-    DltReturnValue ret;
+    MctUserHeader userheader;
+    MctUserControlMsgAppLogLevelTraceStatus usercontext;
+    MctReturnValue ret;
 
-    if ((loglevel < DLT_USER_LOG_LEVEL_NOT_SET) || (loglevel >= DLT_LOG_MAX)) {
+    if ((loglevel < MCT_USER_LOG_LEVEL_NOT_SET) || (loglevel >= MCT_LOG_MAX)) {
         mct_vlog(LOG_ERR, "Loglevel %d is outside valid range", loglevel);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
-    if ((tracestatus < DLT_USER_TRACE_STATUS_NOT_SET) || (tracestatus >= DLT_TRACE_STATUS_MAX)) {
+    if ((tracestatus < MCT_USER_TRACE_STATUS_NOT_SET) || (tracestatus >= MCT_TRACE_STATUS_MAX)) {
         mct_vlog(LOG_ERR, "Tracestatus %d is outside valid range", tracestatus);
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     if ((apid == NULL) || (apid[0] == '\0')) {
-        return DLT_RETURN_ERROR;
+        return MCT_RETURN_ERROR;
     }
 
     /* set userheader */
-    if (mct_user_set_userheader(&userheader, DLT_USER_MESSAGE_APP_LL_TS) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+    if (mct_user_set_userheader(&userheader, MCT_USER_MESSAGE_APP_LL_TS) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
     /* set usercontext */
@@ -3830,66 +3828,66 @@ DltReturnValue mct_send_app_ll_ts_limit(const char *apid,
     usercontext.trace_status = tracestatus;
 
     if (mct_user.mct_is_file) {
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     ret = mct_user_log_out2(mct_user.mct_log_handle,
-                            &(userheader), sizeof(DltUserHeader),
-                            &(usercontext), sizeof(DltUserControlMsgAppLogLevelTraceStatus));
+                            &(userheader), sizeof(MctUserHeader),
+                            &(usercontext), sizeof(MctUserControlMsgAppLogLevelTraceStatus));
 
     /* store message in ringbuffer, if an error has occured */
-    if (ret < DLT_RETURN_OK) {
+    if (ret < MCT_RETURN_OK) {
         return mct_user_log_out_error_handling(&(userheader),
-                                               sizeof(DltUserHeader),
+                                               sizeof(MctUserHeader),
                                                &(usercontext),
-                                               sizeof(DltUserControlMsgAppLogLevelTraceStatus),
+                                               sizeof(MctUserControlMsgAppLogLevelTraceStatus),
                                                NULL,
                                                0);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_send_marker()
+MctReturnValue mct_user_log_send_marker()
 {
-    DltUserHeader userheader;
-    DltReturnValue ret;
+    MctUserHeader userheader;
+    MctReturnValue ret;
 
     /* set userheader */
-    if (mct_user_set_userheader(&userheader, DLT_USER_MESSAGE_MARKER) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+    if (mct_user_set_userheader(&userheader, MCT_USER_MESSAGE_MARKER) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
     if (mct_user.mct_is_file) {
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     /* log to FIFO */
     ret = mct_user_log_out2(mct_user.mct_log_handle,
-                            &(userheader), sizeof(DltUserHeader), 0, 0);
+                            &(userheader), sizeof(MctUserHeader), 0, 0);
 
     /* store message in ringbuffer, if an error has occured */
-    if (ret < DLT_RETURN_OK) {
+    if (ret < MCT_RETURN_OK) {
         return mct_user_log_out_error_handling(&(userheader),
-                                               sizeof(DltUserHeader),
+                                               sizeof(MctUserHeader),
                                                NULL,
                                                0,
                                                NULL,
                                                0);
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_print_msg(DltMessage *msg, DltContextData *log)
+MctReturnValue mct_user_print_msg(MctMessage *msg, MctContextData *log)
 {
     uint8_t *databuffer_tmp;
     int32_t datasize_tmp;
     int32_t databuffersize_tmp;
-    static char text[DLT_USER_TEXT_LENGTH];
+    static char text[MCT_USER_TEXT_LENGTH];
 
     if ((msg == NULL) || (log == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
     /* Save variables before print */
@@ -3898,7 +3896,7 @@ DltReturnValue mct_user_print_msg(DltMessage *msg, DltContextData *log)
     databuffersize_tmp = msg->databuffersize;
 
     /* Act like a receiver, convert header back to host format */
-    msg->standardheader->len = DLT_BETOH_16(msg->standardheader->len);
+    msg->standardheader->len = MCT_BETOH_16(msg->standardheader->len);
     mct_message_get_extraparameters(msg, 0);
 
     msg->databuffer = log->buffer;
@@ -3906,8 +3904,8 @@ DltReturnValue mct_user_print_msg(DltMessage *msg, DltContextData *log)
     msg->databuffersize = log->size;
 
     /* Print message as ASCII */
-    if (mct_message_print_ascii(msg, text, DLT_USER_TEXT_LENGTH, 0) == DLT_RETURN_ERROR) {
-        return DLT_RETURN_ERROR;
+    if (mct_message_print_ascii(msg, text, MCT_USER_TEXT_LENGTH, 0) == MCT_RETURN_ERROR) {
+        return MCT_RETURN_ERROR;
     }
 
     /* Restore variables and set len to BE*/
@@ -3915,34 +3913,34 @@ DltReturnValue mct_user_print_msg(DltMessage *msg, DltContextData *log)
     msg->databuffersize = databuffersize_tmp;
     msg->datasize = datasize_tmp;
 
-    msg->standardheader->len = DLT_HTOBE_16(msg->standardheader->len);
+    msg->standardheader->len = MCT_HTOBE_16(msg->standardheader->len);
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_check_user_message(void)
+MctReturnValue mct_user_log_check_user_message(void)
 {
     int offset = 0;
     int leave_while = 0;
     int ret = 0;
-    int poll_timeout = DLT_USER_RECEIVE_MDELAY;
+    int poll_timeout = MCT_USER_RECEIVE_MDELAY;
 
     uint32_t i;
     int fd;
     struct pollfd nfd[1];
 
-    DltUserHeader *userheader;
-    DltReceiver *receiver = &(mct_user.receiver);
+    MctUserHeader *userheader;
+    MctReceiver *receiver = &(mct_user.receiver);
 
-    DltUserControlMsgLogLevel *usercontextll;
-    DltUserControlMsgInjection *usercontextinj;
-    DltUserControlMsgLogState *userlogstate;
-    DltUserControlMsgBlockMode *blockmode;
+    MctUserControlMsgLogLevel *usercontextll;
+    MctUserControlMsgInjection *usercontextinj;
+    MctUserControlMsgLogState *userlogstate;
+    MctUserControlMsgBlockMode *blockmode;
     unsigned char *userbuffer;
 
     /* For delayed calling of injection callback, to avoid deadlock */
-    DltUserInjectionCallback delayed_injection_callback;
-    DltUserLogLevelChangedCallback delayed_log_level_changed_callback;
+    MctUserInjectionCallback delayed_injection_callback;
+    MctUserLogLevelChangedCallback delayed_log_level_changed_callback;
     unsigned char *delayed_inject_buffer = 0;
     uint32_t delayed_inject_data_length = 0;
 
@@ -3953,38 +3951,38 @@ DltReturnValue mct_user_log_check_user_message(void)
     delayed_log_level_changed_callback.log_level_changed_callback = 0;
     delayed_injection_callback.data = 0;
 
-#if defined DLT_LIB_USE_UNIX_SOCKET_IPC
+#if defined MCT_LIB_USE_UNIX_SOCKET_IPC
     fd = mct_user.mct_log_handle;
-#else /* DLT_LIB_USE_FIFO_IPC */
+#else /* MCT_LIB_USE_FIFO_IPC */
     fd = mct_user.mct_user_handle;
 #endif
 
     nfd[0].events = POLLIN;
     nfd[0].fd = fd;
 
-#if defined DLT_LIB_USE_UNIX_SOCKET_IPC
+#if defined MCT_LIB_USE_UNIX_SOCKET_IPC
 
-    if (fd != DLT_FD_INIT) {
-#else /* DLT_LIB_USE_FIFO_IPC */
+    if (fd != MCT_FD_INIT) {
+#else /* MCT_LIB_USE_FIFO_IPC */
 
-    if ((fd != DLT_FD_INIT) && (mct_user.mct_log_handle > 0)) {
+    if ((fd != MCT_FD_INIT) && (mct_user.mct_log_handle > 0)) {
 #endif
         ret = poll(nfd, 1, poll_timeout);
 
         if (ret) {
             if (nfd[0].revents & (POLLHUP | POLLNVAL | POLLERR)) {
-                mct_user.mct_log_handle = DLT_FD_INIT;
-                return DLT_RETURN_ERROR;
+                mct_user.mct_log_handle = MCT_FD_INIT;
+                return MCT_RETURN_ERROR;
             }
 
             if (mct_receiver_receive(receiver) <= 0) {
                 /* No new message available */
-                return DLT_RETURN_OK;
+                return MCT_RETURN_OK;
             }
 
             /* look through buffer as long as data is in there */
             while (1) {
-                if (receiver->bytesRcvd < (int32_t)sizeof(DltUserHeader)) {
+                if (receiver->bytesRcvd < (int32_t)sizeof(MctUserHeader)) {
                     break;
                 }
 
@@ -3992,7 +3990,7 @@ DltReturnValue mct_user_log_check_user_message(void)
                 offset = 0;
 
                 do {
-                    userheader = (DltUserHeader *)(receiver->buf + offset);
+                    userheader = (MctUserHeader *)(receiver->buf + offset);
 
                     /* Check for user header pattern */
                     if (mct_user_check_userheader(userheader)) {
@@ -4000,7 +3998,7 @@ DltReturnValue mct_user_log_check_user_message(void)
                     }
 
                     offset++;
-                } while ((int32_t)(sizeof(DltUserHeader) + offset) <= receiver->bytesRcvd);
+                } while ((int32_t)(sizeof(MctUserHeader) + offset) <= receiver->bytesRcvd);
 
                 /* Check for user header pattern */
                 if ((mct_user_check_userheader(userheader) < 0) ||
@@ -4015,20 +4013,20 @@ DltReturnValue mct_user_log_check_user_message(void)
                 }
 
                 switch (userheader->message) {
-                    case DLT_USER_MESSAGE_LOG_LEVEL:
+                    case MCT_USER_MESSAGE_LOG_LEVEL:
                     {
                         if (receiver->bytesRcvd <
-                            (int32_t)(sizeof(DltUserHeader) + sizeof(DltUserControlMsgLogLevel))) {
+                            (int32_t)(sizeof(MctUserHeader) + sizeof(MctUserControlMsgLogLevel))) {
                             leave_while = 1;
                             break;
                         }
 
                         usercontextll =
-                            (DltUserControlMsgLogLevel *)(receiver->buf + sizeof(DltUserHeader));
+                            (MctUserControlMsgLogLevel *)(receiver->buf + sizeof(MctUserHeader));
 
                         /* Update log level and trace status */
                         if (usercontextll != NULL) {
-                            DLT_SEM_LOCK();
+                            MCT_SEM_LOCK();
 
                             if ((usercontextll->log_level_pos >= 0) &&
                                 (usercontextll->log_level_pos <
@@ -4060,7 +4058,7 @@ DltReturnValue mct_user_log_check_user_message(void)
                                         delayed_log_level_changed_callback.contextID,
                                         mct_user.mct_ll_ts[usercontextll->log_level_pos].
                                         contextID,
-                                        DLT_ID_SIZE);
+                                        MCT_ID_SIZE);
                                     delayed_log_level_changed_callback.log_level =
                                         usercontextll->log_level;
                                     delayed_log_level_changed_callback.trace_status =
@@ -4068,7 +4066,7 @@ DltReturnValue mct_user_log_check_user_message(void)
                                 }
                             }
 
-                            DLT_SEM_FREE();
+                            MCT_SEM_FREE();
                         }
 
                         /* call callback outside of semaphore */
@@ -4081,40 +4079,40 @@ DltReturnValue mct_user_log_check_user_message(void)
 
                         /* keep not read data in buffer */
                         if (mct_receiver_remove(receiver,
-                                                sizeof(DltUserHeader) +
-                                                sizeof(DltUserControlMsgLogLevel)) ==
-                            DLT_RETURN_ERROR) {
-                            return DLT_RETURN_ERROR;
+                                                sizeof(MctUserHeader) +
+                                                sizeof(MctUserControlMsgLogLevel)) ==
+                            MCT_RETURN_ERROR) {
+                            return MCT_RETURN_ERROR;
                         }
                     }
                     break;
-                    case DLT_USER_MESSAGE_INJECTION:
+                    case MCT_USER_MESSAGE_INJECTION:
                     {
                         /* At least, user header, user context, and service id and data_length of injected message is available */
                         if (receiver->bytesRcvd <
-                            (int32_t)(sizeof(DltUserHeader) +
-                                      sizeof(DltUserControlMsgInjection))) {
+                            (int32_t)(sizeof(MctUserHeader) +
+                                      sizeof(MctUserControlMsgInjection))) {
                             leave_while = 1;
                             break;
                         }
 
                         usercontextinj =
-                            (DltUserControlMsgInjection *)(receiver->buf + sizeof(DltUserHeader));
+                            (MctUserControlMsgInjection *)(receiver->buf + sizeof(MctUserHeader));
                         userbuffer =
-                            (unsigned char *)(receiver->buf + sizeof(DltUserHeader) +
-                                              sizeof(DltUserControlMsgInjection));
+                            (unsigned char *)(receiver->buf + sizeof(MctUserHeader) +
+                                              sizeof(MctUserControlMsgInjection));
 
                         if (userbuffer != NULL) {
 
                             if (receiver->bytesRcvd <
-                                (int32_t)(sizeof(DltUserHeader) +
-                                          sizeof(DltUserControlMsgInjection) +
+                                (int32_t)(sizeof(MctUserHeader) +
+                                          sizeof(MctUserControlMsgInjection) +
                                           usercontextinj->data_length_inject)) {
                                 leave_while = 1;
                                 break;
                             }
 
-                            DLT_SEM_LOCK();
+                            MCT_SEM_LOCK();
 
                             if ((usercontextinj->data_length_inject > 0) && (mct_user.mct_ll_ts)) {
                                 /* Check if injection callback is registered for this context */
@@ -4158,9 +4156,9 @@ DltReturnValue mct_user_log_check_user_message(void)
                                                    userbuffer,
                                                    delayed_inject_data_length);
                                         } else {
-                                            DLT_SEM_FREE();
+                                            MCT_SEM_FREE();
                                             mct_log(LOG_WARNING, "malloc failed!\n");
-                                            return DLT_RETURN_ERROR;
+                                            return MCT_RETURN_ERROR;
                                         }
 
                                         break;
@@ -4168,7 +4166,7 @@ DltReturnValue mct_user_log_check_user_message(void)
                                 }
                             }
 
-                            DLT_SEM_FREE();
+                            MCT_SEM_FREE();
 
                             /* Delayed injection callback call */
                             if ((delayed_inject_buffer != NULL) &&
@@ -4195,48 +4193,48 @@ DltReturnValue mct_user_log_check_user_message(void)
 
                             /* keep not read data in buffer */
                             if (mct_receiver_remove(receiver,
-                                                    (sizeof(DltUserHeader) +
-                                                     sizeof(DltUserControlMsgInjection) +
+                                                    (sizeof(MctUserHeader) +
+                                                     sizeof(MctUserControlMsgInjection) +
                                                      usercontextinj->data_length_inject)) !=
-                                DLT_RETURN_OK) {
-                                return DLT_RETURN_ERROR;
+                                MCT_RETURN_OK) {
+                                return MCT_RETURN_ERROR;
                             }
                         }
                     }
                     break;
-                    case DLT_USER_MESSAGE_LOG_STATE:
+                    case MCT_USER_MESSAGE_LOG_STATE:
                     {
                         /* At least, user header, user context, and service id and data_length of injected message is available */
                         if (receiver->bytesRcvd <
-                            (int32_t)(sizeof(DltUserHeader) + sizeof(DltUserControlMsgLogState))) {
+                            (int32_t)(sizeof(MctUserHeader) + sizeof(MctUserControlMsgLogState))) {
                             leave_while = 1;
                             break;
                         }
 
                         userlogstate =
-                            (DltUserControlMsgLogState *)(receiver->buf + sizeof(DltUserHeader));
+                            (MctUserControlMsgLogState *)(receiver->buf + sizeof(MctUserHeader));
                         mct_user.log_state = userlogstate->log_state;
 
                         /* keep not read data in buffer */
                         if (mct_receiver_remove(receiver,
-                                                (sizeof(DltUserHeader) +
-                                                 sizeof(DltUserControlMsgLogState))) ==
-                            DLT_RETURN_ERROR) {
-                            return DLT_RETURN_ERROR;
+                                                (sizeof(MctUserHeader) +
+                                                 sizeof(MctUserControlMsgLogState))) ==
+                            MCT_RETURN_ERROR) {
+                            return MCT_RETURN_ERROR;
                         }
                     }
                     break;
-                    case DLT_USER_MESSAGE_SET_BLOCK_MODE:
+                    case MCT_USER_MESSAGE_SET_BLOCK_MODE:
                     {
                         if (receiver->bytesRcvd <
-                            (int32_t)(sizeof(DltUserHeader) +
-                                      sizeof(DltUserControlMsgBlockMode))) {
+                            (int32_t)(sizeof(MctUserHeader) +
+                                      sizeof(MctUserControlMsgBlockMode))) {
                             leave_while = 1;
                             break;
                         }
 
                         blockmode =
-                            (DltUserControlMsgBlockMode *)(receiver->buf + sizeof(DltUserHeader));
+                            (MctUserControlMsgBlockMode *)(receiver->buf + sizeof(MctUserHeader));
 
                         /* only handle daemon requests if block mode not forced */
                         if (mct_user.force_blocking == 0) {
@@ -4253,8 +4251,8 @@ DltReturnValue mct_user_log_check_user_message(void)
 
                         /* keep not read data in buffer */
                         if (mct_receiver_remove(receiver,
-                                                (sizeof(DltUserHeader) +
-                                                 sizeof(DltUserControlMsgBlockMode))) == -1) {
+                                                (sizeof(MctUserHeader) +
+                                                 sizeof(MctUserControlMsgBlockMode))) == -1) {
                             return -1;
                         }
                     }
@@ -4263,7 +4261,7 @@ DltReturnValue mct_user_log_check_user_message(void)
                     {
                         mct_log(LOG_WARNING, "Invalid user message type received!\n");
                         /* Ignore result */
-                        mct_receiver_remove(receiver, sizeof(DltUserHeader));
+                        mct_receiver_remove(receiver, sizeof(MctUserHeader));
                         /* In next invocation of while loop, a resync will be triggered if additional data was received */
                     }
                     break;
@@ -4275,50 +4273,50 @@ DltReturnValue mct_user_log_check_user_message(void)
                 }
             } /* while buffer*/
 
-            if (mct_receiver_move_to_begin(receiver) == DLT_RETURN_ERROR) {
-                return DLT_RETURN_ERROR;
+            if (mct_receiver_move_to_begin(receiver) == MCT_RETURN_ERROR) {
+                return MCT_RETURN_ERROR;
             }
         } /* while receive */
     }     /* if */
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
-DltReturnValue mct_user_log_resend_buffer(void)
+MctReturnValue mct_user_log_resend_buffer(void)
 {
     int num, count;
     int size;
-    DltReturnValue ret;
+    MctReturnValue ret;
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     if (mct_user.appID[0] == '\0') {
-        DLT_SEM_FREE();
+        MCT_SEM_FREE();
         return 0;
     }
 
     /* Send content of ringbuffer */
     count = mct_buffer_get_message_count(&(mct_user.startup_buffer));
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
     for (num = 0; num < count; num++) {
 
-        DLT_SEM_LOCK();
+        MCT_SEM_LOCK();
         size = mct_buffer_copy(&(mct_user.startup_buffer),
                                mct_user.resend_buffer,
                                mct_user.log_buf_len);
 
         if (size > 0) {
-            DltUserHeader *userheader = (DltUserHeader *)(mct_user.resend_buffer);
+            MctUserHeader *userheader = (MctUserHeader *)(mct_user.resend_buffer);
 
             /* Add application id to the messages of needed*/
             if (mct_user_check_userheader(userheader)) {
                 switch (userheader->message) {
-                    case DLT_USER_MESSAGE_REGISTER_CONTEXT:
+                    case MCT_USER_MESSAGE_REGISTER_CONTEXT:
                     {
-                        DltUserControlMsgRegisterContext *usercontext =
-                            (DltUserControlMsgRegisterContext *)(mct_user.resend_buffer +
-                                                                 sizeof(DltUserHeader));
+                        MctUserControlMsgRegisterContext *usercontext =
+                            (MctUserControlMsgRegisterContext *)(mct_user.resend_buffer +
+                                                                 sizeof(MctUserHeader));
 
                         if ((usercontext != 0) && (usercontext->apid[0] == '\0')) {
                             mct_set_id(usercontext->apid, mct_user.appID);
@@ -4326,12 +4324,12 @@ DltReturnValue mct_user_log_resend_buffer(void)
 
                         break;
                     }
-                    case DLT_USER_MESSAGE_LOG:
+                    case MCT_USER_MESSAGE_LOG:
                     {
-                        DltExtendedHeader *extendedHeader =
-                            (DltExtendedHeader *)(mct_user.resend_buffer + sizeof(DltUserHeader) +
-                                                  sizeof(DltStandardHeader) +
-                                                  sizeof(DltStandardHeaderExtra));
+                        MctExtendedHeader *extendedHeader =
+                            (MctExtendedHeader *)(mct_user.resend_buffer + sizeof(MctUserHeader) +
+                                                  sizeof(MctStandardHeader) +
+                                                  sizeof(MctStandardHeaderExtra));
 
                         if (((extendedHeader) != 0) && (extendedHeader->apid[0] == '\0')) { /* if application id is empty, add it */
                             mct_set_id(extendedHeader->apid, mct_user.appID);
@@ -4354,45 +4352,45 @@ DltReturnValue mct_user_log_resend_buffer(void)
                                     0);
 
             /* in case of error, keep message in ringbuffer */
-            if (ret == DLT_RETURN_OK) {
+            if (ret == MCT_RETURN_OK) {
                 mct_buffer_remove(&(mct_user.startup_buffer));
             } else {
-                if (ret == DLT_RETURN_PIPE_ERROR) {
+                if (ret == MCT_RETURN_PIPE_ERROR) {
                     /* handle not open or pipe error */
                     close(mct_user.mct_log_handle);
                     mct_user.mct_log_handle = -1;
                 }
 
                 /* keep message in ringbuffer */
-                DLT_SEM_FREE();
+                MCT_SEM_FREE();
                 return ret;
             }
         }
 
-        DLT_SEM_FREE();
+        MCT_SEM_FREE();
     }
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 void mct_user_log_reattach_to_daemon(void)
 {
     uint32_t num;
-    DltContext handle;
-    DltContextData log_new;
+    MctContext handle;
+    MctContextData log_new;
 
     if (mct_user.mct_log_handle < 0) {
-        mct_user.mct_log_handle = DLT_FD_INIT;
+        mct_user.mct_log_handle = MCT_FD_INIT;
 
-#ifdef DLT_LIB_USE_UNIX_SOCKET_IPC
+#ifdef MCT_LIB_USE_UNIX_SOCKET_IPC
         /* try to open connection to mct daemon */
         mct_initialize_socket_connection();
 
-        if (mct_user.connection_state != DLT_USER_CONNECTED) {
+        if (mct_user.connection_state != MCT_USER_CONNECTED) {
             /* return if not connected */
             return;
         }
-#else   /* DLT_LIB_USE_FIFO_IPC */
+#else   /* MCT_LIB_USE_FIFO_IPC */
       /* try to open pipe to mct daemon */
         int fd = open(mct_daemon_fifo, O_WRONLY | O_NONBLOCK);
 
@@ -4403,18 +4401,18 @@ void mct_user_log_reattach_to_daemon(void)
         mct_user.mct_log_handle = fd;
 #endif
 
-        if (mct_user_log_init(&handle, &log_new) < DLT_RETURN_OK) {
+        if (mct_user_log_init(&handle, &log_new) < MCT_RETURN_OK) {
             return;
         }
 
         mct_log(LOG_NOTICE, "Logging (re-)enabled!\n");
 
         /* Re-register application */
-        if (mct_user_log_send_register_application() < DLT_RETURN_ERROR) {
+        if (mct_user_log_send_register_application() < MCT_RETURN_ERROR) {
             return;
         }
 
-        DLT_SEM_LOCK();
+        MCT_SEM_LOCK();
 
         /* Re-register all stored contexts */
         for (num = 0; num < mct_user.mct_ll_ts_num_entries; num++) {
@@ -4427,38 +4425,38 @@ void mct_user_log_reattach_to_daemon(void)
                 log_new.context_description = mct_user.mct_ll_ts[num].context_description;
 
                 /* Release the mutex for sending context registration: */
-                /* function  mct_user_log_send_register_context() can take the mutex to write to the DLT buffer. => dead lock */
-                DLT_SEM_FREE();
+                /* function  mct_user_log_send_register_context() can take the mutex to write to the MCT buffer. => dead lock */
+                MCT_SEM_FREE();
 
-                log_new.log_level = DLT_USER_LOG_LEVEL_NOT_SET;
-                log_new.trace_status = DLT_USER_TRACE_STATUS_NOT_SET;
+                log_new.log_level = MCT_USER_LOG_LEVEL_NOT_SET;
+                log_new.trace_status = MCT_USER_TRACE_STATUS_NOT_SET;
 
-                if (mct_user_log_send_register_context(&log_new) < DLT_RETURN_ERROR) {
+                if (mct_user_log_send_register_context(&log_new) < MCT_RETURN_ERROR) {
                     return;
                 }
 
                 /* Lock again the mutex */
                 /* it is necessary in the for(;;) test, in order to have coherent mct_user data all over the critical section. */
-                DLT_SEM_LOCK();
+                MCT_SEM_LOCK();
             }
         }
 
-        DLT_SEM_FREE();
+        MCT_SEM_FREE();
     }
 }
 
-DltReturnValue mct_user_log_send_overflow(void)
+MctReturnValue mct_user_log_send_overflow(void)
 {
-    DltUserHeader userheader;
-    DltUserControlMsgBufferOverflow userpayload;
+    MctUserHeader userheader;
+    MctUserControlMsgBufferOverflow userpayload;
 
     /* set userheader */
-    if (mct_user_set_userheader(&userheader, DLT_USER_MESSAGE_OVERFLOW) < DLT_RETURN_OK) {
-        return DLT_RETURN_ERROR;
+    if (mct_user_set_userheader(&userheader, MCT_USER_MESSAGE_OVERFLOW) < MCT_RETURN_OK) {
+        return MCT_RETURN_ERROR;
     }
 
     if (mct_user.mct_is_file) {
-        return DLT_RETURN_OK;
+        return MCT_RETURN_OK;
     }
 
     /* set user message parameters */
@@ -4466,29 +4464,29 @@ DltReturnValue mct_user_log_send_overflow(void)
     mct_set_id(userpayload.apid, mct_user.appID);
 
     return mct_user_log_out2(mct_user.mct_log_handle,
-                             &(userheader), sizeof(DltUserHeader),
-                             &(userpayload), sizeof(DltUserControlMsgBufferOverflow));
+                             &(userheader), sizeof(MctUserHeader),
+                             &(userpayload), sizeof(MctUserControlMsgBufferOverflow));
 }
 
-DltReturnValue mct_user_check_buffer(int *total_size, int *used_size)
+MctReturnValue mct_user_check_buffer(int *total_size, int *used_size)
 {
     if ((total_size == NULL) || (used_size == NULL)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
 
     *total_size = mct_buffer_get_total_size(&(mct_user.startup_buffer));
     *used_size = mct_buffer_get_used_size(&(mct_user.startup_buffer));
 
-    DLT_SEM_FREE();
-    return DLT_RETURN_OK; /* ok */
+    MCT_SEM_FREE();
+    return MCT_RETURN_OK; /* ok */
 }
 
 
 int mct_start_threads(int id)
 {
-    if ((mct_housekeeperthread_handle == 0) && (id & DLT_USER_HOUSEKEEPER_THREAD)) {
+    if ((mct_housekeeperthread_handle == 0) && (id & MCT_USER_HOUSEKEEPER_THREAD)) {
         /* Start housekeeper thread */
         if (pthread_create(&mct_housekeeperthread_handle, 0,
                            (void *)&mct_user_housekeeperthread_function, 0) != 0) {
@@ -4536,18 +4534,18 @@ static void mct_fork_child_fork_handler()
     mct_user.mct_log_handle = -1;
 }
 
-DltReturnValue mct_user_log_out_error_handling(void *ptr1, size_t len1,
+MctReturnValue mct_user_log_out_error_handling(void *ptr1, size_t len1,
                                                void *ptr2, size_t len2,
                                                void *ptr3, size_t len3)
 {
-    DltReturnValue ret = DLT_RETURN_ERROR;
+    MctReturnValue ret = MCT_RETURN_ERROR;
     int msg_size = len1 + len2 + len3;
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
     ret = mct_buffer_check_size(&(mct_user.startup_buffer), msg_size);
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
-    if ((ret != DLT_RETURN_OK) && (mct_user_get_blockmode() == DLT_MODE_BLOCKING)) {
+    if ((ret != MCT_RETURN_OK) && (mct_user_get_blockmode() == MCT_MODE_BLOCKING)) {
         pthread_mutex_lock(&flush_mutex);
         g_mct_buffer_empty = 0;
 
@@ -4558,39 +4556,39 @@ DltReturnValue mct_user_log_out_error_handling(void *ptr1, size_t len1,
             pthread_cond_wait(&cond_free, &flush_mutex);
         }
 
-        DLT_SEM_LOCK();
+        MCT_SEM_LOCK();
 
         if (mct_buffer_push3(&(mct_user.startup_buffer),
                              ptr1, len1,
                              ptr2, len2,
-                             ptr3, len3) != DLT_RETURN_OK) {
+                             ptr3, len3) != MCT_RETURN_OK) {
             if (mct_user.overflow_counter == 0) {
                 mct_log(LOG_CRIT,
                         "Buffer full! Messages will be discarded in BLOCKING.\n");
             }
 
-            ret = DLT_RETURN_BUFFER_FULL;
+            ret = MCT_RETURN_BUFFER_FULL;
         }
 
-        DLT_SEM_FREE();
+        MCT_SEM_FREE();
 
         pthread_mutex_unlock(&flush_mutex);
     } else {
-        DLT_SEM_LOCK();
+        MCT_SEM_LOCK();
 
         if (mct_buffer_push3(&(mct_user.startup_buffer),
                              ptr1, len1,
                              ptr2, len2,
-                             ptr3, len3) != DLT_RETURN_OK) {
+                             ptr3, len3) != MCT_RETURN_OK) {
             if (mct_user.overflow_counter == 0) {
                 mct_log(LOG_WARNING,
                         "Buffer full! Messages will be discarded.\n");
             }
 
-            ret = DLT_RETURN_BUFFER_FULL;
+            ret = MCT_RETURN_BUFFER_FULL;
         }
 
-        DLT_SEM_FREE();
+        MCT_SEM_FREE();
 
         pthread_mutex_lock(&flush_mutex);
         g_mct_buffer_empty = 0;
@@ -4600,24 +4598,24 @@ DltReturnValue mct_user_log_out_error_handling(void *ptr1, size_t len1,
     return ret;
 }
 
-static DltReturnValue mct_user_set_blockmode(int8_t mode)
+static MctReturnValue mct_user_set_blockmode(int8_t mode)
 {
-    if ((mode < DLT_MODE_NON_BLOCKING) || (mode > DLT_MODE_BLOCKING)) {
-        return DLT_RETURN_WRONG_PARAMETER;
+    if ((mode < MCT_MODE_NON_BLOCKING) || (mode > MCT_MODE_BLOCKING)) {
+        return MCT_RETURN_WRONG_PARAMETER;
     }
 
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
     mct_user.block_mode = mode;
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
 
-    return DLT_RETURN_OK;
+    return MCT_RETURN_OK;
 }
 
 static int mct_user_get_blockmode()
 {
     int bm;
-    DLT_SEM_LOCK();
+    MCT_SEM_LOCK();
     bm = mct_user.block_mode;
-    DLT_SEM_FREE();
+    MCT_SEM_FREE();
     return bm;
 }

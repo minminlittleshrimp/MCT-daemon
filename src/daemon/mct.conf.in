@@ -1,4 +1,4 @@
-# Configuration file of DLT daemon
+# Configuration file of MCT daemon
 #
 # Configurations made here will overwrite settings by command line
 
@@ -9,10 +9,10 @@
 # Start daemon in debug mode, so that all internal debug information is printed out on the console
 # Verbose = 1
 
-# Daemonize DLT daemon, if it is started as daemon
+# Daemonize MCT daemon, if it is started as daemon
 # Daemonize = 1
 
-# Send DLT messages with serial header
+# Send MCT messages with serial header
 # SendSerialHeader = 1
 
 # Send automatic get log info response during context registration
@@ -34,7 +34,7 @@ SharedMemorySize = 100000
 # Directory where to store the persistant configuration (Default: /tmp)
 # PersistanceStoragePath = /var/ADIT/persistent
 
-# The logging console for internal logging of dlt-daemon (Default: 0)
+# The logging console for internal logging of mct-daemon (Default: 0)
 # 0 = log to stdout
 # 1 = log to syslog
 # 2 = log to file (see LoggingFilename)
@@ -45,31 +45,31 @@ LoggingMode = 0
 # LOG_EMERG = 0, LOG_ALERT = 1, LOG_CRIT = 2, LOG_ERR = 3, LOG_WARNING = 4, LOG_NOTICE = 5, LOG_INFO = 6, LOG_DEBUG = 7
 LoggingLevel = 6
 
-# The logging filename if internal logging mode is log to file (Default: /tmp/dlt.log)
-LoggingFilename = /tmp/dlt.log
+# The logging filename if internal logging mode is log to file (Default: /tmp/mct.log)
+LoggingFilename = /tmp/mct.log
 
 # Timeout on send to client (sec)
 TimeOutOnSend = 4
 
-# The minimum size of the Ringbuffer, used for storing temporary DLT messages, until client is connected (Default: 500000)
+# The minimum size of the Ringbuffer, used for storing temporary MCT messages, until client is connected (Default: 500000)
 RingbufferMinSize = 500000
 
-# The max size of the Ringbuffer, used for storing temporary DLT messages, until client is connected (Default: 10000000)
+# The max size of the Ringbuffer, used for storing temporary MCT messages, until client is connected (Default: 10000000)
 RingbufferMaxSize = 10000000
 
-# The step size the Ringbuffer is increased, used for storing temporary DLT messages, until client is connected (Default: 500000)
+# The step size the Ringbuffer is increased, used for storing temporary MCT messages, until client is connected (Default: 500000)
 RingbufferStepSize = 500000
 
-# The size of Daemon FIFO (/tmp/dlt) (Default: 65536, MinSize: depend on pagesize of system, MaxSize: please check /proc/sys/fs/pipe-max-size)
+# The size of Daemon FIFO (/tmp/mct) (Default: 65536, MinSize: depend on pagesize of system, MaxSize: please check /proc/sys/fs/pipe-max-size)
 # This is only supported for Linux.
 # DaemonFIFOSize = 65536
 
 # Initial log-level that is sent when an application registers (Default: 4)
-# DLT_LOG_OFF = 0, DLT_LOG_FATAL = 1, DLT_LOG_ERROR = 2, DLT_LOG_WARN = 3, DLT_LOG_INFO = 4, DLT_LOG_DEBUG = 5, DLT_LOG_VERBOSE = 6
+# MCT_LOG_OFF = 0, MCT_LOG_FATAL = 1, MCT_LOG_ERROR = 2, MCT_LOG_WARN = 3, MCT_LOG_INFO = 4, MCT_LOG_DEBUG = 5, MCT_LOG_VERBOSE = 6
 # ContextLogLevel = 4
 
 # Initial trace-status that is sent when an application registers (Default: 0)
-# DLT_TRACE_STATUS_OFF = 0, DLT_TRACE_STATUS_ON = 1
+# MCT_TRACE_STATUS_OFF = 0, MCT_TRACE_STATUS_ON = 1
 # ContextTraceStatus = 0
 
 # Force log level and trace status of context to not exceed "ContextLogLevel" and "ContextTraceStatus" (Default: 0 = OFF)
@@ -86,7 +86,7 @@ RingbufferStepSize = 500000
 # GatewayMode = 1
 
 # Read gateway configuration from another location
-# GatewayConfigFile = /etc/dlt_gateway.conf
+# GatewayConfigFile = /etc/mct_gateway.conf
 
 ########################################################################
 # Message Filter Configuration                                         #
@@ -97,20 +97,20 @@ MessageFilterConfigFile = @CONFIGURATION_FILES_DIR@/@FILTER_CONFIG@
 ########################################################################
 # Permission configuration                                             #
 # ==================================================================== #
-# Owner group of daemon FIFO directory(Default: /tmp/dlt)
-# (If not set, primary group of dlt-daemon process is used)
-# DaemonFifoGroup = dlt_user_apps_group
+# Owner group of daemon FIFO directory(Default: /tmp/mct)
+# (If not set, primary group of mct-daemon process is used)
+# DaemonFifoGroup = mct_user_apps_group
 
 ########################################################################
 # Control Application                                                  #
 ########################################################################
-ControlSocketPath = /tmp/dlt-ctrl.sock
+ControlSocketPath = /tmp/mct-ctrl.sock
 
 ########################################################################
 # Offline Trace memory                                                 #
 ########################################################################
 
-# Store DLT messages to local directory, if not set offline Trace is off (Default: off)
+# Store MCT messages to local directory, if not set offline Trace is off (Default: off)
 # OfflineTraceDirectory = /tmp
 
 # Maximum size in bytes of one trace file (Default: 1000000)
@@ -126,13 +126,13 @@ ControlSocketPath = /tmp/dlt-ctrl.sock
 # Local console output configuration                                   #
 ########################################################################
 
-# Print DLT messages; payload as ASCII
+# Print MCT messages; payload as ASCII
 # PrintASCII = 1
 
-# Print DLT messages; payload as hex
+# Print MCT messages; payload as hex
 # PrintHex = 1
 
-# Print DLT messages; only headers
+# Print MCT messages; only headers
 # PrintHeadersOnly = 1
 
 
@@ -164,7 +164,7 @@ ControlSocketPath = /tmp/dlt-ctrl.sock
 # Send periodic get ecu version info (Default: 0)
 # SendECUSoftwareVersion = 0
 
-# Absolute path to file storing version info - otherwise DLT version is used
+# Absolute path to file storing version info - otherwise MCT version is used
 # PathToECUSoftwareVersion = <absolute-path-to-file>
 
 ########################################################################
@@ -177,11 +177,11 @@ ControlSocketPath = /tmp/dlt-ctrl.sock
 ##############################################################################
 # Offline logstorage                                                         #
 ##############################################################################
-# Store DLT log messages, if not set offline logstorage is off (Default: off)
+# Store MCT log messages, if not set offline logstorage is off (Default: off)
 # Maximum devices to be used as offline logstorage devices
 OfflineLogstorageMaxDevices = 2
 
-# Path to store DLT offline log storage messages (Default: off)
+# Path to store MCT offline log storage messages (Default: off)
 # OfflineLogstorageDirPath = /opt
 
 # File options
@@ -217,14 +217,14 @@ OfflineLogstorageDelimiter = .
 ##############################################################################
 # Accept connections only on this list of IP addresses (Default: "0.0.0.0" INADDR_ANY)
 # The IP addresses must be separated with ',' or ';' but not with space character ' '
-# If DLT_USE_IPv6 flag is ON, then only IPv6 addresses are accepted
-# If DLT_USE_IPv6 flag is OFF, then only IPv4 addresses are accepted
+# If MCT_USE_IPv6 flag is ON, then only IPv6 addresses are accepted
+# If MCT_USE_IPv6 flag is OFF, then only IPv4 addresses are accepted
 # BindAddress = 160.48.199.97;160.48.199.98
 
 ##############################################################################
 # Application Specific settings                                              #
 ##############################################################################
-# When this option is activate, a client (e.g. DLT Viewer or Logstorage device) can enable
+# When this option is activate, a client (e.g. MCT Viewer or Logstorage device) can enable
 # BlockMode in user applications.
 # If disabled (0 or commented out), BlockMode can never be enabled by a client.
 AllowBlockMode = 1

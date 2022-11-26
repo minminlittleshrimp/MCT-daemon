@@ -1,8 +1,8 @@
-#ifndef DLT_COMMON_H
-#   define DLT_COMMON_H
+#ifndef MCT_COMMON_H
+#   define MCT_COMMON_H
 
 /**
- * \defgroup commonapi DLT Common API
+ * \defgroup commonapi MCT Common API
  * \addtogroup commonapi
  \{
  */
@@ -37,21 +37,21 @@
 #   include "mct_types.h"
 #   include "mct_protocol.h"
 
-#   define DLT_PACKED __attribute__((aligned(1), packed))
+#   define MCT_PACKED __attribute__((aligned(1), packed))
 
 #   if defined (__MSDOS__) || defined (_MSC_VER)
 /* set instead /Zp8 flag in Visual C++ configuration */
-#      undef DLT_PACKED
-#      define DLT_PACKED
+#      undef MCT_PACKED
+#      define MCT_PACKED
 #   endif
 
 /*
  * Macros to swap the byte order.
  */
-#   define DLT_SWAP_64(value) ((((uint64_t)DLT_SWAP_32((value) & 0xffffffffull)) << 32) | (DLT_SWAP_32((value) >> 32)))
+#   define MCT_SWAP_64(value) ((((uint64_t)MCT_SWAP_32((value) & 0xffffffffull)) << 32) | (MCT_SWAP_32((value) >> 32)))
 
-#   define DLT_SWAP_16(value) ((((value) >> 8) & 0xff) | (((value) << 8) & 0xff00))
-#   define DLT_SWAP_32(value) ((((value) >> 24) & 0xff) | (((value) << 8) & 0xff0000) | (((value) >> 8) & 0xff00) | \
+#   define MCT_SWAP_16(value) ((((value) >> 8) & 0xff) | (((value) << 8) & 0xff00))
+#   define MCT_SWAP_32(value) ((((value) >> 24) & 0xff) | (((value) << 8) & 0xff0000) | (((value) >> 8) & 0xff00) | \
                                (((value) << 24) & 0xff000000))
 
 /* Set Big Endian and Little Endian to a initial value, if not defined */
@@ -75,41 +75,41 @@
 /* Check for byte-order */
 #   if (BYTE_ORDER == BIG_ENDIAN)
 /* #warning "Big Endian Architecture!" */
-#      define DLT_HTOBE_16(x) ((x))
-#      define DLT_HTOLE_16(x) DLT_SWAP_16((x))
-#      define DLT_BETOH_16(x) ((x))
-#      define DLT_LETOH_16(x) DLT_SWAP_16((x))
+#      define MCT_HTOBE_16(x) ((x))
+#      define MCT_HTOLE_16(x) MCT_SWAP_16((x))
+#      define MCT_BETOH_16(x) ((x))
+#      define MCT_LETOH_16(x) MCT_SWAP_16((x))
 
-#      define DLT_HTOBE_32(x) ((x))
-#      define DLT_HTOLE_32(x) DLT_SWAP_32((x))
-#      define DLT_BETOH_32(x) ((x))
-#      define DLT_LETOH_32(x) DLT_SWAP_32((x))
+#      define MCT_HTOBE_32(x) ((x))
+#      define MCT_HTOLE_32(x) MCT_SWAP_32((x))
+#      define MCT_BETOH_32(x) ((x))
+#      define MCT_LETOH_32(x) MCT_SWAP_32((x))
 
-#      define DLT_HTOBE_64(x) ((x))
-#      define DLT_HTOLE_64(x) DLT_SWAP_64((x))
-#      define DLT_BETOH_64(x) ((x))
-#      define DLT_LETOH_64(x) DLT_SWAP_64((x))
+#      define MCT_HTOBE_64(x) ((x))
+#      define MCT_HTOLE_64(x) MCT_SWAP_64((x))
+#      define MCT_BETOH_64(x) ((x))
+#      define MCT_LETOH_64(x) MCT_SWAP_64((x))
 #   else
 /* #warning "Litte Endian Architecture!" */
-#      define DLT_HTOBE_16(x) DLT_SWAP_16((x))
-#      define DLT_HTOLE_16(x) ((x))
-#      define DLT_BETOH_16(x) DLT_SWAP_16((x))
-#      define DLT_LETOH_16(x) ((x))
+#      define MCT_HTOBE_16(x) MCT_SWAP_16((x))
+#      define MCT_HTOLE_16(x) ((x))
+#      define MCT_BETOH_16(x) MCT_SWAP_16((x))
+#      define MCT_LETOH_16(x) ((x))
 
-#      define DLT_HTOBE_32(x) DLT_SWAP_32((x))
-#      define DLT_HTOLE_32(x) ((x))
-#      define DLT_BETOH_32(x) DLT_SWAP_32((x))
-#      define DLT_LETOH_32(x) ((x))
+#      define MCT_HTOBE_32(x) MCT_SWAP_32((x))
+#      define MCT_HTOLE_32(x) ((x))
+#      define MCT_BETOH_32(x) MCT_SWAP_32((x))
+#      define MCT_LETOH_32(x) ((x))
 
-#      define DLT_HTOBE_64(x) DLT_SWAP_64((x))
-#      define DLT_HTOLE_64(x) ((x))
-#      define DLT_BETOH_64(x) DLT_SWAP_64((x))
-#      define DLT_LETOH_64(x) ((x))
+#      define MCT_HTOBE_64(x) MCT_SWAP_64((x))
+#      define MCT_HTOLE_64(x) ((x))
+#      define MCT_BETOH_64(x) MCT_SWAP_64((x))
+#      define MCT_LETOH_64(x) ((x))
 #   endif
 
-#   define DLT_ENDIAN_GET_16(htyp, x) ((((htyp) & DLT_HTYP_MSBF) > 0) ? DLT_BETOH_16(x) : DLT_LETOH_16(x))
-#   define DLT_ENDIAN_GET_32(htyp, x) ((((htyp) & DLT_HTYP_MSBF) > 0) ? DLT_BETOH_32(x) : DLT_LETOH_32(x))
-#   define DLT_ENDIAN_GET_64(htyp, x) ((((htyp) & DLT_HTYP_MSBF) > 0) ? DLT_BETOH_64(x) : DLT_LETOH_64(x))
+#   define MCT_ENDIAN_GET_16(htyp, x) ((((htyp) & MCT_HTYP_MSBF) > 0) ? MCT_BETOH_16(x) : MCT_LETOH_16(x))
+#   define MCT_ENDIAN_GET_32(htyp, x) ((((htyp) & MCT_HTYP_MSBF) > 0) ? MCT_BETOH_32(x) : MCT_LETOH_32(x))
+#   define MCT_ENDIAN_GET_64(htyp, x) ((((htyp) & MCT_HTYP_MSBF) > 0) ? MCT_BETOH_64(x) : MCT_LETOH_64(x))
 
 #   if defined (__WIN32__) || defined (_MSC_VER)
 #      define LOG_EMERG     0
@@ -126,50 +126,50 @@
 #   endif
 
 enum {
-    DLT_LOG_TO_CONSOLE = 0,
-    DLT_LOG_TO_SYSLOG = 1,
-    DLT_LOG_TO_FILE = 2,
-    DLT_LOG_TO_STDERR = 3,
-    DLT_LOG_DROPPED = 4
+    MCT_LOG_TO_CONSOLE = 0,
+    MCT_LOG_TO_SYSLOG = 1,
+    MCT_LOG_TO_FILE = 2,
+    MCT_LOG_TO_STDERR = 3,
+    MCT_LOG_DROPPED = 4
 };
 
 /**
- * The standard TCP Port used for DLT daemon, can be overwritten via -p \<port\> when starting mct-daemon
+ * The standard TCP Port used for MCT daemon, can be overwritten via -p \<port\> when starting mct-daemon
  */
-#   define DLT_DAEMON_TCP_PORT 3490
+#   define MCT_DAEMON_TCP_PORT 3490
 
 
 /* Initial value for file descriptor */
-#   define DLT_FD_INIT -1
+#   define MCT_FD_INIT -1
 
 /* Minimum value for a file descriptor except the POSIX Standards: stdin=0, stdout=1, stderr=2 */
-#   define DLT_FD_MINIMUM 3
+#   define MCT_FD_MINIMUM 3
 
 /**
- * The size of a DLT ID
+ * The size of a MCT ID
  */
-#   define DLT_ID_SIZE 4
+#   define MCT_ID_SIZE 4
 
-#   define DLT_SIZE_WEID DLT_ID_SIZE
-#   define DLT_SIZE_WSID (sizeof(uint32_t))
-#   define DLT_SIZE_WTMS (sizeof(uint32_t))
+#   define MCT_SIZE_WEID MCT_ID_SIZE
+#   define MCT_SIZE_WSID (sizeof(uint32_t))
+#   define MCT_SIZE_WTMS (sizeof(uint32_t))
 
 /* Size of buffer for text output */
-#define DLT_CONVERT_TEXTBUFSIZE  10024
+#define MCT_CONVERT_TEXTBUFSIZE  10024
 
 /**
  * Definitions for GET_LOG_INFO
  */
-#   define DLT_GET_LOG_INFO_HEADER 18  /*Get log info header size in response text */
+#   define MCT_GET_LOG_INFO_HEADER 18  /*Get log info header size in response text */
 #   define GET_LOG_INFO_LENGTH 13
 #   define SERVICE_OPT_LENGTH 3
 
 /**
  * Get the size of extra header parameters, depends on htyp.
  */
-#   define DLT_STANDARD_HEADER_EXTRA_SIZE(htyp) ((DLT_IS_HTYP_WEID(htyp) ? DLT_SIZE_WEID : 0) + \
-                                                 (DLT_IS_HTYP_WSID(htyp) ? DLT_SIZE_WSID : 0) + \
-                                                 (DLT_IS_HTYP_WTMS(htyp) ? DLT_SIZE_WTMS : 0))
+#   define MCT_STANDARD_HEADER_EXTRA_SIZE(htyp) ((MCT_IS_HTYP_WEID(htyp) ? MCT_SIZE_WEID : 0) + \
+                                                 (MCT_IS_HTYP_WSID(htyp) ? MCT_SIZE_WSID : 0) + \
+                                                 (MCT_IS_HTYP_WTMS(htyp) ? MCT_SIZE_WTMS : 0))
 
 
 #   if defined (__MSDOS__) || defined (_MSC_VER)
@@ -184,53 +184,53 @@ enum {
 #      define NULL (char *)0
 #   endif
 
-#   define DLT_MSG_IS_CONTROL(MSG)          ((DLT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
-                                             (DLT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == DLT_TYPE_CONTROL))
+#   define MCT_MSG_IS_CONTROL(MSG)          ((MCT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
+                                             (MCT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == MCT_TYPE_CONTROL))
 
-#   define DLT_MSG_IS_CONTROL_REQUEST(MSG)  ((DLT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
-                                             (DLT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == DLT_TYPE_CONTROL) && \
-                                             (DLT_GET_MSIN_MTIN((MSG)->extendedheader->msin) == DLT_CONTROL_REQUEST))
+#   define MCT_MSG_IS_CONTROL_REQUEST(MSG)  ((MCT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
+                                             (MCT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == MCT_TYPE_CONTROL) && \
+                                             (MCT_GET_MSIN_MTIN((MSG)->extendedheader->msin) == MCT_CONTROL_REQUEST))
 
-#   define DLT_MSG_IS_CONTROL_RESPONSE(MSG) ((DLT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
-                                             (DLT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == DLT_TYPE_CONTROL) && \
-                                             (DLT_GET_MSIN_MTIN((MSG)->extendedheader->msin) == DLT_CONTROL_RESPONSE))
+#   define MCT_MSG_IS_CONTROL_RESPONSE(MSG) ((MCT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
+                                             (MCT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == MCT_TYPE_CONTROL) && \
+                                             (MCT_GET_MSIN_MTIN((MSG)->extendedheader->msin) == MCT_CONTROL_RESPONSE))
 
-#   define DLT_MSG_IS_CONTROL_TIME(MSG)     ((DLT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
-                                             (DLT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == DLT_TYPE_CONTROL) && \
-                                             (DLT_GET_MSIN_MTIN((MSG)->extendedheader->msin) == DLT_CONTROL_TIME))
+#   define MCT_MSG_IS_CONTROL_TIME(MSG)     ((MCT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
+                                             (MCT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == MCT_TYPE_CONTROL) && \
+                                             (MCT_GET_MSIN_MTIN((MSG)->extendedheader->msin) == MCT_CONTROL_TIME))
 
-#   define DLT_MSG_IS_NW_TRACE(MSG)         ((DLT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
-                                             (DLT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == DLT_TYPE_NW_TRACE))
+#   define MCT_MSG_IS_NW_TRACE(MSG)         ((MCT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
+                                             (MCT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == MCT_TYPE_NW_TRACE))
 
-#   define DLT_MSG_IS_TRACE_MOST(MSG)       ((DLT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
-                                             (DLT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == DLT_TYPE_NW_TRACE) && \
-                                             (DLT_GET_MSIN_MTIN((MSG)->extendedheader->msin) == DLT_NW_TRACE_MOST))
+#   define MCT_MSG_IS_TRACE_MOST(MSG)       ((MCT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
+                                             (MCT_GET_MSIN_MSTP((MSG)->extendedheader->msin) == MCT_TYPE_NW_TRACE) && \
+                                             (MCT_GET_MSIN_MTIN((MSG)->extendedheader->msin) == MCT_NW_TRACE_MOST))
 
-#   define DLT_MSG_IS_NONVERBOSE(MSG)       (!(DLT_IS_HTYP_UEH((MSG)->standardheader->htyp)) || \
-                                             ((DLT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
-                                              (!(DLT_IS_MSIN_VERB((MSG)->extendedheader->msin)))))
+#   define MCT_MSG_IS_NONVERBOSE(MSG)       (!(MCT_IS_HTYP_UEH((MSG)->standardheader->htyp)) || \
+                                             ((MCT_IS_HTYP_UEH((MSG)->standardheader->htyp)) && \
+                                              (!(MCT_IS_MSIN_VERB((MSG)->extendedheader->msin)))))
 
 /*
  *
- * Definitions of DLT message buffer overflow
+ * Definitions of MCT message buffer overflow
  */
-#   define DLT_MESSAGE_BUFFER_NO_OVERFLOW     0x00/**< Buffer overflow has not occured */
-#   define DLT_MESSAGE_BUFFER_OVERFLOW        0x01/**< Buffer overflow has occured */
+#   define MCT_MESSAGE_BUFFER_NO_OVERFLOW     0x00/**< Buffer overflow has not occured */
+#   define MCT_MESSAGE_BUFFER_OVERFLOW        0x01/**< Buffer overflow has occured */
 
 /*
- * Definition of DLT output variants
+ * Definition of MCT output variants
  */
-#   define DLT_OUTPUT_HEX              1
-#   define DLT_OUTPUT_ASCII            2
-#   define DLT_OUTPUT_MIXED_FOR_PLAIN  3
-#   define DLT_OUTPUT_MIXED_FOR_HTML   4
-#   define DLT_OUTPUT_ASCII_LIMITED    5
+#   define MCT_OUTPUT_HEX              1
+#   define MCT_OUTPUT_ASCII            2
+#   define MCT_OUTPUT_MIXED_FOR_PLAIN  3
+#   define MCT_OUTPUT_MIXED_FOR_HTML   4
+#   define MCT_OUTPUT_ASCII_LIMITED    5
 
-#   define DLT_FILTER_MAX 30 /**< Maximum number of filters */
+#   define MCT_FILTER_MAX 30 /**< Maximum number of filters */
 #   define JSON_FILTER_NAME_SIZE 16 /* Size of buffer for the filter names in json filter files */
 #   define JSON_FILTER_SIZE 200     /* Size in bytes, that the definition of one filter with all parameters needs */
 
-#   define DLT_MSG_READ_VALUE(dst, src, length, type) \
+#   define MCT_MSG_READ_VALUE(dst, src, length, type) \
     do { \
         if ((length < 0) || ((length) < ((int32_t)sizeof(type)))) \
         { length = -1; } \
@@ -238,15 +238,15 @@ enum {
         { dst = *((type *)src); src += sizeof(type); length -= sizeof(type); } \
     } while(0)
 
-#   define DLT_MSG_READ_ID(dst, src, length) \
+#   define MCT_MSG_READ_ID(dst, src, length) \
     do { \
-        if ((length < 0) || ((length) < DLT_ID_SIZE)) \
+        if ((length < 0) || ((length) < MCT_ID_SIZE)) \
         { length = -1; } \
         else \
-        { memcpy(dst, src, DLT_ID_SIZE); src += DLT_ID_SIZE; length -= DLT_ID_SIZE; } \
+        { memcpy(dst, src, MCT_ID_SIZE); src += MCT_ID_SIZE; length -= MCT_ID_SIZE; } \
     } while(0)
 
-#   define DLT_MSG_READ_STRING(dst, src, maxlength, dstlength, length) \
+#   define MCT_MSG_READ_STRING(dst, src, maxlength, dstlength, length) \
     do { \
         if ((maxlength < 0) || (length <= 0) || (dstlength < length) || (maxlength < length)) \
         { \
@@ -262,7 +262,7 @@ enum {
         } \
     } while(0)
 
-#   define DLT_MSG_READ_NULL(src, maxlength, length) \
+#   define MCT_MSG_READ_NULL(src, maxlength, length) \
     do { \
         if (((maxlength) < 0) || ((length) < 0) || ((maxlength) < (length))) \
         { length = -1; } \
@@ -270,153 +270,144 @@ enum {
         { src += length; maxlength -= length; } \
     } while(0)
 
-#   define DLT_HEADER_SHOW_NONE       0x0000
-#   define DLT_HEADER_SHOW_TIME       0x0001
-#   define DLT_HEADER_SHOW_TMSTP      0x0002
-#   define DLT_HEADER_SHOW_MSGCNT     0x0004
-#   define DLT_HEADER_SHOW_ECUID      0x0008
-#   define DLT_HEADER_SHOW_APID       0x0010
-#   define DLT_HEADER_SHOW_CTID       0x0020
-#   define DLT_HEADER_SHOW_MSGTYPE    0x0040
-#   define DLT_HEADER_SHOW_MSGSUBTYPE 0x0080
-#   define DLT_HEADER_SHOW_VNVSTATUS  0x0100
-#   define DLT_HEADER_SHOW_NOARG      0x0200
-#   define DLT_HEADER_SHOW_ALL        0xFFFF
+#   define MCT_HEADER_SHOW_NONE       0x0000
+#   define MCT_HEADER_SHOW_TIME       0x0001
+#   define MCT_HEADER_SHOW_TMSTP      0x0002
+#   define MCT_HEADER_SHOW_MSGCNT     0x0004
+#   define MCT_HEADER_SHOW_ECUID      0x0008
+#   define MCT_HEADER_SHOW_APID       0x0010
+#   define MCT_HEADER_SHOW_CTID       0x0020
+#   define MCT_HEADER_SHOW_MSGTYPE    0x0040
+#   define MCT_HEADER_SHOW_MSGSUBTYPE 0x0080
+#   define MCT_HEADER_SHOW_VNVSTATUS  0x0100
+#   define MCT_HEADER_SHOW_NOARG      0x0200
+#   define MCT_HEADER_SHOW_ALL        0xFFFF
 
 /* mct_receiver_check_and_get flags */
-#   define DLT_RCV_NONE        0
-#   define DLT_RCV_SKIP_HEADER (1 << 0)
-#   define DLT_RCV_REMOVE      (1 << 1)
+#   define MCT_RCV_NONE        0
+#   define MCT_RCV_SKIP_HEADER (1 << 0)
+#   define MCT_RCV_REMOVE      (1 << 1)
 
 /**
- * Maximal length of path in DLT
- * DLT limits the path length and does not do anything else to determine
+ * Maximal length of path in MCT
+ * MCT limits the path length and does not do anything else to determine
  * the actual value, because the least that is supported on any system
- * that DLT runs on is 1024 bytes.
+ * that MCT runs on is 1024 bytes.
  */
-#   define DLT_PATH_MAX 1024
+#   define MCT_PATH_MAX 1024
 
 /**
  * Maximal length of mounted path
  */
-#   define DLT_MOUNT_PATH_MAX  1024
+#   define MCT_MOUNT_PATH_MAX  1024
 
 /**
  * Maximal length of an entry
  */
-#   define DLT_ENTRY_MAX 100
+#   define MCT_ENTRY_MAX 100
 
 /**
  * Maximal IPC path len
  */
-#   define DLT_IPC_PATH_MAX 100
+#   define MCT_IPC_PATH_MAX 100
 
 /**
  * Maximal receiver buffer size for application messages
  */
-#   define DLT_RECEIVE_BUFSIZE 65535
+#   define MCT_RECEIVE_BUFSIZE 65535
 
 /**
  * Maximal line length
  */
-#   define DLT_LINE_LEN 1024
+#   define MCT_LINE_LEN 1024
 
 /**
  * Macros for network trace
  */
-#define DLT_TRACE_NW_TRUNCATED "NWTR"
-#define DLT_TRACE_NW_START "NWST"
-#define DLT_TRACE_NW_SEGMENT "NWCH"
-#define DLT_TRACE_NW_END "NWEN"
-
-/**
- * Provision to test static function
- */
-#   ifndef DLT_UNIT_TESTS
-#      define DLT_STATIC static
-#   else
-#      define DLT_STATIC
-#   endif
+#define MCT_TRACE_NW_TRUNCATED "NWTR"
+#define MCT_TRACE_NW_START "NWST"
+#define MCT_TRACE_NW_SEGMENT "NWCH"
+#define MCT_TRACE_NW_END "NWEN"
 
 /**
  * Type to specify whether received data is from socket or file/fifo
  */
 typedef enum
 {
-    DLT_RECEIVE_SOCKET,
-    DLT_RECEIVE_UDP_SOCKET,
-    DLT_RECEIVE_FD
-} DltReceiverType;
+    MCT_RECEIVE_SOCKET,
+    MCT_RECEIVE_UDP_SOCKET,
+    MCT_RECEIVE_FD
+} MctReceiverType;
 
 /**
  * The definition of the serial header containing the characters "DLS" + 0x01.
  */
-extern const char mctSerialHeader[DLT_ID_SIZE];
+extern const char mctSerialHeader[MCT_ID_SIZE];
 
 /**
  * The definition of the serial header containing the characters "DLS" + 0x01 as char.
  */
-extern char mctSerialHeaderChar[DLT_ID_SIZE];
+extern char mctSerialHeaderChar[MCT_ID_SIZE];
 
-#if defined DLT_DAEMON_USE_FIFO_IPC || defined DLT_LIB_USE_FIFO_IPC
+#if defined MCT_DAEMON_USE_FIFO_IPC || defined MCT_LIB_USE_FIFO_IPC
 /**
  * The common base-path of the mct-daemon-fifo and application-generated fifos
  */
-extern char mctFifoBaseDir[DLT_PATH_MAX];
+extern char mctFifoBaseDir[MCT_PATH_MAX];
 #endif
 
 /**
- * The type of a DLT ID (context id, application id, etc.)
+ * The type of a MCT ID (context id, application id, etc.)
  */
-typedef char ID4[DLT_ID_SIZE];
+typedef char ID4[MCT_ID_SIZE];
 
 /**
- * The structure of the DLT file storage header. This header is used before each stored DLT message.
+ * The structure of the MCT file storage header. This header is used before each stored MCT message.
  */
 typedef struct
 {
-    char pattern[DLT_ID_SIZE]; /**< This pattern should be DLT0x01 */
+    char pattern[MCT_ID_SIZE]; /**< This pattern should be MCT0x01 */
     uint32_t seconds;          /**< seconds since 1.1.1970 */
     int32_t microseconds;      /**< Microseconds */
-    char ecu[DLT_ID_SIZE];     /**< The ECU id is added, if it is not already in the DLT message itself */
-} DLT_PACKED DltStorageHeader;
+    char ecu[MCT_ID_SIZE];     /**< The ECU id is added, if it is not already in the MCT message itself */
+} MCT_PACKED MctStorageHeader;
 
 /**
- * The structure of the DLT standard header. This header is used in each DLT message.
+ * The structure of the MCT standard header. This header is used in each MCT message.
  */
 typedef struct
 {
     uint8_t htyp;           /**< This parameter contains several informations, see definitions below */
-    uint8_t mcnt;           /**< The message counter is increased with each sent DLT message */
+    uint8_t mcnt;           /**< The message counter is increased with each sent MCT message */
     uint16_t len;           /**< Length of the complete message, without storage header */
-} DLT_PACKED DltStandardHeader;
+} MCT_PACKED MctStandardHeader;
 
 /**
- * The structure of the DLT extra header parameters. Each parameter is sent only if enabled in htyp.
+ * The structure of the MCT extra header parameters. Each parameter is sent only if enabled in htyp.
  */
 typedef struct
 {
-    char ecu[DLT_ID_SIZE];       /**< ECU id */
+    char ecu[MCT_ID_SIZE];       /**< ECU id */
     uint32_t seid;               /**< Session number */
     uint32_t tmsp;               /**< Timestamp since system start in 0.1 milliseconds */
-} DLT_PACKED DltStandardHeaderExtra;
+} MCT_PACKED MctStandardHeaderExtra;
 
 /**
- * The structure of the DLT extended header. This header is only sent if enabled in htyp parameter.
+ * The structure of the MCT extended header. This header is only sent if enabled in htyp parameter.
  */
 typedef struct
 {
     uint8_t msin;              /**< messsage info */
     uint8_t noar;              /**< number of arguments */
-    char apid[DLT_ID_SIZE];    /**< application id */
-    char ctid[DLT_ID_SIZE];    /**< context id */
-} DLT_PACKED DltExtendedHeader;
+    char apid[MCT_ID_SIZE];    /**< application id */
+    char ctid[MCT_ID_SIZE];    /**< context id */
+} MCT_PACKED MctExtendedHeader;
 
 /**
- * The structure to organise the DLT messages.
+ * The structure to organise the MCT messages.
  * This structure is used by the corresponding functions.
  */
-typedef struct sDltMessage
+typedef struct sMctMessage
 {
     /* flags */
     int8_t found_serialheader;
@@ -429,41 +420,41 @@ typedef struct sDltMessage
     int32_t datasize;      /**< size of complete payload */
 
     /* buffer for current loaded message */
-    uint8_t headerbuffer[sizeof(DltStorageHeader) +
-                         sizeof(DltStandardHeader) + sizeof(DltStandardHeaderExtra) + sizeof(DltExtendedHeader)]; /**< buffer for loading complete header */
+    uint8_t headerbuffer[sizeof(MctStorageHeader) +
+                         sizeof(MctStandardHeader) + sizeof(MctStandardHeaderExtra) + sizeof(MctExtendedHeader)]; /**< buffer for loading complete header */
     uint8_t *databuffer;         /**< buffer for loading payload */
     int32_t databuffersize;
 
     /* header values of current loaded message */
-    DltStorageHeader *storageheader;        /**< pointer to storage header of current loaded header */
-    DltStandardHeader *standardheader;      /**< pointer to standard header of current loaded header */
-    DltStandardHeaderExtra headerextra;     /**< extra parameters of current loaded header */
-    DltExtendedHeader *extendedheader;      /**< pointer to extended of current loaded header */
-} DltMessage;
+    MctStorageHeader *storageheader;        /**< pointer to storage header of current loaded header */
+    MctStandardHeader *standardheader;      /**< pointer to standard header of current loaded header */
+    MctStandardHeaderExtra headerextra;     /**< extra parameters of current loaded header */
+    MctExtendedHeader *extendedheader;      /**< pointer to extended of current loaded header */
+} MctMessage;
 
 /**
- * The structure of the DLT Service Get Log Info.
+ * The structure of the MCT Service Get Log Info.
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
     uint8_t options;                /**< type of request */
-    char apid[DLT_ID_SIZE];         /**< application id */
-    char ctid[DLT_ID_SIZE];         /**< context id */
-    char com[DLT_ID_SIZE];          /**< communication interface */
-} DLT_PACKED DltServiceGetLogInfoRequest;
+    char apid[MCT_ID_SIZE];         /**< application id */
+    char ctid[MCT_ID_SIZE];         /**< context id */
+    char com[MCT_ID_SIZE];          /**< communication interface */
+} MCT_PACKED MctServiceGetLogInfoRequest;
 
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
-} DLT_PACKED DltServiceGetDefaultLogLevelRequest;
+} MCT_PACKED MctServiceGetDefaultLogLevelRequest;
 
 /**
- * The structure of the DLT Service Get Log Info response.
+ * The structure of the MCT Service Get Log Info response.
  */
 typedef struct
 {
-    char context_id[DLT_ID_SIZE];
+    char context_id[MCT_ID_SIZE];
     int16_t log_level;
     int16_t trace_status;
     uint16_t len_context_description;
@@ -472,7 +463,7 @@ typedef struct
 
 typedef struct
 {
-    char app_id[DLT_ID_SIZE];
+    char app_id[MCT_ID_SIZE];
     uint16_t count_context_ids;
     ContextIDsInfoType *context_id_info; /**< holds info about a specific con id */
     uint16_t len_app_description;
@@ -490,73 +481,73 @@ typedef struct
     uint32_t service_id;            /**< service ID */
     uint8_t status;                 /**< type of request */
     LogInfoType log_info_type;      /**< log info type */
-    char com[DLT_ID_SIZE];      /**< communication interface */
-} DltServiceGetLogInfoResponse;
+    char com[MCT_ID_SIZE];      /**< communication interface */
+} MctServiceGetLogInfoResponse;
 
 /**
- * The structure of the DLT Service Set Log Level.
+ * The structure of the MCT Service Set Log Level.
  */
 typedef struct
 {
 
     uint32_t service_id;            /**< service ID */
-    char apid[DLT_ID_SIZE];         /**< application id */
-    char ctid[DLT_ID_SIZE];         /**< context id */
+    char apid[MCT_ID_SIZE];         /**< application id */
+    char ctid[MCT_ID_SIZE];         /**< context id */
     uint8_t log_level;              /**< log level to be set */
-    char com[DLT_ID_SIZE];          /**< communication interface */
-} DLT_PACKED DltServiceSetLogLevel;
+    char com[MCT_ID_SIZE];          /**< communication interface */
+} MCT_PACKED MctServiceSetLogLevel;
 
 /**
- * The structure of the DLT Service Set Default Log Level.
+ * The structure of the MCT Service Set Default Log Level.
  */
 typedef struct
 {
     uint32_t service_id;                /**< service ID */
     uint8_t log_level;                  /**< default log level to be set */
-    char com[DLT_ID_SIZE];              /**< communication interface */
-} DLT_PACKED DltServiceSetDefaultLogLevel;
+    char com[MCT_ID_SIZE];              /**< communication interface */
+} MCT_PACKED MctServiceSetDefaultLogLevel;
 
 /**
- * The structure of the DLT Service Set Verbose Mode
+ * The structure of the MCT Service Set Verbose Mode
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
     uint8_t new_status;             /**< new status to be set */
-} DLT_PACKED DltServiceSetVerboseMode;
+} MCT_PACKED MctServiceSetVerboseMode;
 
 /**
- * The structure of the DLT Service Set Communication Interface Status
+ * The structure of the MCT Service Set Communication Interface Status
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
-    char com[DLT_ID_SIZE];          /**< communication interface */
+    char com[MCT_ID_SIZE];          /**< communication interface */
     uint8_t new_status;             /**< new status to be set */
-} DLT_PACKED DltServiceSetCommunicationInterfaceStatus;
+} MCT_PACKED MctServiceSetCommunicationInterfaceStatus;
 
 /**
- * The structure of the DLT Service Set Communication Maximum Bandwidth
+ * The structure of the MCT Service Set Communication Maximum Bandwidth
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
-    char com[DLT_ID_SIZE];          /**< communication interface */
+    char com[MCT_ID_SIZE];          /**< communication interface */
     uint32_t max_bandwidth;         /**< maximum bandwith */
-} DLT_PACKED DltServiceSetCommunicationMaximumBandwidth;
+} MCT_PACKED MctServiceSetCommunicationMaximumBandwidth;
 
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
     uint8_t status;                 /**< reponse status */
-} DLT_PACKED DltServiceResponse;
+} MCT_PACKED MctServiceResponse;
 
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
     uint8_t status;                 /**< reponse status */
     uint8_t log_level;              /**< log level */
-} DLT_PACKED DltServiceGetDefaultLogLevelResponse;
+} MCT_PACKED MctServiceGetDefaultLogLevelResponse;
 
 typedef struct
 {
@@ -564,12 +555,12 @@ typedef struct
     uint8_t status;                 /**< reponse status */
     uint8_t overflow;               /**< overflow status */
     uint32_t overflow_counter;      /**< overflow counter */
-} DLT_PACKED DltServiceMessageBufferOverflowResponse;
+} MCT_PACKED MctServiceMessageBufferOverflowResponse;
 
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
-} DLT_PACKED DltServiceGetSoftwareVersion;
+} MCT_PACKED MctServiceGetSoftwareVersion;
 
 typedef struct
 {
@@ -577,33 +568,33 @@ typedef struct
     uint8_t status;                 /**< reponse status */
     uint32_t length;                /**< length of following payload */
     char *payload;                  /**< payload */
-} DLT_PACKED DltServiceGetSoftwareVersionResponse;
+} MCT_PACKED MctServiceGetSoftwareVersionResponse;
 
 /**
- * The structure of the DLT Service Unregister Context.
+ * The structure of the MCT Service Unregister Context.
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
     uint8_t status;                 /**< reponse status */
-    char apid[DLT_ID_SIZE];         /**< application id */
-    char ctid[DLT_ID_SIZE];         /**< context id */
-    char comid[DLT_ID_SIZE];        /**< communication interface */
-} DLT_PACKED DltServiceUnregisterContext;
+    char apid[MCT_ID_SIZE];         /**< application id */
+    char ctid[MCT_ID_SIZE];         /**< context id */
+    char comid[MCT_ID_SIZE];        /**< communication interface */
+} MCT_PACKED MctServiceUnregisterContext;
 
 /**
- * The structure of the DLT Service Connection Info
+ * The structure of the MCT Service Connection Info
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
     uint8_t status;                 /**< reponse status */
     uint8_t state;                  /**< new state */
-    char comid[DLT_ID_SIZE];        /**< communication interface */
-} DLT_PACKED DltServiceConnectionInfo;
+    char comid[MCT_ID_SIZE];        /**< communication interface */
+} MCT_PACKED MctServiceConnectionInfo;
 
 /**
- * The structure of the DLT Service Timezone
+ * The structure of the MCT Service Timezone
  */
 typedef struct
 {
@@ -611,98 +602,98 @@ typedef struct
     uint8_t status;                 /**< reponse status */
     int32_t timezone;               /**< Timezone in seconds */
     uint8_t isdst;                  /**< Is daylight saving time */
-} DLT_PACKED DltServiceTimezone;
+} MCT_PACKED MctServiceTimezone;
 
 /**
- * The structure of the DLT Service Marker
+ * The structure of the MCT Service Marker
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
     uint8_t status;                 /**< reponse status */
-} DLT_PACKED DltServiceMarker;
+} MCT_PACKED MctServiceMarker;
 
 /***
- * The structure of the DLT Service Offline Logstorage
+ * The structure of the MCT Service Offline Logstorage
  */
 typedef struct
 {
     uint32_t service_id;                  /**< service ID */
-    char mount_point[DLT_MOUNT_PATH_MAX]; /**< storage device mount point */
+    char mount_point[MCT_MOUNT_PATH_MAX]; /**< storage device mount point */
     uint8_t connection_type;              /**< connection status of the connected device connected/disconnected */
-    char comid[DLT_ID_SIZE];              /**< communication interface */
-} DLT_PACKED DltServiceOfflineLogstorage;
+    char comid[MCT_ID_SIZE];              /**< communication interface */
+} MCT_PACKED MctServiceOfflineLogstorage;
 
 /**
- * The structure of DLT Service Set Filter level
+ * The structure of MCT Service Set Filter level
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
     uint32_t level;                 /**< level */
-} DLT_PACKED DltServiceSetFilterLevel;
+} MCT_PACKED MctServiceSetFilterLevel;
 
 /**
- * The structure of DLT Service Get Filter Config
+ * The structure of MCT Service Get Filter Config
  */
-#define DLT_NUM_SERVICE_ID      (DLT_SERVICE_ID_LAST_ENTRY / 8) + 1
-#define DLT_NUM_USER_SERVICE_ID ((DLT_USER_SERVICE_ID_LAST_ENTRY&0xFF) / 8) + 1
+#define MCT_NUM_SERVICE_ID      (MCT_SERVICE_ID_LAST_ENTRY / 8) + 1
+#define MCT_NUM_USER_SERVICE_ID ((MCT_USER_SERVICE_ID_LAST_ENTRY&0xFF) / 8) + 1
 
 typedef struct
 {
     uint32_t service_id;                      /**< service ID */
     uint8_t status;                           /**< response status */
-    char name[DLT_ENTRY_MAX];                 /**< config name */
+    char name[MCT_ENTRY_MAX];                 /**< config name */
     uint32_t level_min;                       /**< minimum filter level */
     uint32_t level_max;                       /**< maximum filter level */
     uint32_t client_mask;                     /**< client mask */
-    uint8_t ctrl_mask_lower[DLT_NUM_SERVICE_ID]; /**< lower control message mask */
-    uint8_t ctrl_mask_upper[DLT_NUM_USER_SERVICE_ID]; /**< upper control message mask */
-    char injections[DLT_ENTRY_MAX];           /**< list of injections */
-} DLT_PACKED DltServiceGetCurrentFilterInfo;
+    uint8_t ctrl_mask_lower[MCT_NUM_SERVICE_ID]; /**< lower control message mask */
+    uint8_t ctrl_mask_upper[MCT_NUM_USER_SERVICE_ID]; /**< upper control message mask */
+    char injections[MCT_ENTRY_MAX];           /**< list of injections */
+} MCT_PACKED MctServiceGetCurrentFilterInfo;
 
 /**
- * The structure of DLT Service Set Block mode
+ * The structure of MCT Service Set Block mode
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
-    char apid[DLT_ID_SIZE];         /**< specific app to change blockmode */
+    char apid[MCT_ID_SIZE];         /**< specific app to change blockmode */
     uint32_t mode;                  /**< blockmode value */
-} DLT_PACKED DltServiceSetBlockMode;
+} MCT_PACKED MctServiceSetBlockMode;
 
 /**
- * The structure of DLT Service Get Block mode
+ * The structure of MCT Service Get Block mode
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
     uint8_t status;                 /**< response status */
-    char apid[DLT_ID_SIZE];         /**< specific app to get blockmode */
+    char apid[MCT_ID_SIZE];         /**< specific app to get blockmode */
     uint8_t mode;                   /**< blockmode value */
-} DLT_PACKED DltServiceGetBlockMode;
+} MCT_PACKED MctServiceGetBlockMode;
 
 /**
- * The structure of DLT Service Passive Node Connect
+ * The structure of MCT Service Passive Node Connect
  */
 typedef struct
 {
     uint32_t service_id;            /**< service ID */
     uint32_t connection_status;     /**< connect/disconnect */
-    char node_id[DLT_ID_SIZE];      /**< passive node ID */
-} DLT_PACKED DltServicePassiveNodeConnect;
+    char node_id[MCT_ID_SIZE];      /**< passive node ID */
+} MCT_PACKED MctServicePassiveNodeConnect;
 
 /**
- * The structure of DLT Service Passive Node Connection Status
+ * The structure of MCT Service Passive Node Connection Status
  */
 typedef struct
 {
     uint32_t service_id;                       /**< service ID */
     uint8_t status;                            /**< response status */
     uint32_t num_connections;                  /**< number of connections */
-    uint8_t connection_status[DLT_ENTRY_MAX];  /**< list of connection status */
-    char node_id[DLT_ENTRY_MAX];               /**< list of passive node IDs */
-} DLT_PACKED DltServicePassiveNodeConnectionInfo;
+    uint8_t connection_status[MCT_ENTRY_MAX];  /**< list of connection status */
+    char node_id[MCT_ENTRY_MAX];               /**< list of passive node IDs */
+} MCT_PACKED MctServicePassiveNodeConnectionInfo;
 
 /**
  * Structure to store filter parameters.
@@ -711,42 +702,42 @@ typedef struct
  */
 typedef struct
 {
-    char apid[DLT_FILTER_MAX][DLT_ID_SIZE]; /**< application id */
-    char ctid[DLT_FILTER_MAX][DLT_ID_SIZE]; /**< context id */
-    int log_level[DLT_FILTER_MAX];          /**< log level */
-    int32_t payload_max[DLT_FILTER_MAX];        /**< upper border for payload */
-    int32_t payload_min[DLT_FILTER_MAX];        /**< lower border for payload */
+    char apid[MCT_FILTER_MAX][MCT_ID_SIZE]; /**< application id */
+    char ctid[MCT_FILTER_MAX][MCT_ID_SIZE]; /**< context id */
+    int log_level[MCT_FILTER_MAX];          /**< log level */
+    int32_t payload_max[MCT_FILTER_MAX];        /**< upper border for payload */
+    int32_t payload_min[MCT_FILTER_MAX];        /**< lower border for payload */
     int counter;                            /**< number of filters */
-} DltFilter;
+} MctFilter;
 
 /**
- * The structure to organise the access to DLT files.
+ * The structure to organise the access to MCT files.
  * This structure is used by the corresponding functions.
  */
-typedef struct sDltFile
+typedef struct sMctFile
 {
     /* file handle and index for fast access */
-    FILE *handle;      /**< file handle of opened DLT file */
-    long *index;       /**< file positions of all DLT messages for fast access to file, only filtered messages */
+    FILE *handle;      /**< file handle of opened MCT file */
+    long *index;       /**< file positions of all MCT messages for fast access to file, only filtered messages */
 
     /* size parameters */
-    int32_t counter;       /**< number of messages in DLT file with filter */
-    int32_t counter_total; /**< number of messages in DLT file without filter */
-    int32_t position;      /**< current index to message parsed in DLT file starting at 0 */
+    int32_t counter;       /**< number of messages in MCT file with filter */
+    int32_t counter_total; /**< number of messages in MCT file without filter */
+    int32_t position;      /**< current index to message parsed in MCT file starting at 0 */
     uint64_t file_length;    /**< length of the file */
     uint64_t file_position;  /**< current position in the file */
 
     /* error counters */
-    int32_t error_messages; /**< number of incomplete DLT messages found during file parsing */
+    int32_t error_messages; /**< number of incomplete MCT messages found during file parsing */
 
     /* filter parameters */
-    DltFilter *filter;      /**< pointer to filter list. Zero if no filter is set. */
+    MctFilter *filter;      /**< pointer to filter list. Zero if no filter is set. */
     int32_t filter_counter; /**< number of filter set */
 
     /* current loaded message */
-    DltMessage msg;     /**< pointer to message */
+    MctMessage msg;     /**< pointer to message */
 
-} DltFile;
+} MctFile;
 
 /**
  * The structure is used to organise the receiving of data
@@ -762,10 +753,10 @@ typedef struct
     char *buf;            /**< pointer to position within receiver buffer */
     char *backup_buf;     /** pointer to the buffer with partial messages if any **/
     int fd;               /**< connection handle */
-    DltReceiverType type;     /**< type of connection handle */
+    MctReceiverType type;     /**< type of connection handle */
     int32_t buffersize;       /**< size of receiver buffer */
     struct sockaddr_in addr;  /**< socket address information */
-} DltReceiver;
+} MctReceiver;
 
 typedef struct
 {
@@ -776,39 +767,39 @@ typedef struct
     uint32_t min_size;     /**< Minimum size of buffer */
     uint32_t max_size;     /**< Maximum size of buffer */
     uint32_t step_size;    /**< Step size of buffer */
-} DltBuffer;
+} MctBuffer;
 
 typedef struct
 {
     int write;
     int read;
     int count;
-} DltBufferHead;
+} MctBufferHead;
 
-#   define DLT_BUFFER_HEAD "SHM"
+#   define MCT_BUFFER_HEAD "SHM"
 
 typedef struct
 {
     char head[4];
     unsigned char status;
     int size;
-} DltBufferBlockHead;
+} MctBufferBlockHead;
 
-#   ifdef DLT_USE_IPv6
-#      define DLT_IP_SIZE (INET6_ADDRSTRLEN)
+#   ifdef MCT_USE_IPv6
+#      define MCT_IP_SIZE (INET6_ADDRSTRLEN)
 #   else
-#      define DLT_IP_SIZE (INET_ADDRSTRLEN)
+#      define MCT_IP_SIZE (INET_ADDRSTRLEN)
 #   endif
-typedef struct DltBindAddress
+typedef struct MctBindAddress
 {
-    char ip[DLT_IP_SIZE];
-    struct DltBindAddress *next;
-} DltBindAddress_t;
+    char ip[MCT_IP_SIZE];
+    struct MctBindAddress *next;
+} MctBindAddress_t;
 
-#   define DLT_MESSAGE_ERROR_OK       0
-#   define DLT_MESSAGE_ERROR_UNKNOWN -1
-#   define DLT_MESSAGE_ERROR_SIZE    -2
-#   define DLT_MESSAGE_ERROR_CONTENT -3
+#   define MCT_MESSAGE_ERROR_OK       0
+#   define MCT_MESSAGE_ERROR_UNKNOWN -1
+#   define MCT_MESSAGE_ERROR_SIZE    -2
+#   define MCT_MESSAGE_ERROR_CONTENT -3
 
 #   ifdef __cplusplus
 extern "C"
@@ -829,7 +820,7 @@ void mct_print_hex(uint8_t *ptr, int size);
  * @param size number of bytes to be printed.
  * @return negative value if there was an error
  */
-DltReturnValue mct_print_hex_string(char *text, int textlength, uint8_t *ptr, int size);
+MctReturnValue mct_print_hex_string(char *text, int textlength, uint8_t *ptr, int size);
 /**
  * Helper function to print a byte array in hex and ascii into a string.
  * @param text pointer to a ASCII string, in which the text is written
@@ -839,7 +830,7 @@ DltReturnValue mct_print_hex_string(char *text, int textlength, uint8_t *ptr, in
  * @param html output is html? 0 - false, 1 - true
  * @return negative value if there was an error
  */
-DltReturnValue mct_print_mixed_string(char *text, int textlength, uint8_t *ptr, int size, int html);
+MctReturnValue mct_print_mixed_string(char *text, int textlength, uint8_t *ptr, int size, int html);
 /**
  * Helper function to print a byte array in ascii into a string.
  * @param text pointer to a ASCII string, in which the text is written
@@ -848,7 +839,7 @@ DltReturnValue mct_print_mixed_string(char *text, int textlength, uint8_t *ptr, 
  * @param size number of bytes to be printed.
  * @return negative value if there was an error
  */
-DltReturnValue mct_print_char_string(char **text, int textlength, uint8_t *ptr, int size);
+MctReturnValue mct_print_char_string(char **text, int textlength, uint8_t *ptr, int size);
 
 /**
  * Helper function to determine a bounded length of a string.
@@ -864,13 +855,13 @@ PURE_FUNCTION size_t mct_strnlen_s(const char* str, size_t maxsize);
 /**
  * Helper function to print an id.
  * @param text pointer to ASCII string where to write the id
- * @param id four byte char array as used in DLT mesages as IDs.
+ * @param id four byte char array as used in MCT mesages as IDs.
  */
 void mct_print_id(char *text, const char *id);
 
 /**
  * Helper function to set an ID parameter.
- * @param id four byte char array as used in DLT mesages as IDs.
+ * @param id four byte char array as used in MCT mesages as IDs.
  * @param text string to be copied into char array.
  */
 void mct_set_id(char *id, const char *text);
@@ -885,37 +876,37 @@ void mct_clean_string(char *text, int length);
 /**
  * Initialise the filter list.
  * This function must be called before using further mct filter.
- * @param filter pointer to structure of organising DLT filter
+ * @param filter pointer to structure of organising MCT filter
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_filter_init(DltFilter *filter, int verbose);
+MctReturnValue mct_filter_init(MctFilter *filter, int verbose);
 /**
  * Free the used memory by the organising structure of filter.
- * @param filter pointer to structure of organising DLT filter
+ * @param filter pointer to structure of organising MCT filter
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_filter_free(DltFilter *filter, int verbose);
+MctReturnValue mct_filter_free(MctFilter *filter, int verbose);
 /**
  * Load filter list from file.
- * @param filter pointer to structure of organising DLT filter
+ * @param filter pointer to structure of organising MCT filter
  * @param filename filename to load filters from
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_filter_load(DltFilter *filter, const char *filename, int verbose);
+MctReturnValue mct_filter_load(MctFilter *filter, const char *filename, int verbose);
 /**
  * Save filter in space separated list to text file.
- * @param filter pointer to structure of organising DLT filter
+ * @param filter pointer to structure of organising MCT filter
  * @param filename filename to safe filters into
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_filter_save(DltFilter *filter, const char *filename, int verbose);
+MctReturnValue mct_filter_save(MctFilter *filter, const char *filename, int verbose);
 /**
  * Find index of filter in filter list
- * @param filter pointer to structure of organising DLT filter
+ * @param filter pointer to structure of organising MCT filter
  * @param apid application id to be found in filter list
  * @param ctid context id to be found in filter list
  * @param log_level log level to be found in filter list
@@ -924,11 +915,11 @@ DltReturnValue mct_filter_save(DltFilter *filter, const char *filename, int verb
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error (or not found), else return index of filter
  */
-int mct_filter_find(DltFilter *filter, const char *apid, const char *ctid, const int log_level,
+int mct_filter_find(MctFilter *filter, const char *apid, const char *ctid, const int log_level,
                                 const int32_t payload_min, const int32_t payload_max, int verbose);
 /**
  * Add new filter to filter list.
- * @param filter pointer to structure of organising DLT filter
+ * @param filter pointer to structure of organising MCT filter
  * @param apid application id to be added to filter list (must always be set).
  * @param ctid context id to be added to filter list. empty equals don't care.
  * @param log_level log level to be added to filter list. 0 equals don't care.
@@ -937,11 +928,11 @@ int mct_filter_find(DltFilter *filter, const char *apid, const char *ctid, const
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_filter_add(DltFilter *filter, const char *apid, const char *ctid, const int log_level,
+MctReturnValue mct_filter_add(MctFilter *filter, const char *apid, const char *ctid, const int log_level,
                                 const int32_t payload_min, const int32_t payload_max, int verbose);
 /**
  * Delete filter from filter list
- * @param filter pointer to structure of organising DLT filter
+ * @param filter pointer to structure of organising MCT filter
  * @param apid application id to be deleted from filter list
  * @param ctid context id to be deleted from filter list
  * @param log_level log level to be deleted from filter list
@@ -950,210 +941,210 @@ DltReturnValue mct_filter_add(DltFilter *filter, const char *apid, const char *c
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_filter_delete(DltFilter *filter, const char *apid, const char *ctid, const int log_level,
+MctReturnValue mct_filter_delete(MctFilter *filter, const char *apid, const char *ctid, const int log_level,
                                 const int32_t payload_min, const int32_t payload_max, int verbose);
 
 /**
- * Initialise the structure used to access a DLT message.
+ * Initialise the structure used to access a MCT message.
  * This function must be called before using further mct_message functions.
- * @param msg pointer to structure of organising access to DLT messages
+ * @param msg pointer to structure of organising access to MCT messages
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_init(DltMessage *msg, int verbose);
+MctReturnValue mct_message_init(MctMessage *msg, int verbose);
 /**
  * Free the used memory by the organising structure of file.
- * @param msg pointer to structure of organising access to DLT messages
+ * @param msg pointer to structure of organising access to MCT messages
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_free(DltMessage *msg, int verbose);
+MctReturnValue mct_message_free(MctMessage *msg, int verbose);
 /**
  * Print Header into an ASCII string.
- * This function calls mct_message_header_flags() with flags=DLT_HEADER_SHOW_ALL
- * @param msg pointer to structure of organising access to DLT messages
+ * This function calls mct_message_header_flags() with flags=MCT_HEADER_SHOW_ALL
+ * @param msg pointer to structure of organising access to MCT messages
  * @param text pointer to a ASCII string, in which the header is written
  * @param textlength maximal size of text buffer
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_header(DltMessage *msg, char *text, size_t textlength, int verbose);
+MctReturnValue mct_message_header(MctMessage *msg, char *text, size_t textlength, int verbose);
 /**
  * Print Header into an ASCII string, selective.
- * @param msg pointer to structure of organising access to DLT messages
+ * @param msg pointer to structure of organising access to MCT messages
  * @param text pointer to a ASCII string, in which the header is written
  * @param textlength maximal size of text buffer
- * @param flags select, bit-field to select, what should be printed (DLT_HEADER_SHOW_...)
+ * @param flags select, bit-field to select, what should be printed (MCT_HEADER_SHOW_...)
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_header_flags(DltMessage *msg, char *text, size_t textlength, int flags, int verbose);
+MctReturnValue mct_message_header_flags(MctMessage *msg, char *text, size_t textlength, int flags, int verbose);
 /**
  * Print Payload into an ASCII string.
- * @param msg pointer to structure of organising access to DLT messages
+ * @param msg pointer to structure of organising access to MCT messages
  * @param text pointer to a ASCII string, in which the header is written
  * @param textlength maximal size of text buffer
  * @param type 1 = payload as hex, 2 = payload as ASCII.
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_payload(DltMessage *msg, char *text, size_t textlength, int type, int verbose);
+MctReturnValue mct_message_payload(MctMessage *msg, char *text, size_t textlength, int type, int verbose);
 /**
  * Check if message is filtered or not. All filters are applied (logical OR).
- * @param msg pointer to structure of organising access to DLT messages
+ * @param msg pointer to structure of organising access to MCT messages
  * @param filter pointer to filter
  * @param verbose if set to true verbose information is printed out.
  * @return 1 = filter matches, 0 = filter does not match, negative value if there was an error
  */
-DltReturnValue mct_message_filter_check(DltMessage *msg, DltFilter *filter, int verbose);
+MctReturnValue mct_message_filter_check(MctMessage *msg, MctFilter *filter, int verbose);
 
 /**
  * Read message from memory buffer.
  * Message in buffer has no storage header.
- * @param msg pointer to structure of organising access to DLT messages
+ * @param msg pointer to structure of organising access to MCT messages
  * @param buffer pointer to memory buffer
  * @param length length of message in buffer
  * @param resync if set to true resync to serial header is enforced
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-int mct_message_read(DltMessage *msg, uint8_t *buffer, unsigned int length, int resync, int verbose);
+int mct_message_read(MctMessage *msg, uint8_t *buffer, unsigned int length, int resync, int verbose);
 
 /**
  * Get standard header extra parameters
- * @param msg pointer to structure of organising access to DLT messages
+ * @param msg pointer to structure of organising access to MCT messages
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_get_extraparameters(DltMessage *msg, int verbose);
+MctReturnValue mct_message_get_extraparameters(MctMessage *msg, int verbose);
 
 /**
  * Set standard header extra parameters
- * @param msg pointer to structure of organising access to DLT messages
+ * @param msg pointer to structure of organising access to MCT messages
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_set_extraparameters(DltMessage *msg, int verbose);
+MctReturnValue mct_message_set_extraparameters(MctMessage *msg, int verbose);
 
 /**
- * Initialise the structure used to access a DLT file.
+ * Initialise the structure used to access a MCT file.
  * This function must be called before using further mct_file functions.
- * @param file pointer to structure of organising access to DLT file
+ * @param file pointer to structure of organising access to MCT file
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_file_init(DltFile *file, int verbose);
+MctReturnValue mct_file_init(MctFile *file, int verbose);
 /**
  * Set a list to filters.
- * This function should be called before loading a DLT file, if filters should be used.
+ * This function should be called before loading a MCT file, if filters should be used.
  * A filter list is an array of filters. Several filters are combined logically by or operation.
  * The filter list is not copied, so take care to keep list in memory.
- * @param file pointer to structure of organising access to DLT file
+ * @param file pointer to structure of organising access to MCT file
  * @param filter pointer to filter list array
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_file_set_filter(DltFile *file, DltFilter *filter, int verbose);
+MctReturnValue mct_file_set_filter(MctFile *file, MctFilter *filter, int verbose);
 /**
- * Initialising loading a DLT file.
- * @param file pointer to structure of organising access to DLT file
- * @param filename filename of DLT file
+ * Initialising loading a MCT file.
+ * @param file pointer to structure of organising access to MCT file
+ * @param filename filename of MCT file
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_file_open(DltFile *file, const char *filename, int verbose);
+MctReturnValue mct_file_open(MctFile *file, const char *filename, int verbose);
 /**
- * This function reads DLT file and parse DLT message one by one.
+ * This function reads MCT file and parse MCT message one by one.
  * Each message will be written into new file.
  * If a filter is set, the filter list is used.
- * @param file pointer to structure of organizing access to DLT file
- * @param filename file to contain parsed DLT messages.
+ * @param file pointer to structure of organizing access to MCT file
+ * @param filename file to contain parsed MCT messages.
  * @param type 1 = payload as hex, 2 = payload as ASCII.
  * @param verbose if set to true verbose information is printed out.
  * @return 0 = message does not match filter, 1 = message was read, negative value if there was an error
  */
-DltReturnValue mct_file_quick_parsing(DltFile *file, const char *filename, int type, int verbose);
+MctReturnValue mct_file_quick_parsing(MctFile *file, const char *filename, int type, int verbose);
 /**
- * Find next message in the DLT file and parse them.
- * This function finds the next message in the DLT file.
+ * Find next message in the MCT file and parse them.
+ * This function finds the next message in the MCT file.
  * If a filter is set, the filter list is used.
- * @param file pointer to structure of organising access to DLT file
+ * @param file pointer to structure of organising access to MCT file
  * @param verbose if set to true verbose information is printed out.
  * @return 0 = message does not match filter, 1 = message was read, negative value if there was an error
  */
-DltReturnValue mct_file_read(DltFile *file, int verbose);
+MctReturnValue mct_file_read(MctFile *file, int verbose);
 /**
- * Find next message in the DLT file in RAW format (without storage header) and parse them.
- * This function finds the next message in the DLT file.
+ * Find next message in the MCT file in RAW format (without storage header) and parse them.
+ * This function finds the next message in the MCT file.
  * If a filter is set, the filter list is used.
- * @param file pointer to structure of organising access to DLT file
+ * @param file pointer to structure of organising access to MCT file
  * @param resync Resync to serial header when set to true
  * @param verbose if set to true verbose information is printed out.
  * @return 0 = message does not match filter, 1 = message was read, negative value if there was an error
  */
-DltReturnValue mct_file_read_raw(DltFile *file, int resync, int verbose);
+MctReturnValue mct_file_read_raw(MctFile *file, int resync, int verbose);
 /**
- * Closing loading a DLT file.
- * @param file pointer to structure of organising access to DLT file
+ * Closing loading a MCT file.
+ * @param file pointer to structure of organising access to MCT file
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_file_close(DltFile *file, int verbose);
+MctReturnValue mct_file_close(MctFile *file, int verbose);
 /**
  * Load standard header of a message from file
- * @param file pointer to structure of organising access to DLT file
+ * @param file pointer to structure of organising access to MCT file
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_file_read_header(DltFile *file, int verbose);
+MctReturnValue mct_file_read_header(MctFile *file, int verbose);
 /**
  * Load standard header of a message from file in RAW format (without storage header)
- * @param file pointer to structure of organising access to DLT file
+ * @param file pointer to structure of organising access to MCT file
  * @param resync Resync to serial header when set to true
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_file_read_header_raw(DltFile *file, int resync, int verbose);
+MctReturnValue mct_file_read_header_raw(MctFile *file, int resync, int verbose);
 /**
  * Load, if available in message, extra standard header fields and
  * extended header of a message from file
  * (mct_file_read_header() must have been called before this call!)
- * @param file pointer to structure of organising access to DLT file
+ * @param file pointer to structure of organising access to MCT file
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_file_read_header_extended(DltFile *file, int verbose);
+MctReturnValue mct_file_read_header_extended(MctFile *file, int verbose);
 /**
  * Load payload of a message from file
  * (mct_file_read_header() must have been called before this call!)
- * @param file pointer to structure of organising access to DLT file
+ * @param file pointer to structure of organising access to MCT file
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_file_read_data(DltFile *file, int verbose);
+MctReturnValue mct_file_read_data(MctFile *file, int verbose);
 /**
  * Load headers and payload of a message selected by the index.
  * If filters are set, index is based on the filtered list.
- * @param file pointer to structure of organising access to DLT file
+ * @param file pointer to structure of organising access to MCT file
  * @param index position of message in the files beginning from zero
  * @param verbose if set to true verbose information is printed out.
  * @return number of messages loaded, negative value if there was an error
  */
-DltReturnValue mct_file_message(DltFile *file, int index, int verbose);
+MctReturnValue mct_file_message(MctFile *file, int index, int verbose);
 /**
  * Free the used memory by the organising structure of file.
- * @param file pointer to structure of organising access to DLT file
+ * @param file pointer to structure of organising access to MCT file
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_file_free(DltFile *file, int verbose);
+MctReturnValue mct_file_free(MctFile *file, int verbose);
 
 /**
  * Set internal logging filename if mode 2
  * @param filename the filename
  */
 void mct_log_set_filename(const char *filename);
-#if defined DLT_DAEMON_USE_FIFO_IPC || defined DLT_LIB_USE_FIFO_IPC
+#if defined MCT_DAEMON_USE_FIFO_IPC || defined MCT_LIB_USE_FIFO_IPC
 /**
  * Set FIFO base direction
  * @param pipe_dir the pipe direction
@@ -1178,7 +1169,7 @@ void mct_print_with_attributes(bool state);
  */
 void mct_log_init(int mode);
 /**
- * Print with variable arguments to specified file descriptor by DLT_LOG_MODE environment variable (like fprintf)
+ * Print with variable arguments to specified file descriptor by MCT_LOG_MODE environment variable (like fprintf)
  * @param format format string for message
  * @return negative value if there was an error or the total number of characters written is returned on success
  */
@@ -1189,14 +1180,14 @@ int mct_user_printf(const char *format, ...) PRINTF_FORMAT(1, 2);
  * @param s Pointer to ASCII string with null-termination
  * @return negative value if there was an error
  */
-DltReturnValue mct_log(int prio, char *s);
+MctReturnValue mct_log(int prio, char *s);
 /**
  * Log with variable arguments to (external) logging facility (like printf)
  * @param prio priority (see syslog() call)
  * @param format format string for log message
  * @return negative value if there was an error
  */
-DltReturnValue mct_vlog(int prio, const char *format, ...) PRINTF_FORMAT(2, 3);
+MctReturnValue mct_vlog(int prio, const char *format, ...) PRINTF_FORMAT(2, 3);
 /**
  * Log size bytes with variable arguments to (external) logging facility (similar to snprintf)
  * @param prio priority (see syslog() call)
@@ -1204,7 +1195,7 @@ DltReturnValue mct_vlog(int prio, const char *format, ...) PRINTF_FORMAT(2, 3);
  * @param format format string for log message
  * @return negative value if there was an error
  */
-DltReturnValue mct_vnlog(int prio, size_t size, const char *format, ...) PRINTF_FORMAT(3, 4);
+MctReturnValue mct_vnlog(int prio, size_t size, const char *format, ...) PRINTF_FORMAT(3, 4);
 /**
  * De-Initialize (external) logging facility
  */
@@ -1218,13 +1209,13 @@ void mct_log_free(void);
  * @param _buffersize size of data buffer for storing the received data
  * @return negative value if there was an error
  */
-DltReturnValue mct_receiver_init(DltReceiver *receiver, int _fd, DltReceiverType type, int _buffersize);
+MctReturnValue mct_receiver_init(MctReceiver *receiver, int _fd, MctReceiverType type, int _buffersize);
 /**
  * De-Initialize a mct receiver structure
  * @param receiver pointer to mct receiver structure
  * @return negative value if there was an error
  */
-DltReturnValue mct_receiver_free(DltReceiver *receiver);
+MctReturnValue mct_receiver_free(MctReceiver *receiver);
 /**
  * Initialising a mct receiver structure
  * @param receiver pointer to mct receiver structure
@@ -1233,42 +1224,42 @@ DltReturnValue mct_receiver_free(DltReceiver *receiver);
  * @param buffer data buffer for storing the received data
  * @return negative value if there was an error and zero if success
  */
-DltReturnValue mct_receiver_init_global_buffer(DltReceiver *receiver, int fd, DltReceiverType type, char **buffer);
+MctReturnValue mct_receiver_init_global_buffer(MctReceiver *receiver, int fd, MctReceiverType type, char **buffer);
 /**
  * De-Initialize a mct receiver structure
  * @param receiver pointer to mct receiver structure
  * @return negative value if there was an error and zero if success
  */
-DltReturnValue mct_receiver_free_global_buffer(DltReceiver *receiver);
+MctReturnValue mct_receiver_free_global_buffer(MctReceiver *receiver);
 /**
  * Receive data from socket or file/fifo using the mct receiver structure
  * @param receiver pointer to mct receiver structure
  * @return number of received bytes or negative value if there was an error
  */
-int mct_receiver_receive(DltReceiver *receiver);
+int mct_receiver_receive(MctReceiver *receiver);
 /**
  * Remove a specific size of bytes from the received data
  * @param receiver pointer to mct receiver structure
  * @param size amount of bytes to be removed
  * @return negative value if there was an error
  */
-DltReturnValue mct_receiver_remove(DltReceiver *receiver, int size);
+MctReturnValue mct_receiver_remove(MctReceiver *receiver, int size);
 /**
  * Move data from last receive call to front of receive buffer
  * @param receiver pointer to mct receiver structure
  * @return negative value if there was an error
  */
-DltReturnValue mct_receiver_move_to_begin(DltReceiver *receiver);
+MctReturnValue mct_receiver_move_to_begin(MctReceiver *receiver);
 
 /**
  * Check whether to_get amount of data is available in receiver and
- * copy it to dest. Skip the DltUserHeader if skip_header is set to 1.
+ * copy it to dest. Skip the MctUserHeader if skip_header is set to 1.
  * @param receiver pointer to mct receiver structure
  * @param dest pointer to the destination buffer
  * @param to_get size of the data to copy in dest
- * @param skip_header whether if the DltUserHeader must be skipped.
+ * @param skip_header whether if the MctUserHeader must be skipped.
  */
-int mct_receiver_check_and_get(DltReceiver *receiver,
+int mct_receiver_check_and_get(MctReceiver *receiver,
                                void *dest,
                                unsigned int to_get,
                                unsigned int skip_header);
@@ -1279,13 +1270,13 @@ int mct_receiver_check_and_get(DltReceiver *receiver,
  * @param ecu name of ecu to be set in storage header
  * @return negative value if there was an error
  */
-DltReturnValue mct_set_storageheader(DltStorageHeader *storageheader, const char *ecu);
+MctReturnValue mct_set_storageheader(MctStorageHeader *storageheader, const char *ecu);
 /**
  * Check if a storage header contains its marker
  * @param storageheader pointer to storage header of a mct message
  * @return 0 no, 1 yes, negative value if there was an error
  */
-DltReturnValue mct_check_storageheader(DltStorageHeader *storageheader);
+MctReturnValue mct_check_storageheader(MctStorageHeader *storageheader);
 
 /**
  * Checks if received size is big enough for expected data
@@ -1293,7 +1284,7 @@ DltReturnValue mct_check_storageheader(DltStorageHeader *storageheader);
  * @param required size
  * @return negative value if required size is not sufficient
  * */
-DltReturnValue mct_check_rcv_data_size(int received, int required);
+MctReturnValue mct_check_rcv_data_size(int received, int required);
 
 /**
  * Initialise static ringbuffer with a size of size.
@@ -1304,7 +1295,7 @@ DltReturnValue mct_check_rcv_data_size(int received, int required);
  * @param size Maximum size of buffer in bytes
  * @return negative value if there was an error
  */
-DltReturnValue mct_buffer_init_static_server(DltBuffer *buf, const unsigned char *ptr, uint32_t size);
+MctReturnValue mct_buffer_init_static_server(MctBuffer *buf, const unsigned char *ptr, uint32_t size);
 
 /**
  * Initialize static ringbuffer with a size of size.
@@ -1315,7 +1306,7 @@ DltReturnValue mct_buffer_init_static_server(DltBuffer *buf, const unsigned char
  * @param size Maximum size of buffer in bytes
  * @return negative value if there was an error
  */
-DltReturnValue mct_buffer_init_static_client(DltBuffer *buf, const unsigned char *ptr, uint32_t size);
+MctReturnValue mct_buffer_init_static_client(MctBuffer *buf, const unsigned char *ptr, uint32_t size);
 
 /**
  * Initialize dynamic ringbuffer with a size of size.
@@ -1329,29 +1320,29 @@ DltReturnValue mct_buffer_init_static_client(DltBuffer *buf, const unsigned char
  * @param step_size size of which ringbuffer is increased
  * @return negative value if there was an error
  */
-DltReturnValue mct_buffer_init_dynamic(DltBuffer *buf, uint32_t min_size, uint32_t max_size, uint32_t step_size);
+MctReturnValue mct_buffer_init_dynamic(MctBuffer *buf, uint32_t min_size, uint32_t max_size, uint32_t step_size);
 
 /**
  * Deinitilaise usage of static ringbuffer
  * @param buf Pointer to ringbuffer structure
  * @return negative value if there was an error
  */
-DltReturnValue mct_buffer_free_static(DltBuffer *buf);
+MctReturnValue mct_buffer_free_static(MctBuffer *buf);
 
 /**
  * Release and free memory used by dynamic ringbuffer
  * @param buf Pointer to ringbuffer structure
  * @return negative value if there was an error
  */
-DltReturnValue mct_buffer_free_dynamic(DltBuffer *buf);
+MctReturnValue mct_buffer_free_dynamic(MctBuffer *buf);
 
 /**
  * Check if message fits into buffer.
  * @param buf Pointer to buffer structure
  * @param needed Needed size
- * @return DLT_RETURN_OK if enough space, DLT_RETURN_ERROR otherwise
+ * @return MCT_RETURN_OK if enough space, MCT_RETURN_ERROR otherwise
  */
-DltReturnValue mct_buffer_check_size(DltBuffer *buf, int needed);
+MctReturnValue mct_buffer_check_size(MctBuffer *buf, int needed);
 
 /**
  * Write one entry to ringbuffer
@@ -1360,7 +1351,7 @@ DltReturnValue mct_buffer_check_size(DltBuffer *buf, int needed);
  * @param size Size of data in bytes to be written to ringbuffer
  * @return negative value if there was an error
  */
-DltReturnValue mct_buffer_push(DltBuffer *buf, const unsigned char *data, unsigned int size);
+MctReturnValue mct_buffer_push(MctBuffer *buf, const unsigned char *data, unsigned int size);
 
 /**
  * Write up to three entries to ringbuffer.
@@ -1374,7 +1365,7 @@ DltReturnValue mct_buffer_push(DltBuffer *buf, const unsigned char *data, unsign
  * @param size3 Size of data in bytes to be written to ringbuffer
  * @return negative value if there was an error
  */
-DltReturnValue mct_buffer_push3(DltBuffer *buf,
+MctReturnValue mct_buffer_push3(MctBuffer *buf,
                                 const unsigned char *data1,
                                 unsigned int size1,
                                 const unsigned char *data2,
@@ -1390,7 +1381,7 @@ DltReturnValue mct_buffer_push3(DltBuffer *buf,
  * @param max_size Max size of read data in bytes from ringbuffer
  * @return size of read data, zero if no data available, negative value if there was an error
  */
-int mct_buffer_pull(DltBuffer *buf, unsigned char *data, int max_size);
+int mct_buffer_pull(MctBuffer *buf, unsigned char *data, int max_size);
 
 /**
  * Read one entry from ringbuffer.
@@ -1400,26 +1391,26 @@ int mct_buffer_pull(DltBuffer *buf, unsigned char *data, int max_size);
  * @param max_size Max size of read data in bytes from ringbuffer
  * @return size of read data, zero if no data available, negative value if there was an error
  */
-int mct_buffer_copy(DltBuffer *buf, unsigned char *data, int max_size);
+int mct_buffer_copy(MctBuffer *buf, unsigned char *data, int max_size);
 
 /**
  * Remove entry from ringbuffer.
  * @param buf Pointer to ringbuffer structure
  * @return size of read data, zero if no data available, negative value if there was an error
  */
-int mct_buffer_remove(DltBuffer *buf);
+int mct_buffer_remove(MctBuffer *buf);
 
 /**
- * Print information about buffer and log to internal DLT log.
+ * Print information about buffer and log to internal MCT log.
  * @param buf Pointer to ringbuffer structure
  */
-void mct_buffer_info(DltBuffer *buf);
+void mct_buffer_info(MctBuffer *buf);
 
 /**
- * Print status of buffer and log to internal DLT log.
+ * Print status of buffer and log to internal MCT log.
  * @param buf Pointer to ringbuffer structure
  */
-void mct_buffer_status(DltBuffer *buf);
+void mct_buffer_status(MctBuffer *buf);
 
 /**
  * Get total size in bytes of ringbuffer.
@@ -1427,21 +1418,21 @@ void mct_buffer_status(DltBuffer *buf);
  * @param buf Pointer to ringbuffer structure
  * @return total size of buffer
  */
-uint32_t mct_buffer_get_total_size(DltBuffer *buf);
+uint32_t mct_buffer_get_total_size(MctBuffer *buf);
 
 /**
  * Get used size in bytes of ringbuffer.
  * @param buf Pointer to ringbuffer structure
  * @return used size of buffer
  */
-int mct_buffer_get_used_size(DltBuffer *buf);
+int mct_buffer_get_used_size(MctBuffer *buf);
 
 /**
  * Get number of entries in ringbuffer.
  * @param buf Pointer to ringbuffer structure
  * @return number of entries
  */
-int mct_buffer_get_message_count(DltBuffer *buf);
+int mct_buffer_get_message_count(MctBuffer *buf);
 
 #   if !defined (__WIN32__)
 
@@ -1451,7 +1442,7 @@ int mct_buffer_get_message_count(DltBuffer *buf);
  * @param speed Serial line speed, as defined in termios.h
  * @return negative value if there was an error
  */
-DltReturnValue mct_setup_serial(int fd, speed_t speed);
+MctReturnValue mct_setup_serial(int fd, speed_t speed);
 
 /**
  * Helper function: Convert serial line baudrate (as number) to line speed (as defined in termios.h)
@@ -1489,18 +1480,18 @@ void mct_get_minor_version(char *buf, size_t size);
 /**
  * Common part of initialisation. Evaluates the following environment variables
  * and stores them in mct_user struct:
- * - DLT_DISABLE_EXTENDED_HEADER_FOR_NONVERBOSE
- * - DLT_LOCAL_PRINT_MODE (AUTOMATIC: 0, FORCE_ON: 2, FORCE_OFF: 3)
- * - DLT_INITIAL_LOG_LEVEL (e.g. APPx:CTXa:6;APPx:CTXb:5)
- * - DLT_FORCE_BLOCKING
- * - DLT_USER_BUFFER_MIN
- * - DLT_USER_BUFFER_MAX
- * - DLT_USER_BUFFER_STEP
- * - DLT_LOG_MSG_BUF_LEN
- * - DLT_DISABLE_INJECTION_MSG_AT_USER
+ * - MCT_DISABLE_EXTENDED_HEADER_FOR_NONVERBOSE
+ * - MCT_LOCAL_PRINT_MODE (AUTOMATIC: 0, FORCE_ON: 2, FORCE_OFF: 3)
+ * - MCT_INITIAL_LOG_LEVEL (e.g. APPx:CTXa:6;APPx:CTXb:5)
+ * - MCT_FORCE_BLOCKING
+ * - MCT_USER_BUFFER_MIN
+ * - MCT_USER_BUFFER_MAX
+ * - MCT_USER_BUFFER_STEP
+ * - MCT_LOG_MSG_BUF_LEN
+ * - MCT_DISABLE_INJECTION_MSG_AT_USER
  * @return negative value if there was an error
  */
-DltReturnValue mct_init_common(void);
+MctReturnValue mct_init_common(void);
 
 /**
  * Return the uptime of the system in 0.1 ms resolution
@@ -1509,58 +1500,58 @@ DltReturnValue mct_init_common(void);
 uint32_t mct_uptime(void);
 
 /**
- * Print header of a DLT message
- * @param message pointer to structure of organising access to DLT messages
+ * Print header of a MCT message
+ * @param message pointer to structure of organising access to MCT messages
  * @param text pointer to a ASCII string, in which the header is written
  * @param size maximal size of text buffer
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_print_header(DltMessage *message, char *text, uint32_t size, int verbose);
+MctReturnValue mct_message_print_header(MctMessage *message, char *text, uint32_t size, int verbose);
 
 /**
- * Print payload of a DLT message as Hex-Output
- * @param message pointer to structure of organising access to DLT messages
+ * Print payload of a MCT message as Hex-Output
+ * @param message pointer to structure of organising access to MCT messages
  * @param text pointer to a ASCII string, in which the output is written
  * @param size maximal size of text buffer
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_print_hex(DltMessage *message, char *text, uint32_t size, int verbose);
+MctReturnValue mct_message_print_hex(MctMessage *message, char *text, uint32_t size, int verbose);
 
 /**
- * Print payload of a DLT message as ASCII-Output
- * @param message pointer to structure of organising access to DLT messages
+ * Print payload of a MCT message as ASCII-Output
+ * @param message pointer to structure of organising access to MCT messages
  * @param text pointer to a ASCII string, in which the output is written
  * @param size maximal size of text buffer
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_print_ascii(DltMessage *message, char *text, uint32_t size, int verbose);
+MctReturnValue mct_message_print_ascii(MctMessage *message, char *text, uint32_t size, int verbose);
 
 /**
- * Print payload of a DLT message as Mixed-Ouput (Hex and ASCII), for plain text output
- * @param message pointer to structure of organising access to DLT messages
+ * Print payload of a MCT message as Mixed-Ouput (Hex and ASCII), for plain text output
+ * @param message pointer to structure of organising access to MCT messages
  * @param text pointer to a ASCII string, in which the output is written
  * @param size maximal size of text buffer
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_print_mixed_plain(DltMessage *message, char *text, uint32_t size, int verbose);
+MctReturnValue mct_message_print_mixed_plain(MctMessage *message, char *text, uint32_t size, int verbose);
 
 /**
- * Print payload of a DLT message as Mixed-Ouput (Hex and ASCII), for HTML text output
- * @param message pointer to structure of organising access to DLT messages
+ * Print payload of a MCT message as Mixed-Ouput (Hex and ASCII), for HTML text output
+ * @param message pointer to structure of organising access to MCT messages
  * @param text pointer to a ASCII string, in which the output is written
  * @param size maximal size of text buffer
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_print_mixed_html(DltMessage *message, char *text, uint32_t size, int verbose);
+MctReturnValue mct_message_print_mixed_html(MctMessage *message, char *text, uint32_t size, int verbose);
 
 /**
- * Decode and print a argument of a DLT message
- * @param msg pointer to structure of organising access to DLT messages
+ * Decode and print a argument of a MCT message
+ * @param msg pointer to structure of organising access to MCT messages
  * @param type_info Type of argument
  * @param ptr pointer to pointer to data (pointer to data is changed within this function)
  * @param datalength pointer to datalength (datalength is changed within this function)
@@ -1570,7 +1561,7 @@ DltReturnValue mct_message_print_mixed_html(DltMessage *message, char *text, uin
  * @param verbose if set to true verbose information is printed out.
  * @return negative value if there was an error
  */
-DltReturnValue mct_message_argument_print(DltMessage *msg,
+MctReturnValue mct_message_argument_print(MctMessage *msg,
                                           uint32_t type_info,
                                           uint8_t **ptr,
                                           int32_t *datalength,
@@ -1646,4 +1637,4 @@ int mct_execute_command(char *filename, char *command, ...);
  \}
  */
 
-#endif /* DLT_COMMON_H */
+#endif /* MCT_COMMON_H */

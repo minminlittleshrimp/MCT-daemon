@@ -1,11 +1,9 @@
 Release/
 Debug/
 build/
-automotive-dlt.spec
-automotive-dlt.pc
 config.h
-include/dlt/dlt_version.h
-include/dlt/dlt_user.h
+include/mct/mct_version.h
+include/mct/mct_user.h
 .project
 .cproject
 .settings

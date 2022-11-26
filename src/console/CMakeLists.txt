@@ -1,21 +1,12 @@
-#######
-# SPDX license identifier: MPL-2.0
-#
-# Copyright (C) 2011-2015, BMW AG
-#
-# This file is part of GENIVI Project DLT - Diagnostic Log and Trace.
-#
-# This Source Code Form is subject to the terms of the
-# Mozilla Public License (MPL), v. 2.0.
-# If a copy of the MPL was not distributed with this file,
-# You can obtain one at http://mozilla.org/MPL/2.0/.
-#
-# For further information see http://www.genivi.org/.
-#######
+
+set(mct_control_common_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/mct-control-common.c)
+add_library(mct_control_common_lib STATIC ${mct_control_common_SRCS})
+target_link_libraries(mct_control_common_lib mct)
 
 set(TARGET_LIST mct-log-reader mct-log-converter)
+add_subdirectory(logstorage)
 
-if(WITH_DLT_CONSOLE_SBTM)
+if(WITH_MCT_CONSOLE_SBTM)
     list(APPEND TARGET_LIST mct-sortbytimestamp)
 endif()
 

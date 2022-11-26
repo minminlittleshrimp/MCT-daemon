@@ -1,24 +1,24 @@
-#ifndef DLT_OFFLINE_TRACE_H
-#define DLT_OFFLINE_TRACE_H
+#ifndef MCT_OFFLINE_TRACE_H
+#define MCT_OFFLINE_TRACE_H
 
 #include <limits.h>
 
 #include "mct_types.h"
 
-#define DLT_OFFLINETRACE_FILENAME_BASE "mct_offlinetrace"
-#define DLT_OFFLINETRACE_FILENAME_INDEX_DELI "."
-#define DLT_OFFLINETRACE_FILENAME_TIMESTAMP_DELI "_"
-#define DLT_OFFLINETRACE_FILENAME_EXT  ".mct"
+#define MCT_OFFLINETRACE_FILENAME_BASE "mct_offlinetrace"
+#define MCT_OFFLINETRACE_FILENAME_INDEX_DELI "."
+#define MCT_OFFLINETRACE_FILENAME_TIMESTAMP_DELI "_"
+#define MCT_OFFLINETRACE_FILENAME_EXT  ".mct"
 
 typedef struct
 {
-    char directory[NAME_MAX + 1];/**< (String) Store DLT messages to local directory */
+    char directory[NAME_MAX + 1];/**< (String) Store MCT messages to local directory */
     char filename[NAME_MAX + 1]; /**< (String) Filename of currently used log file */
     int fileSize;                /**< (int) Maximum size in bytes of one trace file (Default: 1000000) */
     int maxSize;                 /**< (int) Maximum size of all trace files (Default: 4000000) */
     int filenameTimestampBased;  /**< (int) timestamp based or index based (Default: 1 Timestamp based) */
     int ohandle;
-} DltOfflineTrace;
+} MctOfflineTrace;
 
 /**
  * Initialise the offline trace
@@ -33,7 +33,7 @@ typedef struct
  *.@param filenameTimestampBased filename to be created on timestamp based or index based
  * @return negative value if there was an error
  */
-extern DltReturnValue mct_offline_trace_init(DltOfflineTrace *trace,
+extern MctReturnValue mct_offline_trace_init(MctOfflineTrace *trace,
                                              const char *directory,
                                              int fileSize,
                                              int maxSize,
@@ -46,7 +46,7 @@ extern DltReturnValue mct_offline_trace_init(DltOfflineTrace *trace,
  * @param buf pointer to offline trace structure
  * @return negative value if there was an error
  */
-extern DltReturnValue mct_offline_trace_free(DltOfflineTrace *buf);
+extern MctReturnValue mct_offline_trace_free(MctOfflineTrace *buf);
 
 /**
  * Write data into offline trace
@@ -62,7 +62,7 @@ extern DltReturnValue mct_offline_trace_free(DltOfflineTrace *buf);
  * @param size3 size in bytes of third data block to be written, 0 if not used
  * @return negative value if there was an error
  */
-extern DltReturnValue mct_offline_trace_write(DltOfflineTrace *trace,
+extern MctReturnValue mct_offline_trace_write(MctOfflineTrace *trace,
                                               unsigned char *data1,
                                               int size1,
                                               unsigned char *data2,
@@ -74,7 +74,7 @@ extern DltReturnValue mct_offline_trace_write(DltOfflineTrace *trace,
  * Get size of currently used offline trace buffer
  * @return size in bytes
  */
-extern ssize_t mct_offline_trace_get_total_size(DltOfflineTrace *trace);
+extern ssize_t mct_offline_trace_get_total_size(MctOfflineTrace *trace);
 
 /**
  * Provides info about the offline logs storage directory
@@ -104,4 +104,4 @@ void mct_offline_trace_file_name(char *log_file_name, size_t length,
 unsigned int mct_offline_trace_get_idx_of_log_file(char *file);
 
 
-#endif /* DLT_OFFLINE_TRACE_H */
+#endif /* MCT_OFFLINE_TRACE_H */
