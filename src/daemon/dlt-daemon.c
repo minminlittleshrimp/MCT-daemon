@@ -50,15 +50,6 @@
 #include <linux/stat.h>
 #endif
 
-#ifdef DLT_DAEMON_VSOCK_IPC_ENABLE
-#ifdef linux
-#include <linux/vm_sockets.h>
-#endif
-#ifdef __QNX__
-#include <vm_sockets.h>
-#endif
-#endif
-
 #include "dlt_types.h"
 #include "dlt-daemon.h"
 #include "dlt-daemon_cfg.h"
@@ -73,13 +64,6 @@
 #include "dlt_daemon_event_handler.h"
 #include "dlt_daemon_offline_logstorage.h"
 #include "dlt_daemon_filter.h"
-
-#ifdef UDP_CONNECTION_SUPPORT
-#include "dlt_daemon_udp_socket.h"
-#endif
-#if defined(DLT_SYSTEMD_WATCHDOG_ENABLE) || defined(DLT_SYSTEMD_ENABLE)
-#include "sd-daemon.h"
-#endif
 
 /**
  * \defgroup daemon DLT Daemon
@@ -121,57 +105,9 @@ static char dlt_timer_conn_types[DLT_TIMER_UNKNOWN + 1] = {
 static char dlt_timer_names[DLT_TIMER_UNKNOWN + 1][32] = {
     [DLT_TIMER_PACKET] = "Timing packet",
     [DLT_TIMER_ECU] = "ECU version",
-#ifdef DLT_SYSTEMD_WATCHDOG_ENABLE
-    [DLT_TIMER_SYSTEMD] = "Systemd watchdog",
-#endif
     [DLT_TIMER_GATEWAY] = "Gateway",
     [DLT_TIMER_UNKNOWN] = "Unknown timer"
 };
-
-#ifdef __QNX__
-static int dlt_timer_pipes[DLT_TIMER_UNKNOWN][2] = {
-    /* [timer_id] = {read_pipe, write_pipe} */
-    [DLT_TIMER_PACKET] = {DLT_FD_INIT, DLT_FD_INIT},
-    [DLT_TIMER_ECU] = {DLT_FD_INIT, DLT_FD_INIT},
-#ifdef DLT_SYSTEMD_WATCHDOG_ENABLE
-    [DLT_TIMER_SYSTEMD] = {DLT_FD_INIT, DLT_FD_INIT},
-#endif
-    [DLT_TIMER_GATEWAY] = {DLT_FD_INIT, DLT_FD_INIT}
-};
-
-static pthread_t timer_threads[DLT_TIMER_UNKNOWN] = {
-    [DLT_TIMER_PACKET] = 0,
-    [DLT_TIMER_ECU] = 0,
-#ifdef DLT_SYSTEMD_WATCHDOG_ENABLE
-    [DLT_TIMER_SYSTEMD] = 0,
-#endif
-    [DLT_TIMER_GATEWAY] = 0
-};
-
-static DltDaemonPeriodicData *timer_data[DLT_TIMER_UNKNOWN] = {
-    [DLT_TIMER_PACKET] = NULL,
-    [DLT_TIMER_ECU] = NULL,
-#ifdef DLT_SYSTEMD_WATCHDOG_ENABLE
-    [DLT_TIMER_SYSTEMD] = NULL,
-#endif
-    [DLT_TIMER_GATEWAY] = NULL
-};
-
-void close_pipes(int fds[2])
-{
-    if (fds[0] > 0) {
-        close(fds[0]);
-        fds[0] = DLT_FD_INIT;
-    }
-
-    if (fds[1] > 0) {
-        close(fds[1]);
-        fds[1] = DLT_FD_INIT;
-    }
-}
-
-#endif /* __QNX__ */
-
 /**
  * Print usage information of tool.
  */
@@ -404,11 +340,6 @@ int option_file_parser(DltDaemonLocal *daemon_local)
     daemon_local->flags.contextLogLevel = DLT_LOG_INFO;
     daemon_local->flags.contextTraceStatus = DLT_TRACE_STATUS_OFF;
     daemon_local->flags.enforceContextLLAndTS = 0; /* default is off */
-#ifdef UDP_CONNECTION_SUPPORT
-    daemon_local->UDPConnectionSetup = MULTICAST_CONNECTION_ENABLED;
-    strncpy(daemon_local->UDPMulticastIPAddress, MULTICASTIPADDRESS, MULTICASTIP_MAX_SIZE - 1);
-    daemon_local->UDPMulticastIPPort = MULTICASTIPPORT;
-#endif
     daemon_local->flags.ipNodes = NULL;
     daemon_local->flags.injectionMode = 1;
 
@@ -656,27 +587,6 @@ int option_file_parser(DltDaemonLocal *daemon_local)
                     } else if (strcmp(token, "DaemonFifoGroup") == 0) {
                         strncpy(daemon_local->flags.daemonFifoGroup, value, NAME_MAX);
                         daemon_local->flags.daemonFifoGroup[NAME_MAX] = 0;
-                    }
-#endif
-#ifdef UDP_CONNECTION_SUPPORT
-                    else if (strcmp(token, "UDPConnectionSetup") == 0) {
-                        const long longval = strtol(value, NULL, 10);
-
-                        if ((longval == MULTICAST_CONNECTION_DISABLED)
-                            || (longval == MULTICAST_CONNECTION_ENABLED)) {
-                            daemon_local->UDPConnectionSetup = longval;
-                            printf("Option: %s=%s\n", token, value);
-                        } else {
-                            daemon_local->UDPConnectionSetup = MULTICAST_CONNECTION_DISABLED;
-                            fprintf(stderr,
-                                    "Invalid value for UDPConnectionSetup set to default %ld\n",
-                                    longval);
-                        }
-                    } else if (strcmp(token, "UDPMulticastIPAddress") == 0) {
-                        strncpy(daemon_local->UDPMulticastIPAddress, value,
-                                MULTICASTIP_MAX_SIZE - 1);
-                    } else if (strcmp(token, "UDPMulticastIPPort") == 0) {
-                        daemon_local->UDPMulticastIPPort = strtol(value, NULL, 10);
                     }
 #endif
                     else if (strcmp(token, "BindAddress") == 0) {
@@ -1103,9 +1013,6 @@ int dlt_daemon_local_init_p1(DltDaemon *daemon, DltDaemonLocal *daemon_local, in
     signal(SIGHUP, dlt_daemon_signal_handler);  /* hangup signal */
     signal(SIGQUIT, dlt_daemon_signal_handler);
     signal(SIGINT, dlt_daemon_signal_handler);
-#ifdef __QNX__
-    signal(SIGUSR1, dlt_daemon_signal_handler); /* for timer threads */
-#endif
 
     return DLT_RETURN_OK;
 }
@@ -1412,28 +1319,10 @@ static DltReturnValue dlt_daemon_init_app_socket(DltDaemonLocal *daemon_local)
         dlt_vlog(LOG_ERR, "%s: Invalid function parameters\n", __func__);
         return DLT_RETURN_ERROR;
     }
-
-#ifdef ANDROID
-    /* on android if we want to use security contexts on Unix sockets,
-     * they should be created by init (see dlt-daemon.rc in src/daemon)
-     * and recovered through the below API */
-    ret = dlt_daemon_unix_android_get_socket(&fd, daemon_local->flags.appSockPath);
-    if (ret < DLT_RETURN_OK) {
-        /* we failed to get app socket created by init.
-         * To avoid blocking users to launch dlt-daemon only through
-         * init on android (e.g: by hand for debugging purpose), try to
-         * create app socket by ourselves */
-        ret = dlt_daemon_unix_socket_open(&fd,
-                                          daemon_local->flags.appSockPath,
-                                          SOCK_STREAM,
-                                          mask);
-    }
-#else
     ret = dlt_daemon_unix_socket_open(&fd,
                                       daemon_local->flags.appSockPath,
                                       SOCK_STREAM,
                                       mask);
-#endif
     if (ret == DLT_RETURN_OK) {
         if (dlt_connection_create(daemon_local,
                                   &daemon_local->pEvent,
@@ -1464,28 +1353,10 @@ static DltReturnValue dlt_daemon_initialize_control_socket(DltDaemonLocal *daemo
         dlt_vlog(LOG_ERR, "%s: Invalid function parameters\n", __func__);
         return -1;
     }
-
-#ifdef ANDROID
-    /* on android if we want to use security contexts on Unix sockets,
-     * they should be created by init (see dlt-daemon.rc in src/daemon)
-     * and recovered through the below API */
-    ret = dlt_daemon_unix_android_get_socket(&fd, daemon_local->flags.ctrlSockPath);
-    if (ret < DLT_RETURN_OK) {
-        /* we failed to get app socket created by init.
-         * To avoid blocking users to launch dlt-daemon only through
-         * init on android (e.g by hand for debugging purpose), try to
-         * create app socket by ourselves */
-        ret = dlt_daemon_unix_socket_open(&fd,
-                                          daemon_local->flags.ctrlSockPath,
-                                          SOCK_STREAM,
-                                          mask);
-    }
-#else
     ret = dlt_daemon_unix_socket_open(&fd,
                                       daemon_local->flags.ctrlSockPath,
                                       SOCK_STREAM,
                                       mask);
-#endif
     if (ret == DLT_RETURN_OK) {
         if (dlt_connection_create(daemon_local,
                                   &daemon_local->pEvent,
@@ -1582,19 +1453,6 @@ int dlt_daemon_local_connection_init(DltDaemon *daemon,
             }
         }
     }
-
-#ifdef UDP_CONNECTION_SUPPORT
-
-    if (daemon_local->UDPConnectionSetup == MULTICAST_CONNECTION_ENABLED) {
-        if (dlt_daemon_udp_connection_setup(daemon_local) < 0) {
-            dlt_log(LOG_ERR, "UDP fd creation failed\n");
-            return DLT_RETURN_ERROR;
-        } else {
-            dlt_log(LOG_INFO, "UDP fd creation success\n");
-        }
-    }
-
-#endif
 
     /* create and open unix socket to receive incoming connections from
      * control application */
@@ -1762,9 +1620,6 @@ void dlt_daemon_exit_trigger()
     (void)unlink(tmp);
 #endif
 
-#ifdef __QNX__
-    dlt_daemon_cleanup_timers();
-#endif
 
 }
 
@@ -1784,14 +1639,6 @@ void dlt_daemon_signal_handler(int sig)
             dlt_daemon_exit_trigger();
             break;
         }
-#ifdef __QNX__
-        case SIGUSR1:
-        {
-            /* This case is intended for timer threads only */
-            dlt_log(LOG_NOTICE, "Received SIGUSR1\n");
-            break;
-        }
-#endif
         default:
         {
             /* This case should never happen! */
@@ -1799,32 +1646,6 @@ void dlt_daemon_signal_handler(int sig)
         }
     } /* switch */
 }     /* dlt_daemon_signal_handler() */
-
-#ifdef __QNX__
-void dlt_daemon_cleanup_timers()
-{
-    int i = 0;
-
-    while (i < DLT_TIMER_UNKNOWN) {
-        /* Remove FIFO of every timer and kill timer thread */
-        if (0 != timer_threads[i]) {
-            pthread_kill(timer_threads[i], SIGUSR1);
-            pthread_join(timer_threads[i], NULL);
-            timer_threads[i] = 0;
-
-            close_pipes(dlt_timer_pipes[i]);
-
-            /* Free data of every timer */
-            if (NULL != timer_data[i]) {
-                free(timer_data[i]);
-                timer_data[i] = NULL;
-            }
-        }
-
-        i++;
-    }
-}
-#endif
 
 void dlt_daemon_daemonize(int verbose)
 {
@@ -3450,50 +3271,6 @@ int dlt_daemon_send_ringbuffer_to_client(DltDaemon *daemon,
     return DLT_DAEMON_ERROR_OK;
 }
 
-#ifdef __QNX__
-static void *timer_thread(void *data)
-{
-    int pexit = 0;
-    unsigned int sleep_ret = 0;
-
-    DltDaemonPeriodicData* timer_thread_data = (DltDaemonPeriodicData*) data;
-
-    /* Timer will start in starts_in sec*/
-    if ((sleep_ret = sleep(timer_thread_data->starts_in))) {
-        dlt_vlog(LOG_NOTICE, "Sleep remains [%u] for starting!"
-                "Stop thread of timer [%d]\n",
-                sleep_ret, timer_thread_data->timer_id);
-         close_pipes(dlt_timer_pipes[timer_thread_data->timer_id]);
-         return NULL;
-    }
-
-    while (1) {
-        if ((dlt_timer_pipes[timer_thread_data->timer_id][1] > 0) &&
-                (0 > write(dlt_timer_pipes[timer_thread_data->timer_id][1], "1", 1))) {
-            dlt_vlog(LOG_ERR, "Failed to send notification for timer [%s]!\n",
-                     dlt_timer_names[timer_thread_data->timer_id]);
-            pexit = 1;
-        }
-
-        if (pexit || g_exit) {
-            dlt_vlog(LOG_NOTICE, "Received signal!"
-                    "Stop thread of timer [%d]\n",
-                    timer_thread_data->timer_id);
-            close_pipes(dlt_timer_pipes[timer_thread_data->timer_id]);
-            return NULL;
-        }
-
-        if ((sleep_ret = sleep(timer_thread_data->period_sec))) {
-            dlt_vlog(LOG_NOTICE, "Sleep remains [%u] for interval!"
-                    "Stop thread of timer [%d]\n",
-                    sleep_ret, timer_thread_data->timer_id);
-             close_pipes(dlt_timer_pipes[timer_thread_data->timer_id]);
-             return NULL;
-        }
-    }
-}
-#endif
-
 int create_timer_fd(DltDaemonLocal *daemon_local,
                     int period_sec,
                     int starts_in,
@@ -3538,48 +3315,6 @@ int create_timer_fd(DltDaemonLocal *daemon_local,
                      timer_name, strerror(errno));
             local_fd = DLT_FD_INIT;
         }
-
-#elif __QNX__
-
-        /*
-         * Since timerfd is not valid in QNX, new threads are introduced
-         * to manage timers and communicate with main thread when timer expires.
-         */
-        if (0 != pipe(dlt_timer_pipes[timer_id])) {
-            dlt_vlog(LOG_ERR, "Failed to create pipe for timer [%s]",
-                     dlt_timer_names[timer_id]);
-            return -1;
-        }
-
-        if (NULL == timer_data[timer_id]) {
-            timer_data[timer_id] = calloc(1, sizeof(DltDaemonPeriodicData));
-
-            if (NULL == timer_data[timer_id]) {
-                dlt_vlog(LOG_ERR, "Failed to allocate memory for timer_data [%s]!\n",
-                         dlt_timer_names[timer_id]);
-                close_pipes(dlt_timer_pipes[timer_id]);
-                return -1;
-            }
-        }
-
-        timer_data[timer_id]->timer_id = timer_id;
-        timer_data[timer_id]->period_sec = period_sec;
-        timer_data[timer_id]->starts_in = starts_in;
-        timer_data[timer_id]->wakeups_missed = 0;
-
-        if (0 != pthread_create(&timer_threads[timer_id], NULL,
-                                &timer_thread, (void *)timer_data[timer_id])) {
-            dlt_vlog(LOG_ERR, "Failed to create new thread for timer [%s]!\n",
-                     dlt_timer_names[timer_id]);
-            /* Clean up timer before returning */
-            close_pipes(dlt_timer_pipes[timer_id]);
-            free(timer_data[timer_id]);
-            timer_data[timer_id] = NULL;
-
-            return -1;
-        }
-
-        local_fd = dlt_timer_pipes[timer_id][0];
 #endif
     }
 

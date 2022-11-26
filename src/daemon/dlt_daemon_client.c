@@ -81,9 +81,6 @@ static inline int8_t getStatus(uint8_t request_log, int context_log)
     return (request_log <= context_log) ? request_log : context_log;
 }
 
-#ifdef UDP_CONNECTION_SUPPORT
-#include "dlt_daemon_udp_socket.h"
-#endif
 
 /** @brief Sends up to 2 messages to all the clients.
  *
@@ -263,19 +260,6 @@ int dlt_daemon_client_send(int sock,
     /* send messages to daemon socket */
     if ((client_mask & DLT_CONNECTION_TO_MASK(DLT_CONNECTION_CLIENT_MSG_TCP)) ||
         (client_mask & DLT_CONNECTION_TO_MASK(DLT_CONNECTION_CLIENT_MSG_SERIAL))) {
-#ifdef UDP_CONNECTION_SUPPORT
-        if (daemon_local->UDPConnectionSetup == MULTICAST_CONNECTION_ENABLED) {
-            /* Forward message to network client if network routing is not disabled */
-            if (ret_logstorage != 1) {
-                dlt_daemon_udp_dltmsg_multicast(data1,
-                                                size1,
-                                                data2,
-                                                size2,
-                                                verbose);
-            }
-        }
-
-#endif
 
         if ((sock == DLT_DAEMON_SEND_FORCE) || (daemon->state == DLT_DAEMON_STATE_SEND_DIRECT)) {
             /* Forward message to network client if network routing is not disabled */
