@@ -1,5 +1,3 @@
-% MCT-EXAMPLE-USER(1)
-
 # NAME
 
 **mct-log-writer** - Console based application for generating logs

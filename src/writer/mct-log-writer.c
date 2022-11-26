@@ -43,11 +43,6 @@ void usage()
     printf("  -A AppID      Set app ID for send message (Default: LOG)\n");
     printf("  -t timeout    Set timeout when sending messages at exit, in ms (Default: 10000 = 10sec)\n");
     printf("  -r size       Send raw data with specified size instead of string\n");
-#ifdef MCT_TEST_ENABLE
-    printf("  -c            Corrupt user header\n");
-    printf("  -s size       Corrupt message size\n");
-    printf("  -z size          Size of message\n");
-#endif /* MCT_TEST_ENABLE */
 }
 
 /**
@@ -58,11 +53,6 @@ int main(int argc, char *argv[])
     int gflag = 0;
     int aflag = 0;
     int kflag = 0;
-#ifdef MCT_TEST_ENABLE
-    int cflag = 0;
-    char *svalue = 0;
-    char *zvalue = 0;
-#endif /* MCT_TEST_ENABLE */
     char *dvalue = 0;
     char *fvalue = 0;
     unsigned int filesize = 0;
@@ -86,13 +76,7 @@ int main(int argc, char *argv[])
     int state = -1, newstate;
 
     opterr = 0;
-#ifdef MCT_TEST_ENABLE
-
-    while ((c = getopt (argc, argv, "vgakcd:f:S:n:m:z:r:s:l:t:A:C:")) != -1)
-#else
-
     while ((c = getopt (argc, argv, "vgakd:f:S:n:m:l:r:t:A:C:")) != -1)
-#endif /* MCT_TEST_ENABLE */
     {
         switch (c) {
         case 'g':
@@ -110,23 +94,6 @@ int main(int argc, char *argv[])
             kflag = 1;
             break;
         }
-#ifdef MCT_TEST_ENABLE
-        case 'c':
-        {
-            cflag = 1;
-            break;
-        }
-        case 's':
-        {
-            svalue = optarg;
-            break;
-        }
-        case 'z':
-        {
-            zvalue = optarg;
-            break;
-        }
-#endif /* MCT_TEST_ENABLE */
         case 'd':
         {
             dvalue = optarg;
@@ -289,29 +256,6 @@ int main(int argc, char *argv[])
         MCT_LOG_ID(mycontext1, MCT_LOG_INFO, 13, MCT_UINT8(123), MCT_FLOAT32(1.12));
         MCT_LOG_ID(mycontext1, MCT_LOG_INFO, 14, MCT_STRING("DEAD BEEF"));
     }
-
-#ifdef MCT_TEST_ENABLE
-
-    if (cflag)
-        mct_user_test_corrupt_user_header(1);
-
-    if (svalue)
-        mct_user_test_corrupt_message_size(1, atoi(svalue));
-
-    if (zvalue) {
-        char *buffer = malloc(atoi(zvalue));
-
-        if (buffer == 0) {
-            /* no message, show usage and terminate */
-            fprintf(stderr, "Cannot allocate buffer memory!\n");
-            return -1;
-        }
-
-        MCT_LOG(mycontext1, MCT_LOG_WARN, MCT_STRING(text), MCT_RAW(buffer, atoi(zvalue)));
-        free(buffer);
-    }
-
-#endif /* MCT_TEST_ENABLE */
 
     for (num = 0; num < maxnum; num++) {
         printf("Send %d %s\n", num, text);

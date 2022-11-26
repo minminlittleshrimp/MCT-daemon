@@ -95,7 +95,11 @@ Be aware that mct-log-reader will never delete any files. Instead, it creates a 
 
 # AUTHOR
 
-Luu Quang Minh, Hoang Quang Chanh, Nguyen Nhu Thuan
+Luu Quang Minh (leader)
+
+Hoang Quang Chanh
+
+Nguyen Nhu Thuan
 
 # COPYRIGHT
 

@@ -1,4 +1,4 @@
-% MCT.CONF(5)
+% MCT.CONF
 
 # NAME
 
