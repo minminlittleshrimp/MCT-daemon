@@ -61,6 +61,7 @@ setup](doc/mct_demo_setup.md).
 | *Control running instances of MCT*||
 |[mct-log-writer](doc/mct-receive.1.md)| Receive and store MCT logs |
 |[mct-log-reader](doc/mct-control.1.md)| Send MCT logs to the Daemon |
+|[mct-log-converter](doc/mct-control.1.md)| Convert MCT log file to readable format |
 |[mct-logstorage-ctrl](doc/mct-logstorage-ctrl.1.md)| Send a control signal to mount/unmount a device |
 
 ## Known issues
