@@ -99,7 +99,11 @@ The default descriptions for application and context registration are used irres
 
 # AUTHOR
 
-Luu Quang Minh, Hoang Quang Chanh, Nguyen Nhu Thuan
+Luu Quang Minh (leader)
+
+Hoang Quang Chanh
+
+Nguyen Nhu Thuan
 
 # COPYRIGHT
 
