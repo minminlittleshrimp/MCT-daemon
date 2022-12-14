@@ -345,19 +345,3 @@ The address on which daemon multicasts the log messages
 ## UDPMulticastIPPort
 
 The Multicase IP port. Default: 3491
-
-# AUTHOR
-
-Alexander Wenzel (alexander.aw.wenzel (at) bmw (dot) de)
-
-# COPYRIGHT
-
-Copyright (C) 2015 BMW AG. License MPL-2.0: Mozilla Public License version 2.0 <http://mozilla.org/MPL/2.0/>.
-
-# BUGS
-
-See Github issue: <https://github.com/GENIVI/mct-daemon/issues>
-
-# SEE ALSO
-
-**mct-daemon(1)**, **mct-system(1)**
